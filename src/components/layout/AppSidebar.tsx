@@ -21,6 +21,7 @@ import {
   Clock,
   DollarSign,
   FileCheck,
+  UserCircle,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -82,6 +83,7 @@ const infoNavItems = [
 
 const otherNavItems = [
   { title: "レポート", url: "/reports", icon: BarChart3 },
+  { title: "プロフィール", url: "/profile", icon: UserCircle },
   { title: "設定", url: "/settings", icon: Settings },
 ];
 

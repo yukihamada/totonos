@@ -33,6 +33,8 @@ import YearEnd from "./pages/YearEnd";
 // Info
 import Wiki from "./pages/Wiki";
 import ITAssets from "./pages/ITAssets";
+// Settings
+import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient();
 
@@ -89,6 +91,8 @@ function AppRoutes() {
       {/* Info */}
       <Route path="/wiki" element={<ProtectedRoute><Wiki /></ProtectedRoute>} />
       <Route path="/it-assets" element={<ProtectedRoute><ITAssets /></ProtectedRoute>} />
+      {/* Settings */}
+      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       {/* Not Found */}
       <Route path="*" element={<NotFound />} />
     </Routes>
