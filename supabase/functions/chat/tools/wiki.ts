@@ -1,0 +1,249 @@
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+export const wikiTools = [
+  {
+    name: "search_wiki",
+    description: "Wikiページをキーワードで検索します。",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        query: {
+          type: "string",
+          description: "検索キーワード",
+        },
+        category: {
+          type: "string",
+          description: "カテゴリでフィルタ",
+        },
+        limit: {
+          type: "number",
+          description: "取得件数の上限（デフォルト: 10）",
+        },
+      },
+      required: ["query"],
+    },
+  },
+  {
+    name: "wiki_list",
+    description: "Wikiページの一覧を取得します。",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        category: {
+          type: "string",
+          description: "カテゴリでフィルタ",
+        },
+        limit: {
+          type: "number",
+          description: "取得件数の上限（デフォルト: 20）",
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "wiki_get",
+    description: "指定されたIDのWikiページの内容を取得します。",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        page_id: {
+          type: "string",
+          description: "WikiページID",
+        },
+      },
+      required: ["page_id"],
+    },
+  },
+  {
+    name: "wiki_create",
+    description: "新しいWikiページを作成します。",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        title: {
+          type: "string",
+          description: "ページタイトル",
+        },
+        content: {
+          type: "string",
+          description: "ページ内容（Markdown形式）",
+        },
+        category: {
+          type: "string",
+          description: "カテゴリ",
+        },
+        tags: {
+          type: "array",
+          items: { type: "string" },
+          description: "タグ（配列）",
+        },
+      },
+      required: ["title", "content"],
+    },
+  },
+  {
+    name: "wiki_update",
+    description: "既存のWikiページを更新します。",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        page_id: {
+          type: "string",
+          description: "WikiページID",
+        },
+        title: {
+          type: "string",
+          description: "ページタイトル",
+        },
+        content: {
+          type: "string",
+          description: "ページ内容（Markdown形式）",
+        },
+        category: {
+          type: "string",
+          description: "カテゴリ",
+        },
+        tags: {
+          type: "array",
+          items: { type: "string" },
+          description: "タグ（配列）",
+        },
+      },
+      required: ["page_id"],
+    },
+  },
+  {
+    name: "wiki_delete",
+    description: "Wikiページを削除します。",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        page_id: {
+          type: "string",
+          description: "WikiページID",
+        },
+      },
+      required: ["page_id"],
+    },
+  },
+];
+
+export async function executeWikiTool(
+  toolName: string,
+  input: Record<string, unknown>,
+  userId: string,
+  supabase: SupabaseClient
+): Promise<unknown> {
+  switch (toolName) {
+    case "search_wiki": {
+      let query = supabase
+        .from("wiki_pages")
+        .select("*")
+        .eq("user_id", userId)
+        .or(`title.ilike.%${input.query}%,content.ilike.%${input.query}%`)
+        .order("updated_at", { ascending: false })
+        .limit(input.limit as number || 10);
+
+      if (input.category) {
+        query = query.eq("category", input.category);
+      }
+
+      const { data, error } = await query;
+      if (error) throw new Error(error.message);
+
+      // Return summary without full content for search results
+      const results = data?.map((page) => ({
+        id: page.id,
+        title: page.title,
+        category: page.category,
+        tags: page.tags,
+        excerpt: page.content?.substring(0, 200) + (page.content?.length > 200 ? "..." : ""),
+        updated_at: page.updated_at,
+      }));
+
+      return { pages: results, count: data?.length || 0, query: input.query };
+    }
+
+    case "wiki_list": {
+      let query = supabase
+        .from("wiki_pages")
+        .select("id, title, category, tags, updated_at")
+        .eq("user_id", userId)
+        .order("updated_at", { ascending: false })
+        .limit(input.limit as number || 20);
+
+      if (input.category) {
+        query = query.eq("category", input.category);
+      }
+
+      const { data, error } = await query;
+      if (error) throw new Error(error.message);
+      return { pages: data, count: data?.length || 0 };
+    }
+
+    case "wiki_get": {
+      const { data, error } = await supabase
+        .from("wiki_pages")
+        .select("*")
+        .eq("id", input.page_id)
+        .eq("user_id", userId)
+        .single();
+
+      if (error) throw new Error(error.message);
+      return { page: data };
+    }
+
+    case "wiki_create": {
+      const { data, error } = await supabase
+        .from("wiki_pages")
+        .insert({
+          user_id: userId,
+          title: input.title,
+          content: input.content,
+          category: input.category || "一般",
+          tags: input.tags || [],
+        })
+        .select()
+        .single();
+
+      if (error) throw new Error(error.message);
+      return { page: data, message: "Wikiページを作成しました" };
+    }
+
+    case "wiki_update": {
+      const updateData: Record<string, unknown> = {
+        updated_at: new Date().toISOString(),
+      };
+      if (input.title) updateData.title = input.title;
+      if (input.content) updateData.content = input.content;
+      if (input.category) updateData.category = input.category;
+      if (input.tags) updateData.tags = input.tags;
+
+      const { data, error } = await supabase
+        .from("wiki_pages")
+        .update(updateData)
+        .eq("id", input.page_id)
+        .eq("user_id", userId)
+        .select()
+        .single();
+
+      if (error) throw new Error(error.message);
+      return { page: data, message: "Wikiページを更新しました" };
+    }
+
+    case "wiki_delete": {
+      const { error } = await supabase
+        .from("wiki_pages")
+        .delete()
+        .eq("id", input.page_id)
+        .eq("user_id", userId);
+
+      if (error) throw new Error(error.message);
+      return { message: "Wikiページを削除しました" };
+    }
+
+    default:
+      throw new Error(`Unknown wiki tool: ${toolName}`);
+  }
+}

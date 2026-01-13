@@ -37,6 +37,8 @@ import ITAssets from "./pages/ITAssets";
 import Invoices from "./pages/Invoices";
 // Settings
 import Profile from "./pages/Profile";
+// Chat
+import { ChatWidget } from "./components/chat/ChatWidget";
 
 const queryClient = new QueryClient();
 
@@ -110,6 +112,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AppRoutes />
+          <ChatWidget />
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
