@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounts: {
+        Row: {
+          account_code: string
+          account_name: string
+          account_type: Database["public"]["Enums"]["account_type"]
+          created_at: string
+          id: string
+          is_active: boolean | null
+          is_system: boolean | null
+          parent_account_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_code: string
+          account_name: string
+          account_type: Database["public"]["Enums"]["account_type"]
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          is_system?: boolean | null
+          parent_account_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_code?: string
+          account_name?: string
+          account_type?: Database["public"]["Enums"]["account_type"]
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          is_system?: boolean | null
+          parent_account_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounts_parent_account_id_fkey"
+            columns: ["parent_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       boost_requests: {
         Row: {
           approved_at: string | null
@@ -274,6 +321,64 @@ export type Database = {
           },
         ]
       }
+      depreciation_schedules: {
+        Row: {
+          accumulated_depreciation: number
+          book_value_after: number
+          created_at: string
+          depreciation_amount: number
+          depreciation_date: string
+          fiscal_period_id: string | null
+          fixed_asset_id: string
+          id: string
+          journal_entry_id: string | null
+        }
+        Insert: {
+          accumulated_depreciation: number
+          book_value_after: number
+          created_at?: string
+          depreciation_amount: number
+          depreciation_date: string
+          fiscal_period_id?: string | null
+          fixed_asset_id: string
+          id?: string
+          journal_entry_id?: string | null
+        }
+        Update: {
+          accumulated_depreciation?: number
+          book_value_after?: number
+          created_at?: string
+          depreciation_amount?: number
+          depreciation_date?: string
+          fiscal_period_id?: string | null
+          fixed_asset_id?: string
+          id?: string
+          journal_entry_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "depreciation_schedules_fiscal_period_id_fkey"
+            columns: ["fiscal_period_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "depreciation_schedules_fixed_asset_id_fkey"
+            columns: ["fixed_asset_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "depreciation_schedules_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estimate_items: {
         Row: {
           amount: number
@@ -374,6 +479,195 @@ export type Database = {
           },
         ]
       }
+      expense_claims: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          claim_date: string
+          claim_number: string
+          claimant_name: string | null
+          created_at: string
+          id: string
+          paid_at: string | null
+          status: Database["public"]["Enums"]["expense_status"]
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          claim_date?: string
+          claim_number: string
+          claimant_name?: string | null
+          created_at?: string
+          id?: string
+          paid_at?: string | null
+          status?: Database["public"]["Enums"]["expense_status"]
+          total_amount?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          claim_date?: string
+          claim_number?: string
+          claimant_name?: string | null
+          created_at?: string
+          id?: string
+          paid_at?: string | null
+          status?: Database["public"]["Enums"]["expense_status"]
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      expense_items: {
+        Row: {
+          account_id: string | null
+          amount: number
+          created_at: string
+          description: string
+          expense_claim_id: string
+          expense_date: string
+          id: string
+          receipt_url: string | null
+          vendor_name: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          amount: number
+          created_at?: string
+          description: string
+          expense_claim_id: string
+          expense_date: string
+          id?: string
+          receipt_url?: string | null
+          vendor_name?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          created_at?: string
+          description?: string
+          expense_claim_id?: string
+          expense_date?: string
+          id?: string
+          receipt_url?: string | null
+          vendor_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_items_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_items_expense_claim_id_fkey"
+            columns: ["expense_claim_id"]
+            isOneToOne: false
+            referencedRelation: "expense_claims"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fiscal_periods: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          end_date: string
+          id: string
+          is_closed: boolean | null
+          period_name: string
+          start_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string
+          end_date: string
+          id?: string
+          is_closed?: boolean | null
+          period_name: string
+          start_date: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string
+          end_date?: string
+          id?: string
+          is_closed?: boolean | null
+          period_name?: string
+          start_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      fixed_assets: {
+        Row: {
+          acquisition_cost: number
+          acquisition_date: string
+          asset_category: Database["public"]["Enums"]["asset_category"]
+          asset_code: string
+          asset_name: string
+          created_at: string
+          current_book_value: number
+          depreciation_method: Database["public"]["Enums"]["depreciation_method"]
+          disposal_amount: number | null
+          disposal_date: string | null
+          id: string
+          is_active: boolean | null
+          salvage_value: number | null
+          updated_at: string
+          useful_life_years: number
+          user_id: string
+        }
+        Insert: {
+          acquisition_cost: number
+          acquisition_date: string
+          asset_category: Database["public"]["Enums"]["asset_category"]
+          asset_code: string
+          asset_name: string
+          created_at?: string
+          current_book_value: number
+          depreciation_method?: Database["public"]["Enums"]["depreciation_method"]
+          disposal_amount?: number | null
+          disposal_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          salvage_value?: number | null
+          updated_at?: string
+          useful_life_years: number
+          user_id: string
+        }
+        Update: {
+          acquisition_cost?: number
+          acquisition_date?: string
+          asset_category?: Database["public"]["Enums"]["asset_category"]
+          asset_code?: string
+          asset_name?: string
+          created_at?: string
+          current_book_value?: number
+          depreciation_method?: Database["public"]["Enums"]["depreciation_method"]
+          disposal_amount?: number | null
+          disposal_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          salvage_value?: number | null
+          updated_at?: string
+          useful_life_years?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       invoice_items: {
         Row: {
           amount: number
@@ -473,6 +767,101 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journal_entries: {
+        Row: {
+          created_at: string
+          description: string | null
+          entry_date: string
+          entry_number: string
+          fiscal_period_id: string | null
+          id: string
+          is_posted: boolean | null
+          source_id: string | null
+          source_type: Database["public"]["Enums"]["journal_source_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          entry_date: string
+          entry_number: string
+          fiscal_period_id?: string | null
+          id?: string
+          is_posted?: boolean | null
+          source_id?: string | null
+          source_type?: Database["public"]["Enums"]["journal_source_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          entry_date?: string
+          entry_number?: string
+          fiscal_period_id?: string | null
+          id?: string
+          is_posted?: boolean | null
+          source_id?: string | null
+          source_type?: Database["public"]["Enums"]["journal_source_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_entries_fiscal_period_id_fkey"
+            columns: ["fiscal_period_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journal_entry_lines: {
+        Row: {
+          account_id: string
+          created_at: string
+          credit_amount: number
+          debit_amount: number
+          description: string | null
+          id: string
+          journal_entry_id: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          credit_amount?: number
+          debit_amount?: number
+          description?: string | null
+          id?: string
+          journal_entry_id: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          credit_amount?: number
+          debit_amount?: number
+          description?: string | null
+          id?: string
+          journal_entry_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_entry_lines_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entry_lines_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
             referencedColumns: ["id"]
           },
         ]
@@ -725,6 +1114,39 @@ export type Database = {
           },
         ]
       }
+      tax_settings: {
+        Row: {
+          consumption_tax_rate: number
+          corporate_tax_rate: number | null
+          created_at: string
+          fiscal_year_start_month: number
+          id: string
+          is_simplified_taxation: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          consumption_tax_rate?: number
+          corporate_tax_rate?: number | null
+          created_at?: string
+          fiscal_year_start_month?: number
+          id?: string
+          is_simplified_taxation?: boolean | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          consumption_tax_rate?: number
+          corporate_tax_rate?: number | null
+          created_at?: string
+          fiscal_year_start_month?: number
+          id?: string
+          is_simplified_taxation?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       trust_passports: {
         Row: {
           account_age_months: number | null
@@ -826,6 +1248,14 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      account_type: "asset" | "liability" | "equity" | "revenue" | "expense"
+      asset_category:
+        | "building"
+        | "vehicle"
+        | "equipment"
+        | "software"
+        | "furniture"
+        | "other"
       boost_status: "pending" | "approved" | "completed" | "rejected"
       contract_status:
         | "draft"
@@ -835,7 +1265,9 @@ export type Database = {
         | "signed"
         | "expired"
         | "cancelled"
+      depreciation_method: "straight_line" | "declining_balance"
       estimate_status: "draft" | "sent" | "accepted" | "rejected" | "expired"
+      expense_status: "draft" | "pending" | "approved" | "rejected" | "paid"
       invoice_status:
         | "draft"
         | "sent"
@@ -843,6 +1275,13 @@ export type Database = {
         | "paid"
         | "overdue"
         | "cancelled"
+      journal_source_type:
+        | "manual"
+        | "invoice"
+        | "payment"
+        | "expense"
+        | "depreciation"
+        | "purchase_order"
       purchase_order_status:
         | "draft"
         | "sent"
@@ -979,6 +1418,15 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      account_type: ["asset", "liability", "equity", "revenue", "expense"],
+      asset_category: [
+        "building",
+        "vehicle",
+        "equipment",
+        "software",
+        "furniture",
+        "other",
+      ],
       boost_status: ["pending", "approved", "completed", "rejected"],
       contract_status: [
         "draft",
@@ -989,7 +1437,9 @@ export const Constants = {
         "expired",
         "cancelled",
       ],
+      depreciation_method: ["straight_line", "declining_balance"],
       estimate_status: ["draft", "sent", "accepted", "rejected", "expired"],
+      expense_status: ["draft", "pending", "approved", "rejected", "paid"],
       invoice_status: [
         "draft",
         "sent",
@@ -997,6 +1447,14 @@ export const Constants = {
         "paid",
         "overdue",
         "cancelled",
+      ],
+      journal_source_type: [
+        "manual",
+        "invoice",
+        "payment",
+        "expense",
+        "depreciation",
+        "purchase_order",
       ],
       purchase_order_status: [
         "draft",
