@@ -7,7 +7,8 @@ import {
   Shield, 
   BarChart3, 
   Settings,
-  LogOut
+  LogOut,
+  FileSignature
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -29,6 +30,7 @@ import { Button } from "@/components/ui/button";
 const mainNavItems = [
   { title: "ダッシュボード", url: "/dashboard", icon: LayoutDashboard },
   { title: "請求書", url: "/invoices", icon: FileText },
+  { title: "契約書", url: "/contracts", icon: FileSignature },
   { title: "取引先", url: "/clients", icon: Users },
 ];
 
