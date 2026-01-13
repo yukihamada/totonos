@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { User, Building2, Mail, Save } from "lucide-react";
+import { User, Building2, Mail, Save, Camera, Loader2 } from "lucide-react";
 
 interface Profile {
   display_name: string | null;
@@ -21,6 +22,9 @@ export default function Profile() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [profile, setProfile] = useState<Profile>({
     display_name: "",
     company_name: "",
@@ -31,6 +35,7 @@ export default function Profile() {
   useEffect(() => {
     if (user) {
       fetchProfile();
+      fetchAvatar();
     }
   }, [user]);
 
@@ -40,11 +45,9 @@ export default function Profile() {
         .from("profiles")
         .select("display_name, company_name, company_address, company_logo_url")
         .eq("user_id", user?.id)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== "PGRST116") {
-        throw error;
-      }
+      if (error) throw error;
 
       if (data) {
         setProfile({
@@ -58,6 +61,80 @@ export default function Profile() {
       console.error("Error fetching profile:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAvatar = async () => {
+    if (!user) return;
+
+    try {
+      const { data } = await supabase.storage
+        .from("avatars")
+        .list(user.id, { limit: 1, sortBy: { column: "created_at", order: "desc" } });
+
+      if (data && data.length > 0) {
+        const { data: urlData } = supabase.storage
+          .from("avatars")
+          .getPublicUrl(`${user.id}/${data[0].name}`);
+        setAvatarUrl(urlData.publicUrl);
+      }
+    } catch (error) {
+      console.error("Error fetching avatar:", error);
+    }
+  };
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("画像ファイルを選択してください");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("ファイルサイズは5MB以下にしてください");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `avatar.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+
+      // Delete existing avatar if any
+      const { data: existingFiles } = await supabase.storage
+        .from("avatars")
+        .list(user.id);
+
+      if (existingFiles && existingFiles.length > 0) {
+        await supabase.storage
+          .from("avatars")
+          .remove(existingFiles.map((f) => `${user.id}/${f.name}`));
+      }
+
+      // Upload new avatar
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(filePath);
+
+      setAvatarUrl(urlData.publicUrl + `?t=${Date.now()}`);
+      toast.success("アバターをアップロードしました");
+    } catch (error) {
+      console.error("Error uploading avatar:", error);
+      toast.error("アバターのアップロードに失敗しました");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -87,6 +164,16 @@ export default function Profile() {
     }
   };
 
+  const getInitials = () => {
+    if (profile.display_name) {
+      return profile.display_name.slice(0, 2);
+    }
+    if (user?.email) {
+      return user.email.slice(0, 2).toUpperCase();
+    }
+    return "U";
+  };
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -109,7 +196,43 @@ export default function Profile() {
                 ログインに使用するメールアドレスと表示名
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
+              {/* アバター */}
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <Avatar className="h-20 w-20">
+                    <AvatarImage src={avatarUrl || undefined} alt="Avatar" />
+                    <AvatarFallback className="text-lg">{getInitials()}</AvatarFallback>
+                  </Avatar>
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                  >
+                    {uploading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Camera className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarUpload}
+                  />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">プロフィール画像</p>
+                  <p className="text-xs text-muted-foreground">
+                    JPG、PNG形式。最大5MB
+                  </p>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="email" className="flex items-center gap-2">
                   <Mail className="h-4 w-4" />

@@ -33,6 +33,8 @@ import YearEnd from "./pages/YearEnd";
 // Info
 import Wiki from "./pages/Wiki";
 import ITAssets from "./pages/ITAssets";
+// Invoices
+import Invoices from "./pages/Invoices";
 // Settings
 import Profile from "./pages/Profile";
 
@@ -64,7 +66,8 @@ function AppRoutes() {
       <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <Landing />} />
       <Route path="/auth" element={user ? <Navigate to="/dashboard" replace /> : <Auth />} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      {/* Contracts */}
+      {/* Documents */}
+      <Route path="/invoices" element={<ProtectedRoute><Invoices /></ProtectedRoute>} />
       <Route path="/contracts" element={<ProtectedRoute><Contracts /></ProtectedRoute>} />
       <Route path="/contracts/new" element={<ProtectedRoute><ContractNew /></ProtectedRoute>} />
       <Route path="/contracts/:id" element={<ProtectedRoute><ContractDetail /></ProtectedRoute>} />
