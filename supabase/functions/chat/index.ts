@@ -70,7 +70,7 @@ serve(async (req: Request) => {
 
     // Prepare messages for Claude
     const claudeMessages = messages.map((msg: { role: string; content: string }) => ({
-      role: msg.role === "user" ? "user" : "assistant",
+      role: (msg.role === "user" ? "user" : "assistant") as "user" | "assistant",
       content: msg.content,
     }));
 
@@ -127,13 +127,13 @@ serve(async (req: Request) => {
       const toolResultMessages = [
         ...claudeMessages,
         {
-          role: "assistant",
+          role: "assistant" as const,
           content: response.content,
         },
         {
-          role: "user",
+          role: "user" as const,
           content: toolResults.map((tr) => ({
-            type: "tool_result",
+            type: "tool_result" as const,
             tool_use_id: tr.toolCallId,
             content: JSON.stringify(tr.result),
             is_error: tr.isError,
