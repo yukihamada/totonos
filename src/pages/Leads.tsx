@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Plus, Search, UserPlus, MoreHorizontal, Trash2, ArrowRight } from "lucide-react";
-import AppLayout from "@/components/layout/AppLayout";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";

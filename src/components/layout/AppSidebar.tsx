@@ -8,7 +8,16 @@ import {
   BarChart3, 
   Settings,
   LogOut,
-  FileSignature
+  FileSignature,
+  Calculator,
+  BookOpen,
+  PieChart,
+  Building2,
+  Wallet,
+  UserPlus,
+  Target,
+  Book,
+  Laptop,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -29,15 +38,40 @@ import { Button } from "@/components/ui/button";
 
 const mainNavItems = [
   { title: "ダッシュボード", url: "/dashboard", icon: LayoutDashboard },
+];
+
+const crmNavItems = [
+  { title: "リード", url: "/leads", icon: UserPlus },
+  { title: "商談", url: "/deals", icon: Target },
+  { title: "取引先", url: "/clients", icon: Users },
+];
+
+const docNavItems = [
   { title: "請求書", url: "/invoices", icon: FileText },
   { title: "契約書", url: "/contracts", icon: FileSignature },
-  { title: "取引先", url: "/clients", icon: Users },
 ];
 
 const financeNavItems = [
   { title: "自動消込", url: "/reconciliation", icon: ArrowLeftRight },
   { title: "Dynamic Boost", url: "/boost", icon: Zap },
   { title: "Trust Passport", url: "/trust-passport", icon: Shield },
+];
+
+const accountingNavItems = [
+  { title: "会計ダッシュボード", url: "/accounting", icon: Calculator },
+  { title: "仕訳帳", url: "/accounting/journal", icon: BookOpen },
+  { title: "財務諸表", url: "/accounting/statements", icon: PieChart },
+  { title: "固定資産", url: "/accounting/assets", icon: Building2 },
+  { title: "経費管理", url: "/accounting/expenses", icon: Wallet },
+];
+
+const hrNavItems = [
+  { title: "従業員", url: "/employees", icon: Users },
+];
+
+const infoNavItems = [
+  { title: "社内Wiki", url: "/wiki", icon: Book },
+  { title: "IT資産", url: "/it-assets", icon: Laptop },
 ];
 
 const otherNavItems = [
@@ -87,10 +121,120 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
+          <SidebarGroupLabel>営業・CRM</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {crmNavItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink 
+                      to={item.url} 
+                      className="flex items-center gap-2 hover:bg-accent"
+                      activeClassName="bg-accent font-medium"
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>ドキュメント</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {docNavItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink 
+                      to={item.url} 
+                      className="flex items-center gap-2 hover:bg-accent"
+                      activeClassName="bg-accent font-medium"
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
           <SidebarGroupLabel>ファイナンス</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {financeNavItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink 
+                      to={item.url} 
+                      className="flex items-center gap-2 hover:bg-accent"
+                      activeClassName="bg-accent font-medium"
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>会計</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {accountingNavItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink 
+                      to={item.url} 
+                      className="flex items-center gap-2 hover:bg-accent"
+                      activeClassName="bg-accent font-medium"
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>人事・労務</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {hrNavItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink 
+                      to={item.url} 
+                      className="flex items-center gap-2 hover:bg-accent"
+                      activeClassName="bg-accent font-medium"
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>情報管理</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {infoNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink 
