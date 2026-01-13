@@ -1,7 +1,1 @@
 project_id = "wnqfmvoyvipebipdpvcx"
-
-[functions.chat]
-verify_jwt = true
-
-[functions.search-company]
-verify_jwt = false
