@@ -15,12 +15,8 @@ const createMockSupabase = () => ({
         data: { subscription: { unsubscribe: vi.fn() } },
       };
     }),
-    signInWithPassword: vi.fn().mockResolvedValue({
-      data: { session: null, user: null },
-      error: null
-    }),
-    signUp: vi.fn().mockResolvedValue({
-      data: { session: null, user: null },
+    signInWithOtp: vi.fn().mockResolvedValue({
+      data: {},
       error: null
     }),
     signOut: vi.fn().mockResolvedValue({ error: null }),
@@ -50,67 +46,39 @@ describe("Auth Page", () => {
     mockSupabase = createMockSupabase();
   });
 
-  it("renders the login form by default", async () => {
+  it("renders the login form with Invox branding", async () => {
     renderAuth();
     await waitFor(() => {
       expect(screen.getByText("Invox")).toBeInTheDocument();
     });
-    expect(screen.getByText("次世代財務オートメーションプラットフォーム")).toBeInTheDocument();
+    expect(screen.getByText("メールアドレスを入力してログイン・登録")).toBeInTheDocument();
   });
 
-  it("renders tabs for login and signup", async () => {
+  it("renders email input field", async () => {
     renderAuth();
-    await waitFor(() => {
-      expect(screen.getByRole("tab", { name: "ログイン" })).toBeInTheDocument();
-    });
-    expect(screen.getByRole("tab", { name: "新規登録" })).toBeInTheDocument();
-  });
-
-  it("can switch to signup tab", async () => {
-    const user = userEvent.setup();
-    renderAuth();
-
-    await waitFor(() => {
-      expect(screen.getByRole("tab", { name: "新規登録" })).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole("tab", { name: "新規登録" }));
-    expect(screen.getByPlaceholderText("6文字以上")).toBeInTheDocument();
-  });
-
-  it("has email and password inputs", async () => {
-    renderAuth();
-
     await waitFor(() => {
       expect(screen.getByLabelText("メールアドレス")).toBeInTheDocument();
     });
-
-    expect(screen.getByLabelText("パスワード")).toBeInTheDocument();
   });
 
-  it("has correct input types for email and password", async () => {
+  it("renders submit button", async () => {
     renderAuth();
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /ログインリンクを送信/i })).toBeInTheDocument();
+    });
+  });
 
+  it("has correct input type for email", async () => {
+    renderAuth();
     await waitFor(() => {
       expect(screen.getByLabelText("メールアドレス")).toBeInTheDocument();
     });
 
     const emailInput = screen.getByLabelText("メールアドレス");
-    const passwordInput = screen.getByLabelText("パスワード");
-
     expect(emailInput).toHaveAttribute("type", "email");
-    expect(passwordInput).toHaveAttribute("type", "password");
   });
 
-  it("has a login button", async () => {
-    renderAuth();
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "ログイン" })).toBeInTheDocument();
-    });
-  });
-
-  it("allows typing in email and password fields", async () => {
+  it("allows typing in email field", async () => {
     const user = userEvent.setup();
     renderAuth();
 
@@ -119,12 +87,34 @@ describe("Auth Page", () => {
     });
 
     const emailInput = screen.getByLabelText("メールアドレス");
-    const passwordInput = screen.getByLabelText("パスワード");
-
     await user.type(emailInput, "test@example.com");
-    await user.type(passwordInput, "password123");
 
     expect(emailInput).toHaveValue("test@example.com");
-    expect(passwordInput).toHaveValue("password123");
+  });
+
+  it("displays info text about passwordless login", async () => {
+    renderAuth();
+    await waitFor(() => {
+      expect(screen.getByText(/パスワードは不要です/i)).toBeInTheDocument();
+    });
+  });
+
+  it("shows email sent confirmation after successful submission", async () => {
+    const user = userEvent.setup();
+    renderAuth();
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("メールアドレス")).toBeInTheDocument();
+    });
+
+    const emailInput = screen.getByLabelText("メールアドレス");
+    const submitButton = screen.getByRole("button", { name: /ログインリンクを送信/i });
+
+    await user.type(emailInput, "test@example.com");
+    await user.click(submitButton);
+
+    await waitFor(() => {
+      expect(screen.getByText("メールを確認してください")).toBeInTheDocument();
+    });
   });
 });

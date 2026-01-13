@@ -13,12 +13,8 @@ const createMockSupabase = () => ({
         data: { subscription: { unsubscribe: vi.fn() } },
       };
     }),
-    signInWithPassword: vi.fn().mockResolvedValue({
-      data: { session: null, user: null },
-      error: null
-    }),
-    signUp: vi.fn().mockResolvedValue({
-      data: { session: null, user: null },
+    signInWithOtp: vi.fn().mockResolvedValue({
+      data: {},
       error: null
     }),
     signOut: vi.fn().mockResolvedValue({ error: null }),
@@ -55,7 +51,6 @@ describe("useAuth Hook", () => {
 
   it("initially has loading state", async () => {
     const { result } = renderHook(() => useAuth(), { wrapper });
-    // Loading should eventually become false
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
     });
@@ -72,26 +67,15 @@ describe("useAuth Hook", () => {
     expect(result.current.session).toBe(null);
   });
 
-  it("provides signIn function", async () => {
+  it("provides signInWithMagicLink function", async () => {
     const { result } = renderHook(() => useAuth(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
     });
 
-    expect(result.current.signIn).toBeDefined();
-    expect(typeof result.current.signIn).toBe("function");
-  });
-
-  it("provides signUp function", async () => {
-    const { result } = renderHook(() => useAuth(), { wrapper });
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    expect(result.current.signUp).toBeDefined();
-    expect(typeof result.current.signUp).toBe("function");
+    expect(result.current.signInWithMagicLink).toBeDefined();
+    expect(typeof result.current.signInWithMagicLink).toBe("function");
   });
 
   it("provides signOut function", async () => {
@@ -105,7 +89,7 @@ describe("useAuth Hook", () => {
     expect(typeof result.current.signOut).toBe("function");
   });
 
-  it("calls supabase signIn when signIn is called", async () => {
+  it("calls supabase signInWithOtp when signInWithMagicLink is called", async () => {
     const { result } = renderHook(() => useAuth(), { wrapper });
 
     await waitFor(() => {
@@ -113,12 +97,14 @@ describe("useAuth Hook", () => {
     });
 
     await act(async () => {
-      await result.current.signIn("test@example.com", "password123");
+      await result.current.signInWithMagicLink("test@example.com");
     });
 
-    expect(mockSupabase.auth.signInWithPassword).toHaveBeenCalledWith({
+    expect(mockSupabase.auth.signInWithOtp).toHaveBeenCalledWith({
       email: "test@example.com",
-      password: "password123",
+      options: {
+        emailRedirectTo: expect.stringContaining("/dashboard"),
+      },
     });
   });
 
