@@ -18,6 +18,9 @@ import {
   Target,
   Book,
   Laptop,
+  Clock,
+  DollarSign,
+  FileCheck,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -67,6 +70,9 @@ const accountingNavItems = [
 
 const hrNavItems = [
   { title: "従業員", url: "/employees", icon: Users },
+  { title: "勤怠管理", url: "/attendance", icon: Clock },
+  { title: "給与計算", url: "/payroll", icon: DollarSign },
+  { title: "年末調整", url: "/year-end", icon: FileCheck },
 ];
 
 const infoNavItems = [

@@ -27,6 +27,9 @@ import Leads from "./pages/Leads";
 import Deals from "./pages/Deals";
 // HR
 import Employees from "./pages/Employees";
+import Attendance from "./pages/Attendance";
+import Payroll from "./pages/Payroll";
+import YearEnd from "./pages/YearEnd";
 // Info
 import Wiki from "./pages/Wiki";
 import ITAssets from "./pages/ITAssets";
@@ -79,6 +82,10 @@ function AppRoutes() {
       <Route path="/deals" element={<ProtectedRoute><Deals /></ProtectedRoute>} />
       {/* HR */}
       <Route path="/employees" element={<ProtectedRoute><Employees /></ProtectedRoute>} />
+      <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
+      <Route path="/payroll" element={<ProtectedRoute><Payroll /></ProtectedRoute>} />
+      <Route path="/year-end" element={<ProtectedRoute><YearEnd /></ProtectedRoute>} />
+      {/* Info */}
       {/* Info */}
       <Route path="/wiki" element={<ProtectedRoute><Wiki /></ProtectedRoute>} />
       <Route path="/it-assets" element={<ProtectedRoute><ITAssets /></ProtectedRoute>} />
