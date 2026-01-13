@@ -71,11 +71,44 @@ export default function Auth() {
               ログインリンクを送信しました
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
             <p className="text-sm text-muted-foreground text-center">
               メール内のリンクをクリックしてログインしてください。
               リンクの有効期限は1時間です。
             </p>
+            
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground text-center font-medium">
+                メールを開く
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" className="w-full border-2" asChild>
+                  <a href="https://mail.google.com" target="_blank" rel="noopener noreferrer">
+                    <Mail className="mr-2 h-4 w-4 text-red-500" />
+                    Gmail
+                  </a>
+                </Button>
+                <Button variant="outline" className="w-full border-2" asChild>
+                  <a href="https://outlook.live.com" target="_blank" rel="noopener noreferrer">
+                    <Mail className="mr-2 h-4 w-4 text-blue-500" />
+                    Outlook
+                  </a>
+                </Button>
+                <Button variant="outline" className="w-full border-2" asChild>
+                  <a href="https://mail.yahoo.co.jp" target="_blank" rel="noopener noreferrer">
+                    <Mail className="mr-2 h-4 w-4 text-purple-500" />
+                    Yahoo!
+                  </a>
+                </Button>
+                <Button variant="outline" className="w-full border-2" asChild>
+                  <a href="https://www.icloud.com/mail" target="_blank" rel="noopener noreferrer">
+                    <Mail className="mr-2 h-4 w-4 text-sky-500" />
+                    iCloud
+                  </a>
+                </Button>
+              </div>
+            </div>
+            
             <Button 
               variant="outline" 
               className="w-full border-2"
