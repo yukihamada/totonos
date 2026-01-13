@@ -1,12 +1,22 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { 
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { 
   FileText, 
   ArrowLeftRight, 
   Zap, 
   Shield, 
   ArrowRight,
-  CheckCircle
+  CheckCircle,
+  X,
+  Circle
 } from "lucide-react";
 
 const features = [
@@ -130,6 +140,107 @@ export default function Landing() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Comparison Table */}
+      <section className="border-b-2 border-foreground py-24">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold text-center mb-4">
+            他サービスとの比較
+          </h2>
+          <p className="text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
+            Invoxは請求書管理から資金調達まで、すべてをワンストップで提供する唯一のプラットフォームです。
+          </p>
+          <div className="max-w-5xl mx-auto border-2 border-foreground overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-b-2 border-foreground bg-muted hover:bg-muted">
+                  <TableHead className="font-bold text-foreground w-[200px]">機能</TableHead>
+                  <TableHead className="font-bold text-foreground text-center border-l-2 border-foreground bg-foreground text-background">Invox</TableHead>
+                  <TableHead className="font-bold text-foreground text-center border-l-2 border-foreground">従来の請求書サービス</TableHead>
+                  <TableHead className="font-bold text-foreground text-center border-l-2 border-foreground">ファクタリング会社</TableHead>
+                  <TableHead className="font-bold text-foreground text-center border-l-2 border-foreground">銀行融資</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow className="border-b border-foreground">
+                  <TableCell className="font-medium">請求書作成</TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground bg-muted/50"><CheckCircle className="h-5 w-5 text-chart-2 mx-auto" /></TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground"><CheckCircle className="h-5 w-5 text-chart-2 mx-auto" /></TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground"><X className="h-5 w-5 text-destructive mx-auto" /></TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground"><X className="h-5 w-5 text-destructive mx-auto" /></TableCell>
+                </TableRow>
+                <TableRow className="border-b border-foreground">
+                  <TableCell className="font-medium">バーチャル口座発行</TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground bg-muted/50"><CheckCircle className="h-5 w-5 text-chart-2 mx-auto" /></TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground"><Circle className="h-5 w-5 text-muted-foreground mx-auto" /></TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground"><X className="h-5 w-5 text-destructive mx-auto" /></TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground"><X className="h-5 w-5 text-destructive mx-auto" /></TableCell>
+                </TableRow>
+                <TableRow className="border-b border-foreground">
+                  <TableCell className="font-medium">自動消込</TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground bg-muted/50"><CheckCircle className="h-5 w-5 text-chart-2 mx-auto" /></TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground"><Circle className="h-5 w-5 text-muted-foreground mx-auto" /></TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground"><X className="h-5 w-5 text-destructive mx-auto" /></TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground"><X className="h-5 w-5 text-destructive mx-auto" /></TableCell>
+                </TableRow>
+                <TableRow className="border-b border-foreground">
+                  <TableCell className="font-medium">早期入金（資金調達）</TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground bg-muted/50"><CheckCircle className="h-5 w-5 text-chart-2 mx-auto" /></TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground"><X className="h-5 w-5 text-destructive mx-auto" /></TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground"><CheckCircle className="h-5 w-5 text-chart-2 mx-auto" /></TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground"><CheckCircle className="h-5 w-5 text-chart-2 mx-auto" /></TableCell>
+                </TableRow>
+                <TableRow className="border-b border-foreground">
+                  <TableCell className="font-medium">AI与信・動的手数料</TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground bg-muted/50"><CheckCircle className="h-5 w-5 text-chart-2 mx-auto" /></TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground"><X className="h-5 w-5 text-destructive mx-auto" /></TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground"><X className="h-5 w-5 text-destructive mx-auto" /></TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground"><X className="h-5 w-5 text-destructive mx-auto" /></TableCell>
+                </TableRow>
+                <TableRow className="border-b border-foreground">
+                  <TableCell className="font-medium">信用スコア可視化</TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground bg-muted/50"><CheckCircle className="h-5 w-5 text-chart-2 mx-auto" /></TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground"><X className="h-5 w-5 text-destructive mx-auto" /></TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground"><X className="h-5 w-5 text-destructive mx-auto" /></TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground"><X className="h-5 w-5 text-destructive mx-auto" /></TableCell>
+                </TableRow>
+                <TableRow className="border-b border-foreground">
+                  <TableCell className="font-medium">手数料</TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground bg-muted/50 font-bold text-chart-2">1.0%〜</TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground">月額制</TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground">5%〜15%</TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground">2%〜5%</TableCell>
+                </TableRow>
+                <TableRow className="border-b border-foreground">
+                  <TableCell className="font-medium">資金化までの時間</TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground bg-muted/50 font-bold text-chart-2">最短即日</TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground">—</TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground">2〜3日</TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground">1〜2週間</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">審査の手間</TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground bg-muted/50 font-bold text-chart-2">自動（AI）</TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground">—</TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground">書類提出必要</TableCell>
+                  <TableCell className="text-center border-l-2 border-foreground">面談・書類多数</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
+          <div className="text-center mt-6 text-sm text-muted-foreground">
+            <span className="inline-flex items-center gap-2 mr-6">
+              <CheckCircle className="h-4 w-4 text-chart-2" /> 対応
+            </span>
+            <span className="inline-flex items-center gap-2 mr-6">
+              <Circle className="h-4 w-4 text-muted-foreground" /> 一部対応
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <X className="h-4 w-4 text-destructive" /> 非対応
+            </span>
           </div>
         </div>
       </section>
