@@ -25,7 +25,7 @@ export function ChatButton({ isOpen, onClick, hasUnread }: ChatButtonProps) {
         <>
           <MessageCircle className="h-6 w-6" />
           {hasUnread && (
-            <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive animate-pulse" />
+            <span data-testid="unread-indicator" className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive animate-pulse" />
           )}
         </>
       )}

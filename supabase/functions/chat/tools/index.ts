@@ -5,6 +5,7 @@ import { accountingTools, executeAccountingTool } from "./accounting.ts";
 import { hrTools, executeHrTool } from "./hr.ts";
 import { wikiTools, executeWikiTool } from "./wiki.ts";
 import { itAssetTools, executeItAssetTool } from "./it-assets.ts";
+import { invoiceTools, executeInvoiceTool } from "./invoices.ts";
 
 // Combine all tools
 export const allTools = [
@@ -14,6 +15,7 @@ export const allTools = [
   ...hrTools,
   ...wikiTools,
   ...itAssetTools,
+  ...invoiceTools,
 ];
 
 // Tool execution router
@@ -56,6 +58,11 @@ export async function executeToolCall(
   // IT Asset tools
   if (toolName.startsWith("asset_") || toolName === "list_it_assets") {
     return executeItAssetTool(toolName, input, userId, supabase);
+  }
+
+  // Invoice tools
+  if (toolName.startsWith("invoice_")) {
+    return executeInvoiceTool(toolName, input, userId, supabase);
   }
 
   throw new Error(`Unknown tool: ${toolName}`);

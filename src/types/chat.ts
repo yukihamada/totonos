@@ -80,7 +80,8 @@ export type ToolCategory =
   | 'accounting'
   | 'hr'
   | 'wiki'
-  | 'it_assets';
+  | 'it_assets'
+  | 'invoices';
 
 // Quick action suggestions
 export interface QuickAction {
@@ -93,6 +94,7 @@ export interface QuickAction {
 
 export const QUICK_ACTIONS: QuickAction[] = [
   { id: 'list-contracts', label: '契約一覧', prompt: '契約書の一覧を見せてください', category: 'contracts' },
+  { id: 'list-invoices', label: '請求書一覧', prompt: '請求書の一覧を見せてください', category: 'invoices' },
   { id: 'list-leads', label: 'リード一覧', prompt: 'リードの一覧を表示してください', category: 'crm' },
   { id: 'list-deals', label: '案件一覧', prompt: '現在の案件一覧を見せてください', category: 'crm' },
   { id: 'trial-balance', label: '試算表', prompt: '今月の試算表を出してください', category: 'accounting' },
