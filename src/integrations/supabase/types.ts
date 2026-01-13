@@ -103,6 +103,106 @@ export type Database = {
         }
         Relationships: []
       }
+      estimate_items: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string
+          estimate_id: string
+          id: string
+          quantity: number
+          unit_price: number
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description: string
+          estimate_id: string
+          id?: string
+          quantity?: number
+          unit_price: number
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string
+          estimate_id?: string
+          id?: string
+          quantity?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimate_items_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estimates: {
+        Row: {
+          accepted_at: string | null
+          amount: number
+          client_id: string | null
+          created_at: string
+          description: string | null
+          estimate_number: string
+          id: string
+          issue_date: string
+          status: Database["public"]["Enums"]["estimate_status"]
+          tax_amount: number | null
+          title: string
+          total_amount: number
+          updated_at: string
+          user_id: string
+          valid_until: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          amount: number
+          client_id?: string | null
+          created_at?: string
+          description?: string | null
+          estimate_number: string
+          id?: string
+          issue_date?: string
+          status?: Database["public"]["Enums"]["estimate_status"]
+          tax_amount?: number | null
+          title: string
+          total_amount: number
+          updated_at?: string
+          user_id: string
+          valid_until: string
+        }
+        Update: {
+          accepted_at?: string | null
+          amount?: number
+          client_id?: string | null
+          created_at?: string
+          description?: string | null
+          estimate_number?: string
+          id?: string
+          issue_date?: string
+          status?: Database["public"]["Enums"]["estimate_status"]
+          tax_amount?: number | null
+          title?: string
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+          valid_until?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimates_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_items: {
         Row: {
           amount: number
@@ -316,6 +416,106 @@ export type Database = {
         }
         Relationships: []
       }
+      purchase_order_items: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string
+          id: string
+          purchase_order_id: string
+          quantity: number
+          unit_price: number
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description: string
+          id?: string
+          purchase_order_id: string
+          quantity?: number
+          unit_price: number
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string
+          id?: string
+          purchase_order_id?: string
+          quantity?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_items_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_orders: {
+        Row: {
+          amount: number
+          client_id: string | null
+          confirmed_at: string | null
+          created_at: string
+          delivery_date: string | null
+          description: string | null
+          id: string
+          issue_date: string
+          order_number: string
+          status: Database["public"]["Enums"]["purchase_order_status"]
+          tax_amount: number | null
+          title: string
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          client_id?: string | null
+          confirmed_at?: string | null
+          created_at?: string
+          delivery_date?: string | null
+          description?: string | null
+          id?: string
+          issue_date?: string
+          order_number: string
+          status?: Database["public"]["Enums"]["purchase_order_status"]
+          tax_amount?: number | null
+          title: string
+          total_amount: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          client_id?: string | null
+          confirmed_at?: string | null
+          created_at?: string
+          delivery_date?: string | null
+          description?: string | null
+          id?: string
+          issue_date?: string
+          order_number?: string
+          status?: Database["public"]["Enums"]["purchase_order_status"]
+          tax_amount?: number | null
+          title?: string
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_orders_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trust_passports: {
         Row: {
           account_age_months: number | null
@@ -418,12 +618,19 @@ export type Database = {
     }
     Enums: {
       boost_status: "pending" | "approved" | "completed" | "rejected"
+      estimate_status: "draft" | "sent" | "accepted" | "rejected" | "expired"
       invoice_status:
         | "draft"
         | "sent"
         | "pending"
         | "paid"
         | "overdue"
+        | "cancelled"
+      purchase_order_status:
+        | "draft"
+        | "sent"
+        | "confirmed"
+        | "delivered"
         | "cancelled"
       trust_rank: "S" | "A" | "B" | "C" | "D"
     }
@@ -554,12 +761,20 @@ export const Constants = {
   public: {
     Enums: {
       boost_status: ["pending", "approved", "completed", "rejected"],
+      estimate_status: ["draft", "sent", "accepted", "rejected", "expired"],
       invoice_status: [
         "draft",
         "sent",
         "pending",
         "paid",
         "overdue",
+        "cancelled",
+      ],
+      purchase_order_status: [
+        "draft",
+        "sent",
+        "confirmed",
+        "delivered",
         "cancelled",
       ],
       trust_rank: ["S", "A", "B", "C", "D"],
