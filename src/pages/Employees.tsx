@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Plus, Search, Users, MoreHorizontal, Trash2 } from "lucide-react";
-import AppLayout from "@/components/layout/AppLayout";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -55,6 +55,7 @@ export default function Employees() {
     hire_date: new Date().toISOString().split('T')[0],
     employment_type: "full_time" as EmploymentType,
     base_salary: 0,
+    status: "active" as const,
   });
 
   const { data: employees = [], isLoading } = useEmployees();
@@ -80,6 +81,7 @@ export default function Employees() {
       hire_date: new Date().toISOString().split('T')[0],
       employment_type: "full_time",
       base_salary: 0,
+      status: "active" as const,
     });
   };
 

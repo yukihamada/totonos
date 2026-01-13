@@ -13,6 +13,23 @@ import ContractDetail from "./pages/ContractDetail";
 import ContractEdit from "./pages/ContractEdit";
 import ContractSign from "./pages/ContractSign";
 import NotFound from "./pages/NotFound";
+// Accounting
+import Accounting from "./pages/Accounting";
+import AccountingJournal from "./pages/AccountingJournal";
+import AccountingJournalNew from "./pages/AccountingJournalNew";
+import AccountingLedger from "./pages/AccountingLedger";
+import AccountingStatements from "./pages/AccountingStatements";
+import AccountingAssets from "./pages/AccountingAssets";
+import AccountingExpenses from "./pages/AccountingExpenses";
+import AccountingSettings from "./pages/AccountingSettings";
+// CRM
+import Leads from "./pages/Leads";
+import Deals from "./pages/Deals";
+// HR
+import Employees from "./pages/Employees";
+// Info
+import Wiki from "./pages/Wiki";
+import ITAssets from "./pages/ITAssets";
 
 const queryClient = new QueryClient();
 
@@ -42,11 +59,30 @@ function AppRoutes() {
       <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <Landing />} />
       <Route path="/auth" element={user ? <Navigate to="/dashboard" replace /> : <Auth />} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      {/* Contracts */}
       <Route path="/contracts" element={<ProtectedRoute><Contracts /></ProtectedRoute>} />
       <Route path="/contracts/new" element={<ProtectedRoute><ContractNew /></ProtectedRoute>} />
       <Route path="/contracts/:id" element={<ProtectedRoute><ContractDetail /></ProtectedRoute>} />
       <Route path="/contracts/:id/edit" element={<ProtectedRoute><ContractEdit /></ProtectedRoute>} />
       <Route path="/sign/:token" element={<ContractSign />} />
+      {/* Accounting */}
+      <Route path="/accounting" element={<ProtectedRoute><Accounting /></ProtectedRoute>} />
+      <Route path="/accounting/journal" element={<ProtectedRoute><AccountingJournal /></ProtectedRoute>} />
+      <Route path="/accounting/journal/new" element={<ProtectedRoute><AccountingJournalNew /></ProtectedRoute>} />
+      <Route path="/accounting/ledger" element={<ProtectedRoute><AccountingLedger /></ProtectedRoute>} />
+      <Route path="/accounting/statements" element={<ProtectedRoute><AccountingStatements /></ProtectedRoute>} />
+      <Route path="/accounting/assets" element={<ProtectedRoute><AccountingAssets /></ProtectedRoute>} />
+      <Route path="/accounting/expenses" element={<ProtectedRoute><AccountingExpenses /></ProtectedRoute>} />
+      <Route path="/accounting/settings" element={<ProtectedRoute><AccountingSettings /></ProtectedRoute>} />
+      {/* CRM */}
+      <Route path="/leads" element={<ProtectedRoute><Leads /></ProtectedRoute>} />
+      <Route path="/deals" element={<ProtectedRoute><Deals /></ProtectedRoute>} />
+      {/* HR */}
+      <Route path="/employees" element={<ProtectedRoute><Employees /></ProtectedRoute>} />
+      {/* Info */}
+      <Route path="/wiki" element={<ProtectedRoute><Wiki /></ProtectedRoute>} />
+      <Route path="/it-assets" element={<ProtectedRoute><ITAssets /></ProtectedRoute>} />
+      {/* Not Found */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
