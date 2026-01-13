@@ -103,6 +103,177 @@ export type Database = {
         }
         Relationships: []
       }
+      contract_items: {
+        Row: {
+          content: string
+          contract_id: string
+          created_at: string
+          id: string
+          item_order: number
+          title: string
+        }
+        Insert: {
+          content: string
+          contract_id: string
+          created_at?: string
+          id?: string
+          item_order?: number
+          title: string
+        }
+        Update: {
+          content?: string
+          contract_id?: string
+          created_at?: string
+          id?: string
+          item_order?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_items_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_signatures: {
+        Row: {
+          blockchain_block_number: number | null
+          blockchain_network: string | null
+          blockchain_tx_hash: string | null
+          blockchain_verified_at: string | null
+          content_hash: string | null
+          contract_id: string
+          created_at: string
+          id: string
+          otp_code: string | null
+          otp_expires_at: string | null
+          signatory_email: string
+          signatory_name: string | null
+          signatory_type: Database["public"]["Enums"]["signatory_type"]
+          signature_method: Database["public"]["Enums"]["signature_method"]
+          signature_token: string | null
+          signed_at: string | null
+          signed_ip: string | null
+          signed_user_agent: string | null
+          updated_at: string
+        }
+        Insert: {
+          blockchain_block_number?: number | null
+          blockchain_network?: string | null
+          blockchain_tx_hash?: string | null
+          blockchain_verified_at?: string | null
+          content_hash?: string | null
+          contract_id: string
+          created_at?: string
+          id?: string
+          otp_code?: string | null
+          otp_expires_at?: string | null
+          signatory_email: string
+          signatory_name?: string | null
+          signatory_type: Database["public"]["Enums"]["signatory_type"]
+          signature_method?: Database["public"]["Enums"]["signature_method"]
+          signature_token?: string | null
+          signed_at?: string | null
+          signed_ip?: string | null
+          signed_user_agent?: string | null
+          updated_at?: string
+        }
+        Update: {
+          blockchain_block_number?: number | null
+          blockchain_network?: string | null
+          blockchain_tx_hash?: string | null
+          blockchain_verified_at?: string | null
+          content_hash?: string | null
+          contract_id?: string
+          created_at?: string
+          id?: string
+          otp_code?: string | null
+          otp_expires_at?: string | null
+          signatory_email?: string
+          signatory_name?: string | null
+          signatory_type?: Database["public"]["Enums"]["signatory_type"]
+          signature_method?: Database["public"]["Enums"]["signature_method"]
+          signature_token?: string | null
+          signed_at?: string | null
+          signed_ip?: string | null
+          signed_user_agent?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_signatures_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contracts: {
+        Row: {
+          amount: number
+          client_id: string | null
+          content: string | null
+          content_hash: string | null
+          contract_number: string
+          created_at: string
+          id: string
+          issue_date: string
+          status: Database["public"]["Enums"]["contract_status"]
+          tax_amount: number | null
+          title: string
+          total_amount: number
+          updated_at: string
+          user_id: string
+          valid_until: string | null
+        }
+        Insert: {
+          amount?: number
+          client_id?: string | null
+          content?: string | null
+          content_hash?: string | null
+          contract_number: string
+          created_at?: string
+          id?: string
+          issue_date?: string
+          status?: Database["public"]["Enums"]["contract_status"]
+          tax_amount?: number | null
+          title: string
+          total_amount?: number
+          updated_at?: string
+          user_id: string
+          valid_until?: string | null
+        }
+        Update: {
+          amount?: number
+          client_id?: string | null
+          content?: string | null
+          content_hash?: string | null
+          contract_number?: string
+          created_at?: string
+          id?: string
+          issue_date?: string
+          status?: Database["public"]["Enums"]["contract_status"]
+          tax_amount?: number | null
+          title?: string
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contracts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estimate_items: {
         Row: {
           amount: number
@@ -516,6 +687,44 @@ export type Database = {
           },
         ]
       }
+      signature_verification_logs: {
+        Row: {
+          blockchain_confirmed: boolean | null
+          contract_id: string
+          details: Json | null
+          id: string
+          verification_result: boolean
+          verified_at: string
+          verified_by_ip: string | null
+        }
+        Insert: {
+          blockchain_confirmed?: boolean | null
+          contract_id: string
+          details?: Json | null
+          id?: string
+          verification_result: boolean
+          verified_at?: string
+          verified_by_ip?: string | null
+        }
+        Update: {
+          blockchain_confirmed?: boolean | null
+          contract_id?: string
+          details?: Json | null
+          id?: string
+          verification_result?: boolean
+          verified_at?: string
+          verified_by_ip?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signature_verification_logs_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trust_passports: {
         Row: {
           account_age_months: number | null
@@ -618,6 +827,14 @@ export type Database = {
     }
     Enums: {
       boost_status: "pending" | "approved" | "completed" | "rejected"
+      contract_status:
+        | "draft"
+        | "sent"
+        | "pending_signature"
+        | "partially_signed"
+        | "signed"
+        | "expired"
+        | "cancelled"
       estimate_status: "draft" | "sent" | "accepted" | "rejected" | "expired"
       invoice_status:
         | "draft"
@@ -632,6 +849,8 @@ export type Database = {
         | "confirmed"
         | "delivered"
         | "cancelled"
+      signatory_type: "issuer" | "recipient"
+      signature_method: "email_otp" | "wallet"
       trust_rank: "S" | "A" | "B" | "C" | "D"
     }
     CompositeTypes: {
@@ -761,6 +980,15 @@ export const Constants = {
   public: {
     Enums: {
       boost_status: ["pending", "approved", "completed", "rejected"],
+      contract_status: [
+        "draft",
+        "sent",
+        "pending_signature",
+        "partially_signed",
+        "signed",
+        "expired",
+        "cancelled",
+      ],
       estimate_status: ["draft", "sent", "accepted", "rejected", "expired"],
       invoice_status: [
         "draft",
@@ -777,6 +1005,8 @@ export const Constants = {
         "delivered",
         "cancelled",
       ],
+      signatory_type: ["issuer", "recipient"],
+      signature_method: ["email_otp", "wallet"],
       trust_rank: ["S", "A", "B", "C", "D"],
     },
   },
