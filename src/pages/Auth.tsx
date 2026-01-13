@@ -1,80 +1,93 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
+import { Mail, ArrowRight, CheckCircle } from "lucide-react";
 
-const authSchema = z.object({
+const emailSchema = z.object({
   email: z.string().email("有効なメールアドレスを入力してください"),
-  password: z.string().min(6, "パスワードは6文字以上で入力してください"),
 });
 
 export default function Auth() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
-  const navigate = useNavigate();
+  const [emailSent, setEmailSent] = useState(false);
+  const { signInWithMagicLink } = useAuth();
   const { toast } = useToast();
 
-  const handleSubmit = async (mode: "signin" | "signup") => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const validation = emailSchema.safeParse({ email });
+    if (!validation.success) {
+      toast({
+        title: "入力エラー",
+        description: validation.error.errors[0].message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    
     try {
-      const validation = authSchema.safeParse({ email, password });
-      if (!validation.success) {
+      const { error } = await signInWithMagicLink(email);
+      if (error) {
         toast({
-          title: "入力エラー",
-          description: validation.error.errors[0].message,
+          title: "エラー",
+          description: error.message,
           variant: "destructive",
         });
         return;
       }
-
-      setLoading(true);
-
-      if (mode === "signin") {
-        const { error } = await signIn(email, password);
-        if (error) {
-          toast({
-            title: "ログインエラー",
-            description: error.message === "Invalid login credentials" 
-              ? "メールアドレスまたはパスワードが正しくありません" 
-              : error.message,
-            variant: "destructive",
-          });
-          return;
-        }
-        toast({
-          title: "ログイン成功",
-          description: "ダッシュボードへ移動します",
-        });
-        navigate("/dashboard");
-      } else {
-        const { error } = await signUp(email, password);
-        if (error) {
-          toast({
-            title: "登録エラー",
-            description: error.message.includes("already registered")
-              ? "このメールアドレスは既に登録されています"
-              : error.message,
-            variant: "destructive",
-          });
-          return;
-        }
-        toast({
-          title: "登録完了",
-          description: "アカウントが作成されました",
-        });
-        navigate("/dashboard");
-      }
+      
+      setEmailSent(true);
+      toast({
+        title: "メール送信完了",
+        description: "ログインリンクをメールで送信しました",
+      });
     } finally {
       setLoading(false);
     }
   };
+
+  if (emailSent) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md border-2 border-foreground shadow-md">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <CheckCircle className="h-8 w-8" />
+              </div>
+            </div>
+            <CardTitle className="text-2xl font-bold">メールを確認してください</CardTitle>
+            <CardDescription className="text-base mt-2">
+              <span className="font-medium text-foreground">{email}</span> に
+              ログインリンクを送信しました
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground text-center">
+              メール内のリンクをクリックしてログインしてください。
+              リンクの有効期限は1時間です。
+            </p>
+            <Button 
+              variant="outline" 
+              className="w-full border-2"
+              onClick={() => setEmailSent(false)}
+            >
+              別のメールアドレスを使用
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -87,80 +100,43 @@ export default function Auth() {
           </div>
           <CardTitle className="text-2xl font-bold">Invox</CardTitle>
           <CardDescription>
-            次世代財務オートメーションプラットフォーム
+            メールアドレスを入力してログイン・登録
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="signin" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="signin">ログイン</TabsTrigger>
-              <TabsTrigger value="signup">新規登録</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="signin">
-              <form onSubmit={(e) => { e.preventDefault(); handleSubmit("signin"); }} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signin-email">メールアドレス</Label>
-                  <Input
-                    id="signin-email"
-                    type="email"
-                    placeholder="your@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={loading}
-                    className="border-2"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signin-password">パスワード</Label>
-                  <Input
-                    id="signin-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={loading}
-                    className="border-2"
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "処理中..." : "ログイン"}
-                </Button>
-              </form>
-            </TabsContent>
-
-            <TabsContent value="signup">
-              <form onSubmit={(e) => { e.preventDefault(); handleSubmit("signup"); }} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">メールアドレス</Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    placeholder="your@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={loading}
-                    className="border-2"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password">パスワード</Label>
-                  <Input
-                    id="signup-password"
-                    type="password"
-                    placeholder="6文字以上"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={loading}
-                    className="border-2"
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "処理中..." : "アカウント作成"}
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="email">メールアドレス</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="your@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
+                  className="border-2 pl-10"
+                />
+              </div>
+            </div>
+            
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? (
+                "送信中..."
+              ) : (
+                <>
+                  ログインリンクを送信
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              )}
+            </Button>
+            
+            <p className="text-xs text-muted-foreground text-center">
+              アカウントをお持ちでない場合は自動的に作成されます。
+              パスワードは不要です。
+            </p>
+          </form>
         </CardContent>
       </Card>
     </div>
