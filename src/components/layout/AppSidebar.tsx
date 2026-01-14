@@ -62,6 +62,7 @@ import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
 import { useAppSettings } from "@/contexts/SettingsContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { CompanySwitcher } from "@/components/layout/CompanySwitcher";
 import {
   Sidebar,
   SidebarContent,
@@ -235,16 +236,20 @@ export function AppSidebar({ onChatOpen }: AppSidebarProps) {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-border p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center border-2 border-foreground bg-foreground text-background font-bold">
-              T
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center border-2 border-foreground bg-foreground text-background font-bold">
+                T
+              </div>
+              {!collapsed && (
+                <span className="text-xl font-bold tracking-tight">Totonos</span>
+              )}
             </div>
-            {!collapsed && (
-              <span className="text-xl font-bold tracking-tight">Totonos</span>
-            )}
+            {!collapsed && <ThemeToggle />}
           </div>
-          {!collapsed && <ThemeToggle />}
+          {/* Company Switcher */}
+          <CompanySwitcher collapsed={collapsed} />
         </div>
       </SidebarHeader>
 
