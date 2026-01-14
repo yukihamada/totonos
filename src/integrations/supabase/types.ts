@@ -1238,6 +1238,131 @@ export type Database = {
         }
         Relationships: []
       }
+      import_errors: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          id: string
+          job_id: string
+          original_data: Json | null
+          row_number: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          job_id: string
+          original_data?: Json | null
+          row_number?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          job_id?: string
+          original_data?: Json | null
+          row_number?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_errors_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "import_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      import_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          error_rows: number | null
+          error_summary: Json | null
+          file_name: string | null
+          id: string
+          mapping_config: Json | null
+          processed_rows: number | null
+          source_service: string
+          started_at: string | null
+          status: string | null
+          target_module: string
+          total_rows: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          error_rows?: number | null
+          error_summary?: Json | null
+          file_name?: string | null
+          id?: string
+          mapping_config?: Json | null
+          processed_rows?: number | null
+          source_service: string
+          started_at?: string | null
+          status?: string | null
+          target_module: string
+          total_rows?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          error_rows?: number | null
+          error_summary?: Json | null
+          file_name?: string | null
+          id?: string
+          mapping_config?: Json | null
+          processed_rows?: number | null
+          source_service?: string
+          started_at?: string | null
+          status?: string | null
+          target_module?: string
+          total_rows?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      import_templates: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_default: boolean | null
+          mapping: Json
+          source_service: string
+          target_module: string
+          template_name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          mapping: Json
+          source_service: string
+          target_module: string
+          template_name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          mapping?: Json
+          source_service?: string
+          target_module?: string
+          template_name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       invoice_items: {
         Row: {
           amount: number
