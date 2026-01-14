@@ -276,6 +276,192 @@ export type Database = {
         }
         Relationships: []
       }
+      companies: {
+        Row: {
+          address: string | null
+          created_at: string
+          created_by: string
+          display_name: string | null
+          email: string | null
+          employee_count: string | null
+          fiscal_year_start_month: number | null
+          id: string
+          industry: string | null
+          logo_url: string | null
+          name: string
+          phone: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          created_by: string
+          display_name?: string | null
+          email?: string | null
+          employee_count?: string | null
+          fiscal_year_start_month?: number | null
+          id?: string
+          industry?: string | null
+          logo_url?: string | null
+          name: string
+          phone?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          created_by?: string
+          display_name?: string | null
+          email?: string | null
+          employee_count?: string | null
+          fiscal_year_start_month?: number | null
+          id?: string
+          industry?: string | null
+          logo_url?: string | null
+          name?: string
+          phone?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
+      company_credits: {
+        Row: {
+          charged_credits: number
+          company_id: string
+          created_at: string
+          current_period_end: string
+          current_period_start: string
+          id: string
+          monthly_credits: number
+          plan: string
+          updated_at: string
+          used_this_month: number
+        }
+        Insert: {
+          charged_credits?: number
+          company_id: string
+          created_at?: string
+          current_period_end?: string
+          current_period_start?: string
+          id?: string
+          monthly_credits?: number
+          plan?: string
+          updated_at?: string
+          used_this_month?: number
+        }
+        Update: {
+          charged_credits?: number
+          company_id?: string
+          created_at?: string
+          current_period_end?: string
+          current_period_start?: string
+          id?: string
+          monthly_credits?: number
+          plan?: string
+          updated_at?: string
+          used_this_month?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_credits_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_invitations: {
+        Row: {
+          accepted_at: string | null
+          company_id: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          permissions: Database["public"]["Enums"]["permission_type"][] | null
+          role: Database["public"]["Enums"]["member_role"]
+          status: Database["public"]["Enums"]["invitation_status"]
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          company_id: string
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by: string
+          permissions?: Database["public"]["Enums"]["permission_type"][] | null
+          role?: Database["public"]["Enums"]["member_role"]
+          status?: Database["public"]["Enums"]["invitation_status"]
+          token?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          company_id?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          permissions?: Database["public"]["Enums"]["permission_type"][] | null
+          role?: Database["public"]["Enums"]["member_role"]
+          status?: Database["public"]["Enums"]["invitation_status"]
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_invitations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_members: {
+        Row: {
+          company_id: string
+          id: string
+          is_active: boolean
+          joined_at: string
+          role: Database["public"]["Enums"]["member_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          id?: string
+          is_active?: boolean
+          joined_at?: string
+          role?: Database["public"]["Enums"]["member_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          id?: string
+          is_active?: boolean
+          joined_at?: string
+          role?: Database["public"]["Enums"]["member_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_members_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contract_items: {
         Row: {
           content: string
@@ -443,6 +629,53 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_transactions: {
+        Row: {
+          action: string | null
+          amount: number
+          balance_after: number
+          company_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          metadata: Json | null
+          transaction_type: string
+          user_id: string | null
+        }
+        Insert: {
+          action?: string | null
+          amount: number
+          balance_after: number
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          transaction_type: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string | null
+          amount?: number
+          balance_after?: number
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          transaction_type?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_transactions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -1327,6 +1560,38 @@ export type Database = {
           },
         ]
       }
+      member_permissions: {
+        Row: {
+          granted_at: string
+          granted_by: string | null
+          id: string
+          member_id: string
+          permission: Database["public"]["Enums"]["permission_type"]
+        }
+        Insert: {
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          member_id: string
+          permission: Database["public"]["Enums"]["permission_type"]
+        }
+        Update: {
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          member_id?: string
+          permission?: Database["public"]["Enums"]["permission_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_permissions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "company_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -1933,6 +2198,74 @@ export type Database = {
         }
         Relationships: []
       }
+      user_credits: {
+        Row: {
+          charged_credits: number
+          created_at: string
+          current_period_end: string
+          current_period_start: string
+          id: string
+          monthly_credits: number
+          plan: string
+          updated_at: string
+          used_this_month: number
+          user_id: string
+        }
+        Insert: {
+          charged_credits?: number
+          created_at?: string
+          current_period_end?: string
+          current_period_start?: string
+          id?: string
+          monthly_credits?: number
+          plan?: string
+          updated_at?: string
+          used_this_month?: number
+          user_id: string
+        }
+        Update: {
+          charged_credits?: number
+          created_at?: string
+          current_period_end?: string
+          current_period_start?: string
+          id?: string
+          monthly_credits?: number
+          plan?: string
+          updated_at?: string
+          used_this_month?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_current_company: {
+        Row: {
+          company_id: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_current_company_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wiki_pages: {
         Row: {
           category: Database["public"]["Enums"]["wiki_category"] | null
@@ -2052,6 +2385,14 @@ export type Database = {
         Returns: string
       }
       generate_employee_number: { Args: { p_user_id: string }; Returns: string }
+      has_permission: {
+        Args: {
+          p_company_id: string
+          p_permission: Database["public"]["Enums"]["permission_type"]
+          p_user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       account_type: "asset" | "liability" | "equity" | "revenue" | "expense"
@@ -2099,6 +2440,7 @@ export type Database = {
       employment_type: "full_time" | "part_time" | "contract" | "intern"
       estimate_status: "draft" | "sent" | "accepted" | "rejected" | "expired"
       expense_status: "draft" | "pending" | "approved" | "rejected" | "paid"
+      invitation_status: "pending" | "accepted" | "declined" | "expired"
       invoice_status:
         | "draft"
         | "sent"
@@ -2121,7 +2463,49 @@ export type Database = {
         | "advertising"
         | "other"
       lead_status: "new" | "contacted" | "qualified" | "converted" | "lost"
+      member_role: "owner" | "admin" | "member" | "viewer"
       payroll_status: "draft" | "calculated" | "approved" | "paid"
+      permission_type:
+        | "invoices_view"
+        | "invoices_create"
+        | "invoices_edit"
+        | "invoices_delete"
+        | "contracts_view"
+        | "contracts_create"
+        | "contracts_edit"
+        | "contracts_delete"
+        | "contracts_sign"
+        | "crm_view"
+        | "crm_create"
+        | "crm_edit"
+        | "crm_delete"
+        | "hr_view"
+        | "hr_create"
+        | "hr_edit"
+        | "hr_delete"
+        | "hr_payroll"
+        | "accounting_view"
+        | "accounting_create"
+        | "accounting_edit"
+        | "accounting_delete"
+        | "wiki_view"
+        | "wiki_create"
+        | "wiki_edit"
+        | "wiki_delete"
+        | "it_assets_view"
+        | "it_assets_create"
+        | "it_assets_edit"
+        | "it_assets_delete"
+        | "settings_view"
+        | "settings_edit"
+        | "team_view"
+        | "team_invite"
+        | "team_edit"
+        | "team_remove"
+        | "credits_view"
+        | "credits_purchase"
+        | "credits_manage"
+        | "admin"
       purchase_order_status:
         | "draft"
         | "sent"
@@ -2319,6 +2703,7 @@ export const Constants = {
       employment_type: ["full_time", "part_time", "contract", "intern"],
       estimate_status: ["draft", "sent", "accepted", "rejected", "expired"],
       expense_status: ["draft", "pending", "approved", "rejected", "paid"],
+      invitation_status: ["pending", "accepted", "declined", "expired"],
       invoice_status: [
         "draft",
         "sent",
@@ -2344,7 +2729,50 @@ export const Constants = {
         "other",
       ],
       lead_status: ["new", "contacted", "qualified", "converted", "lost"],
+      member_role: ["owner", "admin", "member", "viewer"],
       payroll_status: ["draft", "calculated", "approved", "paid"],
+      permission_type: [
+        "invoices_view",
+        "invoices_create",
+        "invoices_edit",
+        "invoices_delete",
+        "contracts_view",
+        "contracts_create",
+        "contracts_edit",
+        "contracts_delete",
+        "contracts_sign",
+        "crm_view",
+        "crm_create",
+        "crm_edit",
+        "crm_delete",
+        "hr_view",
+        "hr_create",
+        "hr_edit",
+        "hr_delete",
+        "hr_payroll",
+        "accounting_view",
+        "accounting_create",
+        "accounting_edit",
+        "accounting_delete",
+        "wiki_view",
+        "wiki_create",
+        "wiki_edit",
+        "wiki_delete",
+        "it_assets_view",
+        "it_assets_create",
+        "it_assets_edit",
+        "it_assets_delete",
+        "settings_view",
+        "settings_edit",
+        "team_view",
+        "team_invite",
+        "team_edit",
+        "team_remove",
+        "credits_view",
+        "credits_purchase",
+        "credits_manage",
+        "admin",
+      ],
       purchase_order_status: [
         "draft",
         "sent",

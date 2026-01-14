@@ -153,21 +153,36 @@ serve(async (req: Request) => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
     const authHeader = req.headers.get("authorization");
     if (!authHeader) {
-      throw new Error("No authorization header");
+      return new Response(
+        JSON.stringify({ error: "認証が必要です" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
+    // Extract the token from the Authorization header
+    const token = authHeader.replace("Bearer ", "");
+    
+    // Create a client with service role to verify the user
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
+    
+    if (userError || !user) {
+      console.error("Auth error:", userError?.message);
+      return new Response(
+        JSON.stringify({ error: "認証が無効です。再度ログインしてください。" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    // Create client with user's token for RLS
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { authorization: authHeader } },
     });
-
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-      throw new Error("Unauthorized");
-    }
 
     const { messages, test } = await req.json();
     
