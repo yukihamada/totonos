@@ -95,7 +95,7 @@ export function useChat() {
         abortControllerRef.current = null;
       }
     },
-    [messages, addMessage, canUse, consume, totalRemaining]
+    [messages, addMessage]
   );
 
   const clearMessages = useCallback(() => {
@@ -137,6 +137,5 @@ export function useChat() {
     regenerate,
     addMessage,
     updateMessage,
-    creditsRemaining: totalRemaining,
   };
 }
