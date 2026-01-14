@@ -1402,6 +1402,98 @@ export type Database = {
         }
         Relationships: []
       }
+      inbound_emails: {
+        Row: {
+          assigned_to: string | null
+          attachments: Json | null
+          cc_emails: string[] | null
+          company_id: string | null
+          created_at: string
+          from_email: string
+          from_name: string | null
+          headers: Json | null
+          html_body: string | null
+          id: string
+          is_archived: boolean
+          is_read: boolean
+          is_spam: boolean
+          is_starred: boolean
+          message_id: string | null
+          raw_payload: Json | null
+          related_id: string | null
+          related_type: string | null
+          reply_to: string | null
+          status: string
+          subject: string | null
+          tags: string[] | null
+          text_body: string | null
+          to_email: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          attachments?: Json | null
+          cc_emails?: string[] | null
+          company_id?: string | null
+          created_at?: string
+          from_email: string
+          from_name?: string | null
+          headers?: Json | null
+          html_body?: string | null
+          id?: string
+          is_archived?: boolean
+          is_read?: boolean
+          is_spam?: boolean
+          is_starred?: boolean
+          message_id?: string | null
+          raw_payload?: Json | null
+          related_id?: string | null
+          related_type?: string | null
+          reply_to?: string | null
+          status?: string
+          subject?: string | null
+          tags?: string[] | null
+          text_body?: string | null
+          to_email: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          attachments?: Json | null
+          cc_emails?: string[] | null
+          company_id?: string | null
+          created_at?: string
+          from_email?: string
+          from_name?: string | null
+          headers?: Json | null
+          html_body?: string | null
+          id?: string
+          is_archived?: boolean
+          is_read?: boolean
+          is_spam?: boolean
+          is_starred?: boolean
+          message_id?: string | null
+          raw_payload?: Json | null
+          related_id?: string | null
+          related_type?: string | null
+          reply_to?: string | null
+          status?: string
+          subject?: string | null
+          tags?: string[] | null
+          text_body?: string | null
+          to_email?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_emails_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_items: {
         Row: {
           amount: number
