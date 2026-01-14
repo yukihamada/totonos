@@ -21,6 +21,8 @@ export const CREDIT_COSTS = {
   pdf: { name: 'PDF生成', cost: 1 },
   email: { name: 'メール送信', cost: 1 },
   export: { name: 'データエクスポート', cost: 2 },
+  contract_create: { name: '契約書作成', cost: 3 },
+  contract_sign: { name: '電子署名', cost: 2 },
 } as const;
 
 export type CreditAction = keyof typeof CREDIT_COSTS;
