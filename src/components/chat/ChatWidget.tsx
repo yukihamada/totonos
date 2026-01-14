@@ -1,22 +1,33 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { ChatButton } from "./ChatButton";
 import { ChatPanel } from "./ChatPanel";
 import { useChat } from "@/hooks/useChat";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsMobile } from "@/hooks/use-mobile";
 
-export function ChatWidget() {
-  const [isOpen, setIsOpen] = useState(false);
+interface ChatWidgetProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export function ChatWidget({ open: controlledOpen, onOpenChange }: ChatWidgetProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const { user } = useAuth();
   const { messages, isLoading, sendMessage, clearMessages } = useChat();
+  const isMobile = useIsMobile();
+
+  // Support both controlled and uncontrolled modes
+  const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setIsOpen = onOpenChange || setInternalOpen;
 
   const handleToggle = useCallback(() => {
-    setIsOpen((prev) => !prev);
-  }, []);
+    setIsOpen(!isOpen);
+  }, [isOpen, setIsOpen]);
 
   const handleClose = useCallback(() => {
     setIsOpen(false);
-  }, []);
+  }, [setIsOpen]);
 
   const handleSend = useCallback(
     async (content: string) => {
@@ -36,11 +47,14 @@ export function ChatWidget() {
 
   return (
     <>
-      <ChatButton
-        isOpen={isOpen}
-        onClick={handleToggle}
-        hasUnread={false}
-      />
+      {/* Hide floating button on mobile since we have bottom nav */}
+      {!isMobile && (
+        <ChatButton
+          isOpen={isOpen}
+          onClick={handleToggle}
+          hasUnread={false}
+        />
+      )}
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
         <SheetContent
           side="right"
