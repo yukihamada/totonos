@@ -41,16 +41,19 @@ const features = [
     icon: FileText,
     title: "Smart Invoice",
     description: "請求書作成からバーチャル口座発行まで、すべてをワンストップで。",
+    badge: "準備中",
   },
   {
     icon: ArrowLeftRight,
     title: "Auto-Reconciliation",
     description: "入金を自動検知し、消込からお礼メールまで全自動化。",
+    badge: "準備中",
   },
   {
     icon: Zap,
     title: "Dynamic Boost",
     description: "AI与信で最適な手数料を算出。最短即日で資金調達。",
+    badge: "準備中",
   },
   {
     icon: Shield,
@@ -378,7 +381,14 @@ export default function Landing() {
                 className="border-2 border-foreground p-4 bg-card hover:shadow-md transition-shadow"
               >
                 <feature.icon className="h-8 w-8 mb-3" />
-                <h3 className="text-lg font-bold mb-1">{feature.title}</h3>
+                <h3 className="text-lg font-bold mb-1 flex items-center gap-2">
+                  {feature.title}
+                  {'badge' in feature && feature.badge && (
+                    <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded">
+                      {feature.badge}
+                    </span>
+                  )}
+                </h3>
                 <p className="text-sm text-muted-foreground">{feature.description}</p>
               </div>
             ))}
