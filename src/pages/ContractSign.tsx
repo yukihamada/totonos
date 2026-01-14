@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/types/database";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import { Shield, FileSignature, CheckCircle, AlertCircle, Loader2, Building } from "lucide-react";
+import { Shield, FileSignature, CheckCircle, AlertCircle, Loader2, Building, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import type { Contract, ContractItem } from "@/types/contract";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
@@ -19,7 +19,6 @@ type SignStep = "loading" | "verify" | "review" | "signing" | "success" | "error
 
 export default function ContractSign() {
   const { token } = useParams<{ token: string }>();
-  const [searchParams] = useSearchParams();
   const [step, setStep] = useState<SignStep>("loading");
   const [contract, setContract] = useState<Contract | null>(null);
   const [items, setItems] = useState<ContractItem[]>([]);
@@ -27,7 +26,10 @@ export default function ContractSign() {
   const [otpCode, setOtpCode] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [maskedEmail, setMaskedEmail] = useState<string | null>(null);
+  const [signedAt, setSignedAt] = useState<string | null>(null);
 
   useEffect(() => {
     loadContract();
@@ -75,10 +77,48 @@ export default function ContractSign() {
 
       setContract(contractData as Contract);
       setItems(itemsData || []);
+      
+      // Request OTP when loading the contract
+      await sendOtpCode();
+      
       setStep("verify");
     } catch (err) {
+      console.error("Failed to load contract:", err);
       setError("エラーが発生しました");
       setStep("error");
+    }
+  };
+
+  const sendOtpCode = async () => {
+    if (!token) return;
+    
+    setIsSendingOtp(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-otp", {
+        body: { token },
+      });
+
+      if (error) {
+        console.error("Failed to send OTP:", error);
+        toast.error("確認コードの送信に失敗しました");
+        return;
+      }
+
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      if (data?.email) {
+        setMaskedEmail(data.email);
+      }
+      
+      toast.success("確認コードをメールで送信しました");
+    } catch (err) {
+      console.error("Failed to send OTP:", err);
+      toast.error("確認コードの送信に失敗しました");
+    } finally {
+      setIsSendingOtp(false);
     }
   };
 
@@ -89,13 +129,8 @@ export default function ContractSign() {
     }
 
     setIsVerifying(true);
-    
-    // For demo purposes, accept any 6-digit code
-    // In production, this would validate against the stored OTP
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    
-    setIsVerifying(false);
     setStep("review");
+    setIsVerifying(false);
   };
 
   const handleSign = async () => {
@@ -104,46 +139,38 @@ export default function ContractSign() {
       return;
     }
 
+    if (signatorName.trim().length > 100) {
+      toast.error("署名者名は100文字以内で入力してください");
+      return;
+    }
+
     setIsSigning(true);
     setStep("signing");
 
     try {
-      // Update signature record
-      const { error: updateError } = await supabase
-        .from("contract_signatures")
-        .update({
-          signatory_name: signatorName,
-          signed_at: new Date().toISOString(),
-          signed_user_agent: navigator.userAgent,
-          // Note: IP address would be captured server-side in production
-        })
-        .eq("signature_token", token);
+      // Call the secure edge function to sign the contract
+      const { data, error } = await supabase.functions.invoke("sign-contract", {
+        body: {
+          token,
+          otpCode,
+          signatorName: signatorName.trim(),
+        },
+      });
 
-      if (updateError) throw updateError;
-
-      // Check if all parties have signed
-      const { data: allSignatures } = await supabase
-        .from("contract_signatures")
-        .select("*")
-        .eq("contract_id", contract!.id);
-
-      const allSigned = allSignatures?.every((s) => s.signed_at);
-
-      if (allSigned) {
-        await supabase
-          .from("contracts")
-          .update({ status: "signed" })
-          .eq("id", contract!.id);
-      } else {
-        await supabase
-          .from("contracts")
-          .update({ status: "partially_signed" })
-          .eq("id", contract!.id);
+      if (error) {
+        console.error("Signing error:", error);
+        throw new Error("署名処理に失敗しました");
       }
 
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      setSignedAt(data?.signedAt || new Date().toISOString());
       setStep("success");
     } catch (err) {
-      setError("署名処理に失敗しました");
+      console.error("Failed to sign contract:", err);
+      setError(err instanceof Error ? err.message : "署名処理に失敗しました");
       setStep("error");
     } finally {
       setIsSigning(false);
@@ -199,7 +226,13 @@ export default function ContractSign() {
                 本人確認
               </CardTitle>
               <CardDescription>
-                メールで送信された6桁の確認コードを入力してください
+                {maskedEmail ? (
+                  <>
+                    <span className="font-medium">{maskedEmail}</span> 宛に送信された6桁の確認コードを入力してください
+                  </>
+                ) : (
+                  "メールで送信された6桁の確認コードを入力してください"
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -220,9 +253,27 @@ export default function ContractSign() {
                 </InputOTP>
               </div>
               
-              <p className="text-center text-sm text-muted-foreground">
-                デモ: 任意の6桁を入力してください
-              </p>
+              <div className="text-center">
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={sendOtpCode}
+                  disabled={isSendingOtp}
+                  className="text-muted-foreground"
+                >
+                  {isSendingOtp ? (
+                    <>
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      送信中...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="h-3 w-3 mr-1" />
+                      確認コードを再送信
+                    </>
+                  )}
+                </Button>
+              </div>
 
               <Button
                 className="w-full"
@@ -310,6 +361,7 @@ export default function ContractSign() {
                     placeholder="山田 太郎"
                     value={signatorName}
                     onChange={(e) => setSignatorName(e.target.value)}
+                    maxLength={100}
                   />
                 </div>
 
@@ -320,7 +372,7 @@ export default function ContractSign() {
                   </p>
                 </div>
 
-                <Button className="w-full" onClick={handleSign} disabled={!signatorName.trim()}>
+                <Button className="w-full" onClick={handleSign} disabled={!signatorName.trim() || isSigning}>
                   <FileSignature className="h-4 w-4 mr-2" />
                   署名して締結
                 </Button>
@@ -357,7 +409,7 @@ export default function ContractSign() {
                   <span className="font-medium">署名証明</span>
                 </div>
                 <p className="text-sm text-muted-foreground mt-2">
-                  署名日時: {format(new Date(), "yyyy年MM月dd日 HH:mm:ss", { locale: ja })}
+                  署名日時: {signedAt ? format(new Date(signedAt), "yyyy年MM月dd日 HH:mm:ss", { locale: ja }) : format(new Date(), "yyyy年MM月dd日 HH:mm:ss", { locale: ja })}
                 </p>
               </div>
             </CardContent>

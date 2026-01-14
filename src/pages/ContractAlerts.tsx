@@ -21,7 +21,7 @@ function AlertBadge({ type }: { type: ContractAlert['alertType'] }) {
   const config = {
     expired: { label: '期限切れ', variant: 'destructive' as const, icon: XCircle },
     critical: { label: '緊急', variant: 'destructive' as const, icon: AlertTriangle },
-    warning: { label: '注意', variant: 'warning' as const, icon: Clock },
+    warning: { label: '注意', variant: 'outline' as const, icon: Clock },
     upcoming: { label: '近日', variant: 'secondary' as const, icon: Calendar },
   };
 

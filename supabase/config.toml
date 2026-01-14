@@ -1,1 +1,19 @@
 project_id = "wnqfmvoyvipebipdpvcx"
+
+[functions.chat]
+verify_jwt = false
+
+[functions.create-payment]
+verify_jwt = false
+
+[functions.send-email]
+verify_jwt = false
+
+[functions.verify-payment]
+verify_jwt = false
+
+[functions.sign-contract]
+verify_jwt = false
+
+[functions.send-otp]
+verify_jwt = false
