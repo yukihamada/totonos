@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "@/hooks/use-toast";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,7 +25,7 @@ export default function ContractDetail() {
 
   const handleSendForSignature = async () => {
     if (!contract?.client?.email) {
-      toast.error("取引先のメールアドレスが設定されていません");
+      toast({ title: "エラー", description: "取引先のメールアドレスが設定されていません", variant: "destructive" });
       return;
     }
     
@@ -32,7 +33,7 @@ export default function ContractDetail() {
       { id: contract.id, status: 'sent' },
       {
         onSuccess: () => {
-          toast.success("署名依頼を送信しました（デモ）");
+          toast({ title: "送信完了", description: "署名依頼を送信しました（デモ）" });
         },
       }
     );
