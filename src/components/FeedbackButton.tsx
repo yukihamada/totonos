@@ -10,30 +10,25 @@ export function FeedbackButton() {
 
   return (
     <>
-      {/* Beta Badge - Fixed top right */}
-      <div className="fixed top-2 right-2 md:top-4 md:right-4 z-50">
-        <Badge variant="secondary" className="bg-amber-500/90 text-amber-950 hover:bg-amber-500 border-0 font-semibold px-3 py-1">
+      {/* Feedback Button - Fixed bottom LEFT to avoid overlap with chat */}
+      <div className="fixed bottom-20 left-4 md:bottom-6 md:left-6 z-40 flex flex-col gap-2 items-start">
+        <Badge variant="secondary" className="bg-amber-500/90 text-amber-950 hover:bg-amber-500 border-0 font-semibold px-2 py-0.5 text-xs">
           🚧 ベータ版
         </Badge>
-      </div>
-
-      {/* Feedback Button - Fixed bottom right */}
-      <div className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-40 flex flex-col gap-2 items-end">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              variant="default"
+              variant="outline"
               size="sm"
-              className="rounded-full shadow-lg px-4 gap-2"
+              className="rounded-full shadow-lg px-4 gap-2 border-2"
               onClick={() => setOpen(true)}
             >
               <Bug className="h-4 w-4" />
-              <span className="hidden sm:inline">バグ報告・ご意見</span>
-              <MessageSquarePlus className="h-4 w-4 sm:hidden" />
+              <span className="hidden sm:inline">バグ報告</span>
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="left">
-            <p>バグ報告・ご意見・ご要望をお寄せください</p>
+          <TooltipContent side="right">
+            <p>バグ報告・ご意見・ご要望</p>
           </TooltipContent>
         </Tooltip>
       </div>
