@@ -13,7 +13,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { useInvoices, useCreateInvoice, useUpdateInvoiceStatus, useDeleteInvoice } from "@/hooks/useInvoices";
 import { useClients } from "@/hooks/useClients";
 import { useSendEmail } from "@/hooks/useEmailSending";
-import { Plus, MoreHorizontal, FileText, Send, CheckCircle, Clock, AlertCircle, X, Trash2, Mail, Bell } from "lucide-react";
+import { useCreatePaymentSession } from "@/hooks/useStripePayment";
+import { Plus, MoreHorizontal, FileText, Send, CheckCircle, Clock, AlertCircle, X, Trash2, Mail, Bell, CreditCard } from "lucide-react";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 
@@ -39,6 +40,7 @@ export default function Invoices() {
   const updateStatus = useUpdateInvoiceStatus();
   const deleteInvoice = useDeleteInvoice();
   const sendEmail = useSendEmail();
+  const createPaymentSession = useCreatePaymentSession();
 
   const [isOpen, setIsOpen] = useState(false);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
@@ -388,6 +390,21 @@ export default function Invoices() {
                                 <DropdownMenuItem onClick={() => handleOpenEmailDialog(invoice, 'payment_confirmation')}>
                                   <CheckCircle className="mr-2 h-4 w-4" />
                                   入金確認メール送信
+                                </DropdownMenuItem>
+                              )}
+                              {invoice.status !== 'paid' && invoice.status !== 'cancelled' && (
+                                <DropdownMenuItem 
+                                  onClick={() => createPaymentSession.mutate({
+                                    invoiceId: invoice.id,
+                                    amount: invoice.total_amount,
+                                    invoiceNumber: invoice.invoice_number,
+                                    title: invoice.title,
+                                    clientEmail: (invoice as any).client?.email,
+                                  })}
+                                  disabled={createPaymentSession.isPending}
+                                >
+                                  <CreditCard className="mr-2 h-4 w-4" />
+                                  オンライン決済リンクを発行
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuSeparator />

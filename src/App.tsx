@@ -62,6 +62,7 @@ import Workflows from "./pages/Workflows";
 import Products from "./pages/Products";
 import PaymentLinks from "./pages/PaymentLinks";
 import EmailTemplates from "./pages/EmailTemplates";
+import PaymentSuccess from "./pages/PaymentSuccess";
 // Chat
 import { ChatWidget } from "./components/chat/ChatWidget";
 
@@ -146,6 +147,8 @@ function AppRoutes() {
       <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
       <Route path="/payment-links" element={<ProtectedRoute><PaymentLinks /></ProtectedRoute>} />
       <Route path="/email-templates" element={<ProtectedRoute><EmailTemplates /></ProtectedRoute>} />
+      {/* Payment */}
+      <Route path="/payment-success" element={<PaymentSuccess />} />
       {/* Not Found */}
       <Route path="*" element={<NotFound />} />
     </Routes>
