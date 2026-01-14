@@ -1,19 +1,33 @@
 project_id = "wnqfmvoyvipebipdpvcx"
 
+# Chat: 内部でJWT検証を実施
 [functions.chat]
 verify_jwt = false
 
+# Payment: 認証ユーザーのみ支払いセッション作成可能
 [functions.create-payment]
-verify_jwt = false
+verify_jwt = true
 
+# Email: 内部でJWT検証を実施
 [functions.send-email]
 verify_jwt = false
 
+# Payment Verification: Stripeセッション検証で保護
 [functions.verify-payment]
 verify_jwt = false
 
+# Contract Signing: トークン+OTP認証で保護（外部署名者向け）
 [functions.sign-contract]
 verify_jwt = false
 
+# OTP: 署名トークン検証で保護
 [functions.send-otp]
+verify_jwt = false
+
+# API: 内部でAPI Key検証を実施
+[functions.api]
+verify_jwt = false
+
+# MCP: 内部でAPI Key検証を実施
+[functions.mcp]
 verify_jwt = false

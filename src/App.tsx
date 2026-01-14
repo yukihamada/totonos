@@ -89,6 +89,9 @@ import SettingsMenu from "./pages/SettingsMenu";
 import DeveloperSettings from "./pages/DeveloperSettings";
 import ApiDocs from "./pages/ApiDocs";
 import McpSettings from "./pages/McpSettings";
+// Legal
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
 // Chat
 import { ChatWidget } from "./components/chat/ChatWidget";
 
@@ -201,6 +204,9 @@ function AppRoutes() {
       <Route path="/developer" element={<ProtectedRoute><DeveloperSettings /></ProtectedRoute>} />
       <Route path="/api-docs" element={<ProtectedRoute><ApiDocs /></ProtectedRoute>} />
       <Route path="/mcp-settings" element={<ProtectedRoute><McpSettings /></ProtectedRoute>} />
+      {/* Legal */}
+      <Route path="/terms" element={<Terms />} />
+      <Route path="/privacy" element={<Privacy />} />
       {/* Not Found */}
       <Route path="*" element={<NotFound />} />
     </Routes>
