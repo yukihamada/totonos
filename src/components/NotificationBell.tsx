@@ -125,7 +125,7 @@ export function NotificationBell() {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-96 p-0">
+      <PopoverContent align="end" className="w-96 p-0 bg-popover">
         <div className="flex items-center justify-between p-4">
           <h4 className="font-semibold">通知</h4>
           <div className="flex items-center gap-2">

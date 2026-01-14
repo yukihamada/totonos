@@ -3,13 +3,14 @@ import { Link, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { BottomNavigation } from "./BottomNavigation";
-import { Bell, MessageCircle, X, LogIn } from "lucide-react";
+import { MessageCircle, X, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ChatWidget } from "@/components/chat/ChatWidget";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDemo } from "@/contexts/DemoContext";
 import { FeedbackButton } from "@/components/FeedbackButton";
+import { NotificationBell } from "@/components/NotificationBell";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -92,9 +93,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                     <p>AIアシスタント <kbd className="ml-1 text-xs bg-muted px-1 rounded">⌘K</kbd></p>
                   </TooltipContent>
                 </Tooltip>
-                <Button variant="ghost" size="icon" className="h-10 w-10">
-                  <Bell className="h-5 w-5" />
-                </Button>
+                <NotificationBell />
               </div>
             </header>
             <main className={`flex-1 p-4 md:p-6 overflow-auto ${isMobile ? 'pb-20' : ''}`}>
