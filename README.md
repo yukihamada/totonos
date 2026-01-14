@@ -1,73 +1,114 @@
-# Welcome to your Lovable project
+# Totonos - 8-in-1 Business OS
 
-## Project info
+> freee + SmartHR + Salesforce + Notion + クラウドサイン + HRMOS + 楽楽精算 + Asana を1つに統合
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## 概要
 
-## How can I edit this code?
+Totonos は、中小企業・スタートアップ向けの統合ビジネスプラットフォームです。複数のSaaSツールを契約する必要なく、1つのプラットフォームで業務を完結できます。
 
-There are several ways of editing your application.
+### 主な機能
 
-**Use Lovable**
+| カテゴリ | 機能 | 競合サービス |
+|---------|------|-------------|
+| **CRM** | リード管理、商談管理、取引先管理 | Salesforce |
+| **請求・見積** | 請求書作成、見積書作成、自動リマインド | freee、MFクラウド |
+| **契約** | 電子契約、契約書管理、期限アラート | クラウドサイン |
+| **HR** | 従業員管理、勤怠管理、給与計算 | SmartHR、HRMOS |
+| **経費** | 経費精算、領収書OCR、仕訳自動化 | 楽楽精算 |
+| **会計** | 仕訳帳、勘定科目、財務レポート | freee、MFクラウド |
+| **Wiki** | ナレッジベース、ドキュメント管理 | Notion |
+| **プロジェクト** | タスク管理、進捗追跡 | Asana |
+| **AIアシスタント** | チャットボット、自動化 | - |
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## 技術スタック
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Frontend**: React 18 + TypeScript + Vite
+- **UI**: shadcn/ui + Tailwind CSS
+- **Backend**: Supabase (PostgreSQL + Auth + Edge Functions)
+- **AI**: Anthropic Claude API
+- **決済**: Stripe
 
-**Use your preferred IDE**
+## セットアップ
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### 必要条件
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- Node.js 18+
+- npm または pnpm
+- Supabase アカウント
 
-Follow these steps:
+### インストール
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+```bash
+# リポジトリをクローン
+git clone https://github.com/yukihamada/totonos.git
+cd totonos
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# 依存関係をインストール
+npm install
 
-# Step 3: Install the necessary dependencies.
-npm i
+# 環境変数を設定
+cp .env.example .env
+# .env ファイルを編集して必要な値を設定
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# 開発サーバーを起動
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### 環境変数
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key
+```
 
-**Use GitHub Codespaces**
+## 機能詳細
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### AIアシスタント
 
-## What technologies are used for this project?
+- 日本語IME対応（変換確定時の誤送信防止）
+- Markdown レンダリング対応
+- クレジット制による従量課金
 
-This project is built with:
+### クレジットシステム
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+| 機能 | 消費クレジット |
+|------|---------------|
+| AIチャット | 1 |
+| AI売上予測 | 5 |
+| AIリードスコアリング | 3 |
+| 領収書OCR | 2 |
+| PDF生成 | 1 |
 
-## How can I deploy this project?
+### セキュリティ
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+- Row Level Security (RLS) による データ分離
+- 二要素認証 (2FA) 対応
+- 監査ログ
 
-## Can I connect a custom domain to my Lovable project?
+## ディレクトリ構成
 
-Yes, you can!
+```
+src/
+├── components/     # UIコンポーネント
+│   ├── chat/       # AIチャット
+│   ├── layout/     # レイアウト
+│   └── ui/         # shadcn/ui
+├── hooks/          # カスタムフック
+├── lib/            # ユーティリティ
+├── pages/          # ページコンポーネント
+├── types/          # TypeScript型定義
+└── integrations/   # 外部サービス連携
+```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## ライセンス
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+MIT License
+
+## コントリビューション
+
+Issue や Pull Request は歓迎です。
+
+## サポート
+
+- [GitHub Issues](https://github.com/yukihamada/totonos/issues)
+- Email: support@totonos.com

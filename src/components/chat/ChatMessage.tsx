@@ -2,6 +2,8 @@ import { cn } from "@/lib/utils";
 import { Bot, User, Wrench, AlertCircle } from "lucide-react";
 import { ChatMessage as ChatMessageType } from "@/types/chat";
 import { ToolResultCard } from "./ToolResultCard";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -50,7 +52,28 @@ export function ChatMessage({ message }: ChatMessageProps) {
               message.isStreaming && "animate-pulse"
             )}
           >
-            <p className="whitespace-pre-wrap">{message.content}</p>
+            {isUser ? (
+              <p className="whitespace-pre-wrap">{message.content}</p>
+            ) : (
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-pre:my-2 prose-code:bg-muted-foreground/20 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none"
+                components={{
+                  pre: ({ children }) => (
+                    <pre className="bg-muted-foreground/20 p-2 rounded overflow-x-auto">
+                      {children}
+                    </pre>
+                  ),
+                  a: ({ href, children }) => (
+                    <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                      {children}
+                    </a>
+                  ),
+                }}
+              >
+                {message.content}
+              </ReactMarkdown>
+            )}
           </div>
         )}
 
