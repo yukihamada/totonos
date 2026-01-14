@@ -32,6 +32,7 @@ import {
   Laptop,
   Menu,
   Eye,
+  Mail,
 } from "lucide-react";
 import { useDemo } from "@/contexts/DemoContext";
 import { FeedbackButton } from "@/components/FeedbackButton";
@@ -89,6 +90,11 @@ const features = [
     icon: Laptop,
     title: "IT Asset Management",
     description: "PC・ソフトウェアライセンス・備品の管理と貸出状況を可視化。",
+  },
+  {
+    icon: Mail,
+    title: "Smart Email",
+    description: "会社専用メールアドレスを発行。AIが自動分類・要約・返信案を生成。",
   },
 ];
 
