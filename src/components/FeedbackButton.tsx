@@ -11,8 +11,8 @@ export function FeedbackButton() {
   return (
     <>
       {/* Feedback Button - Fixed bottom LEFT to avoid overlap with chat */}
-      <div className="fixed bottom-20 left-4 md:bottom-6 md:left-6 z-40 flex flex-col gap-2 items-start">
-        <Badge variant="secondary" className="bg-amber-500/90 text-amber-950 hover:bg-amber-500 border-0 font-semibold px-2 py-0.5 text-xs">
+      <div className="fixed bottom-20 left-4 md:bottom-6 md:left-6 z-40 flex flex-col gap-1 items-start">
+        <Badge variant="secondary" className="bg-amber-500/90 text-amber-950 hover:bg-amber-500 border-0 font-semibold px-2 py-0.5 text-[10px] leading-tight">
           🚧 ベータ版
         </Badge>
         <Tooltip>
