@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   Table,
   TableBody,
@@ -38,168 +38,165 @@ import {
   Mail,
   MoreHorizontal,
   Shield,
-  Eye,
-  Edit,
   Trash2,
   Crown,
+  Loader2,
+  Clock,
+  XCircle,
 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  useCurrentCompany,
+  useCompanyMembers,
+  useCompanyInvitations,
+  useCreateInvitation,
+  useRemoveMember,
+  useUpdateMemberRole,
+  useCancelInvitation,
+} from '@/hooks/useCompany';
+import type { MemberRole } from '@/types/company';
+import { format } from 'date-fns';
+import { ja } from 'date-fns/locale';
+import { Skeleton } from '@/components/ui/skeleton';
 
-interface TeamMember {
-  id: string;
-  name: string;
-  email: string;
-  avatar?: string;
-  role: 'admin' | 'manager' | 'accountant' | 'sales' | 'hr' | 'viewer';
-  department: string;
-  status: 'active' | 'pending' | 'inactive';
-  joinedAt: Date;
-  lastActive?: Date;
-}
-
-const roleLabels: Record<TeamMember['role'], string> = {
+const roleLabels: Record<MemberRole, string> = {
+  owner: 'オーナー',
   admin: '管理者',
-  manager: 'マネージャー',
-  accountant: '経理',
-  sales: '営業',
-  hr: '人事',
+  member: 'メンバー',
   viewer: '閲覧者',
 };
 
-const roleColors: Record<TeamMember['role'], string> = {
+const roleColors: Record<MemberRole, string> = {
+  owner: 'bg-amber-100 text-amber-800',
   admin: 'bg-red-100 text-red-800',
-  manager: 'bg-purple-100 text-purple-800',
-  accountant: 'bg-green-100 text-green-800',
-  sales: 'bg-blue-100 text-blue-800',
-  hr: 'bg-orange-100 text-orange-800',
+  member: 'bg-blue-100 text-blue-800',
   viewer: 'bg-gray-100 text-gray-800',
 };
 
-const mockMembers: TeamMember[] = [
-  {
-    id: '1',
-    name: '山田 太郎',
-    email: 'yamada@example.com',
-    role: 'admin',
-    department: '経営企画',
-    status: 'active',
-    joinedAt: new Date('2024-01-15'),
-    lastActive: new Date(Date.now() - 1000 * 60 * 5),
-  },
-  {
-    id: '2',
-    name: '佐藤 花子',
-    email: 'sato@example.com',
-    role: 'accountant',
-    department: '経理部',
-    status: 'active',
-    joinedAt: new Date('2024-03-01'),
-    lastActive: new Date(Date.now() - 1000 * 60 * 30),
-  },
-  {
-    id: '3',
-    name: '鈴木 一郎',
-    email: 'suzuki@example.com',
-    role: 'sales',
-    department: '営業部',
-    status: 'active',
-    joinedAt: new Date('2024-06-15'),
-    lastActive: new Date(Date.now() - 1000 * 60 * 60 * 2),
-  },
-  {
-    id: '4',
-    name: '田中 美咲',
-    email: 'tanaka@example.com',
-    role: 'hr',
-    department: '人事部',
-    status: 'active',
-    joinedAt: new Date('2024-08-01'),
-    lastActive: new Date(Date.now() - 1000 * 60 * 60 * 24),
-  },
-  {
-    id: '5',
-    name: '高橋 健太',
-    email: 'takahashi@example.com',
-    role: 'viewer',
-    department: '開発部',
-    status: 'pending',
-    joinedAt: new Date('2025-01-10'),
-  },
-  {
-    id: '6',
-    name: '伊藤 恵',
-    email: 'ito@example.com',
-    role: 'manager',
-    department: '営業部',
-    status: 'inactive',
-    joinedAt: new Date('2023-11-20'),
-    lastActive: new Date('2024-12-15'),
-  },
-];
-
 export default function TeamMembers() {
-  const [members, setMembers] = useState<TeamMember[]>(mockMembers);
+  const { data: companyData, isLoading: companyLoading } = useCurrentCompany();
+  const company = companyData;
+  const { data: members = [], isLoading: membersLoading } = useCompanyMembers(company?.id);
+  const { data: invitations = [], isLoading: invitationsLoading } = useCompanyInvitations(company?.id);
+  const createInvitation = useCreateInvitation();
+  const removeMember = useRemoveMember();
+  const updateRole = useUpdateMemberRole();
+  const cancelInvitation = useCancelInvitation();
+
   const [search, setSearch] = useState('');
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<TeamMember['role']>('viewer');
+  const [inviteRole, setInviteRole] = useState<MemberRole>('member');
+  const [roleDialogOpen, setRoleDialogOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<typeof members[0] | null>(null);
+  const [newRole, setNewRole] = useState<MemberRole>('member');
+
+  const isLoading = companyLoading || membersLoading || invitationsLoading;
+
+  const pendingInvitations = invitations.filter(inv => inv.status === 'pending');
 
   const filteredMembers = members.filter(
-    (m) =>
-      m.name.toLowerCase().includes(search.toLowerCase()) ||
-      m.email.toLowerCase().includes(search.toLowerCase()) ||
-      m.department.toLowerCase().includes(search.toLowerCase())
+    (m) => m.user_id?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const activeCount = members.filter((m) => m.status === 'active').length;
-  const pendingCount = members.filter((m) => m.status === 'pending').length;
-
-  const handleInvite = () => {
-    if (!inviteEmail) {
+  const handleInvite = async () => {
+    if (!inviteEmail || !company) {
       toast.error('メールアドレスを入力してください');
       return;
     }
-    toast.success(`${inviteEmail}に招待を送信しました`);
-    setInviteDialogOpen(false);
-    setInviteEmail('');
-    setInviteRole('viewer');
+
+    try {
+      await createInvitation.mutateAsync({
+        companyId: company.id,
+        email: inviteEmail,
+        role: inviteRole,
+      });
+      setInviteDialogOpen(false);
+      setInviteEmail('');
+      setInviteRole('member');
+    } catch (error) {
+      // Error handled by hook
+    }
   };
 
-  const handleRemove = (member: TeamMember) => {
-    setMembers((prev) => prev.filter((m) => m.id !== member.id));
-    toast.success(`${member.name}をチームから削除しました`);
+  const handleRemove = async (memberId: string) => {
+    if (!confirm('このメンバーを削除してもよろしいですか？')) return;
+    
+    try {
+      await removeMember.mutateAsync(memberId);
+    } catch (error) {
+      // Error handled by hook
+    }
   };
 
-  const handleChangeRole = (member: TeamMember, newRole: TeamMember['role']) => {
-    setMembers((prev) =>
-      prev.map((m) => (m.id === member.id ? { ...m, role: newRole } : m))
+  const handleRoleChange = async () => {
+    if (!selectedMember) return;
+    
+    try {
+      await updateRole.mutateAsync({
+        memberId: selectedMember.id,
+        role: newRole,
+      });
+      setRoleDialogOpen(false);
+      setSelectedMember(null);
+    } catch (error) {
+      // Error handled by hook
+    }
+  };
+
+  const handleCancelInvitation = async (invitationId: string) => {
+    try {
+      await cancelInvitation.mutateAsync(invitationId);
+    } catch (error) {
+      // Error handled by hook
+    }
+  };
+
+  const openRoleDialog = (member: typeof members[0]) => {
+    setSelectedMember(member);
+    setNewRole(member.role);
+    setRoleDialogOpen(true);
+  };
+
+  const getInitials = (userId: string) => {
+    return userId.slice(0, 2).toUpperCase();
+  };
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="space-y-6">
+          <Skeleton className="h-10 w-64" />
+          <div className="grid gap-4 md:grid-cols-4">
+            {[1, 2, 3, 4].map(i => (
+              <Skeleton key={i} className="h-24" />
+            ))}
+          </div>
+          <Skeleton className="h-96" />
+        </div>
+      </AppLayout>
     );
-    toast.success(`${member.name}の役割を${roleLabels[newRole]}に変更しました`);
-  };
+  }
 
-  const getStatusBadge = (status: TeamMember['status']) => {
-    switch (status) {
-      case 'active':
-        return <Badge variant="default" className="bg-green-500">アクティブ</Badge>;
-      case 'pending':
-        return <Badge variant="secondary">招待中</Badge>;
-      case 'inactive':
-        return <Badge variant="outline">非アクティブ</Badge>;
-    }
-  };
-
-  const getInitials = (name: string) => {
-    const parts = name.split(' ');
-    if (parts.length >= 2) {
-      return parts[0][0] + parts[1][0];
-    }
-    return name.slice(0, 2);
-  };
+  if (!company) {
+    return (
+      <AppLayout>
+        <div className="flex flex-col items-center justify-center h-96">
+          <Users className="h-16 w-16 text-muted-foreground mb-4" />
+          <h2 className="text-xl font-semibold mb-2">会社が選択されていません</h2>
+          <p className="text-muted-foreground">
+            サイドバーから会社を選択してください
+          </p>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -211,8 +208,8 @@ export default function TeamMembers() {
               チームメンバー
             </h1>
             <p className="text-muted-foreground">
-              {activeCount}人のアクティブメンバー
-              {pendingCount > 0 && `、${pendingCount}人が招待中`}
+              {members.length}人のメンバー
+              {pendingInvitations.length > 0 && `、${pendingInvitations.length}人が招待中`}
             </p>
           </div>
           <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
@@ -241,16 +238,13 @@ export default function TeamMembers() {
                 </div>
                 <div className="space-y-2">
                   <Label>役割</Label>
-                  <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as TeamMember['role'])}>
+                  <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as MemberRole)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="admin">管理者</SelectItem>
-                      <SelectItem value="manager">マネージャー</SelectItem>
-                      <SelectItem value="accountant">経理</SelectItem>
-                      <SelectItem value="sales">営業</SelectItem>
-                      <SelectItem value="hr">人事</SelectItem>
+                      <SelectItem value="member">メンバー</SelectItem>
                       <SelectItem value="viewer">閲覧者</SelectItem>
                     </SelectContent>
                   </Select>
@@ -260,7 +254,8 @@ export default function TeamMembers() {
                 <Button variant="outline" onClick={() => setInviteDialogOpen(false)}>
                   キャンセル
                 </Button>
-                <Button onClick={handleInvite}>
+                <Button onClick={handleInvite} disabled={createInvitation.isPending}>
+                  {createInvitation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   <Mail className="mr-2 h-4 w-4" />
                   招待を送信
                 </Button>
@@ -279,21 +274,23 @@ export default function TeamMembers() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>アクティブ</CardDescription>
-              <CardTitle className="text-2xl text-green-600">{activeCount}</CardTitle>
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
               <CardDescription>招待中</CardDescription>
-              <CardTitle className="text-2xl text-yellow-600">{pendingCount}</CardTitle>
+              <CardTitle className="text-2xl text-yellow-600">{pendingInvitations.length}</CardTitle>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="pb-2">
               <CardDescription>管理者数</CardDescription>
               <CardTitle className="text-2xl">
-                {members.filter((m) => m.role === 'admin').length}
+                {members.filter((m) => m.role === 'admin' || m.role === 'owner').length}
+              </CardTitle>
+            </CardHeader>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>一般メンバー</CardDescription>
+              <CardTitle className="text-2xl">
+                {members.filter((m) => m.role === 'member' || m.role === 'viewer').length}
               </CardTitle>
             </CardHeader>
           </Card>
@@ -313,7 +310,7 @@ export default function TeamMembers() {
                 const count = members.filter((m) => m.role === role).length;
                 return (
                   <div key={role} className="flex items-center gap-2">
-                    <Badge className={roleColors[role as TeamMember['role']]}>
+                    <Badge className={roleColors[role as MemberRole]}>
                       {label}
                     </Badge>
                     <span className="text-sm text-muted-foreground">{count}人</span>
@@ -324,6 +321,60 @@ export default function TeamMembers() {
           </CardContent>
         </Card>
 
+        {/* Pending Invitations */}
+        {pendingInvitations.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                招待中 ({pendingInvitations.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>メールアドレス</TableHead>
+                    <TableHead>役割</TableHead>
+                    <TableHead>招待日</TableHead>
+                    <TableHead>有効期限</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pendingInvitations.map((invitation) => (
+                    <TableRow key={invitation.id}>
+                      <TableCell>{invitation.email}</TableCell>
+                      <TableCell>
+                        <Badge className={roleColors[invitation.role]}>
+                          {roleLabels[invitation.role]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {format(new Date(invitation.created_at), 'yyyy/MM/dd', { locale: ja })}
+                      </TableCell>
+                      <TableCell>
+                        {format(new Date(invitation.expires_at), 'yyyy/MM/dd', { locale: ja })}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive"
+                          onClick={() => handleCancelInvitation(invitation.id)}
+                          disabled={cancelInvitation.isPending}
+                        >
+                          <XCircle className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Members Table */}
         <Card>
           <CardHeader>
@@ -332,7 +383,7 @@ export default function TeamMembers() {
               <div className="relative w-72">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="名前、メール、部署で検索..."
+                  placeholder="検索..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-8"
@@ -346,74 +397,111 @@ export default function TeamMembers() {
                 <TableRow>
                   <TableHead>メンバー</TableHead>
                   <TableHead>役割</TableHead>
-                  <TableHead>部署</TableHead>
-                  <TableHead>ステータス</TableHead>
                   <TableHead>参加日</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredMembers.map((member) => (
-                  <TableRow key={member.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9">
-                          <AvatarImage src={member.avatar} />
-                          <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="font-medium flex items-center gap-1">
-                            {member.name}
-                            {member.role === 'admin' && (
-                              <Crown className="h-3 w-3 text-yellow-500" />
-                            )}
-                          </div>
-                          <div className="text-sm text-muted-foreground">{member.email}</div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={roleColors[member.role]}>
-                        {roleLabels[member.role]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{member.department}</TableCell>
-                    <TableCell>{getStatusBadge(member.status)}</TableCell>
-                    <TableCell>
-                      {member.joinedAt.toLocaleDateString('ja-JP')}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
-                            <Eye className="mr-2 h-4 w-4" />
-                            詳細を見る
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Edit className="mr-2 h-4 w-4" />
-                            役割を変更
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => handleRemove(member)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            削除
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                {filteredMembers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                      メンバーがいません
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  filteredMembers.map((member) => (
+                    <TableRow key={member.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-9 w-9">
+                            <AvatarFallback>{getInitials(member.user_id)}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium flex items-center gap-1">
+                              ユーザー {member.user_id.slice(0, 8)}...
+                              {member.role === 'owner' && (
+                                <Crown className="h-3 w-3 text-yellow-500" />
+                              )}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              ID: {member.user_id.slice(0, 12)}...
+                            </div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={roleColors[member.role]}>
+                          {roleLabels[member.role]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {format(new Date(member.joined_at), 'yyyy/MM/dd', { locale: ja })}
+                      </TableCell>
+                      <TableCell>
+                        {member.role !== 'owner' && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => openRoleDialog(member)}>
+                                <Shield className="mr-2 h-4 w-4" />
+                                役割を変更
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => handleRemove(member.id)}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                削除
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
+
+        {/* Role Change Dialog */}
+        <Dialog open={roleDialogOpen} onOpenChange={setRoleDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>役割を変更</DialogTitle>
+              <DialogDescription>
+                メンバーの役割を選択してください
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <Select value={newRole} onValueChange={(v) => setNewRole(v as MemberRole)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">管理者</SelectItem>
+                  <SelectItem value="member">メンバー</SelectItem>
+                  <SelectItem value="viewer">閲覧者</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setRoleDialogOpen(false)}>
+                キャンセル
+              </Button>
+              <Button onClick={handleRoleChange} disabled={updateRole.isPending}>
+                {updateRole.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                変更を保存
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );
