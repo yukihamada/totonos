@@ -11,6 +11,8 @@ import { useCreateContract } from "@/hooks/useContracts";
 import { useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Plus, Trash2, GripVertical } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { AIDocumentAssistant } from "@/components/AIDocumentAssistant";
+import { GeneratedContractData } from "@/hooks/useDocumentAI";
 
 interface ContractItemInput {
   id: string;
@@ -84,6 +86,26 @@ export default function ContractNew() {
             <p className="text-muted-foreground">新しい契約書を作成します</p>
           </div>
         </div>
+
+        <AIDocumentAssistant
+          documentType="contract"
+          clientInfo={clientId && clients ? clients.find(c => c.id === clientId) ? { id: clientId, name: clients.find(c => c.id === clientId)!.name } : undefined : undefined}
+          onGenerate={(data) => {
+            const contractData = data as GeneratedContractData;
+            setTitle(contractData.title || "");
+            if (contractData.client_id) setClientId(contractData.client_id);
+            setContent(contractData.content || "");
+            setAmount(contractData.amount?.toString() || "");
+            setValidUntil(contractData.valid_until || "");
+            if (contractData.items && contractData.items.length > 0) {
+              setItems(contractData.items.map(item => ({
+                id: crypto.randomUUID(),
+                title: item.title || "",
+                content: item.content || "",
+              })));
+            }
+          }}
+        />
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <Card>

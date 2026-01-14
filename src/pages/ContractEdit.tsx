@@ -14,6 +14,8 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { AIDocumentAssistant } from "@/components/AIDocumentAssistant";
+import { GeneratedContractData } from "@/hooks/useDocumentAI";
 
 interface ContractItemInput {
   id: string;
@@ -157,6 +159,36 @@ export default function ContractEdit() {
             <p className="text-muted-foreground font-mono">{contract.contract_number}</p>
           </div>
         </div>
+
+        <AIDocumentAssistant
+          documentType="contract"
+          showEditMode
+          existingData={{
+            title,
+            client_id: clientId,
+            content,
+            amount: amount ? parseInt(amount) : undefined,
+            valid_until: validUntil,
+            items: items.map(i => ({ title: i.title, content: i.content })),
+          }}
+          clientInfo={clientId && clients ? clients.find(c => c.id === clientId) ? { id: clientId, name: clients.find(c => c.id === clientId)!.name } : undefined : undefined}
+          onGenerate={(data) => {
+            const contractData = data as GeneratedContractData;
+            setTitle(contractData.title || "");
+            if (contractData.client_id) setClientId(contractData.client_id);
+            setContent(contractData.content || "");
+            setAmount(contractData.amount?.toString() || "");
+            setValidUntil(contractData.valid_until || "");
+            if (contractData.items && contractData.items.length > 0) {
+              setItems(contractData.items.map(item => ({
+                id: crypto.randomUUID(),
+                title: item.title || "",
+                content: item.content || "",
+                isNew: true,
+              })));
+            }
+          }}
+        />
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <Card>

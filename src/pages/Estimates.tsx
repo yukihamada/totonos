@@ -15,6 +15,8 @@ import { useClients } from "@/hooks/useClients";
 import { Plus, MoreHorizontal, FileText, Send, CheckCircle, Clock, XCircle, X, Trash2, FileOutput, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
+import { AIDocumentAssistant } from "@/components/AIDocumentAssistant";
+import { GeneratedEstimateData } from "@/hooks/useDocumentAI";
 
 const statusConfig = {
   draft: { label: "下書き", variant: "secondary" as const, icon: FileText },
@@ -112,6 +114,26 @@ export default function Estimates() {
                 <DialogTitle>見積書を作成</DialogTitle>
                 <DialogDescription>新しい見積書を作成します</DialogDescription>
               </DialogHeader>
+              
+              <AIDocumentAssistant
+                documentType="estimate"
+                clientInfo={clientId && clients ? clients.find(c => c.id === clientId) ? { id: clientId, name: clients.find(c => c.id === clientId)!.name } : undefined : undefined}
+                onGenerate={(data) => {
+                  const estimateData = data as GeneratedEstimateData;
+                  setTitle(estimateData.title || "");
+                  if (estimateData.client_id) setClientId(estimateData.client_id);
+                  setDescription(estimateData.description || "");
+                  setValidUntil(estimateData.valid_until || "");
+                  if (estimateData.items && estimateData.items.length > 0) {
+                    setItems(estimateData.items.map(item => ({
+                      description: item.description || "",
+                      quantity: item.quantity || 1,
+                      unit_price: item.unit_price || 0,
+                    })));
+                  }
+                }}
+              />
+              
               <div className="space-y-4 py-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
