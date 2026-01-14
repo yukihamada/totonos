@@ -41,13 +41,13 @@ export interface ReferralState {
 }
 
 // ローカルストレージキー
-const REFERRAL_KEY = 'pulse_referral';
+const REFERRAL_KEY = 'totonos_referral';
 
 // リファラルコード生成
 function generateReferralCode(userId: string): string {
   const hash = userId.slice(0, 4).toUpperCase();
   const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `PULSE${hash}${random}`;
+  return `TOTONOS${hash}${random}`;
 }
 
 // 状態読み込み
@@ -222,7 +222,7 @@ export function useReferral() {
   const getShareUrls = useCallback(() => {
     if (!state) return null;
 
-    const text = encodeURIComponent('Pulse Finance OSを使っています！招待リンクから登録すると50クレジットもらえます✨');
+    const text = encodeURIComponent('Totonosを使っています！招待リンクから登録すると50クレジットもらえます✨');
     const url = encodeURIComponent(state.referralLink);
 
     return {

@@ -55,7 +55,7 @@ serve(async (req: Request) => {
     const anthropic = new Anthropic({ apiKey: anthropicApiKey });
 
     // System prompt for the AI assistant
-    const systemPrompt = `あなたはPulse Finance OSのAIアシスタントです。
+    const systemPrompt = `あなたはTotonosのAIアシスタントです。
 このシステムでは以下の機能を操作できます：
 - 契約書の作成・管理
 - CRM（リード管理、案件管理、活動記録）

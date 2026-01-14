@@ -68,8 +68,8 @@ interface UseCreditsReturn {
 }
 
 // ローカルストレージキー
-const CREDITS_KEY = 'pulse_credits';
-const LOGS_KEY = 'pulse_credit_logs';
+const CREDITS_KEY = 'totonos_credits';
+const LOGS_KEY = 'totonos_credit_logs';
 
 // 初期状態を生成
 function getInitialState(): CreditState {
