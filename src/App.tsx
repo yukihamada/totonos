@@ -84,6 +84,11 @@ import Credits from "./pages/Credits";
 import CreditLogs from "./pages/CreditLogs";
 import Pricing from "./pages/Pricing";
 import Referrals from "./pages/Referrals";
+// Developer & Settings
+import SettingsMenu from "./pages/SettingsMenu";
+import DeveloperSettings from "./pages/DeveloperSettings";
+import ApiDocs from "./pages/ApiDocs";
+import McpSettings from "./pages/McpSettings";
 // Chat
 import { ChatWidget } from "./components/chat/ChatWidget";
 
@@ -191,6 +196,11 @@ function AppRoutes() {
       <Route path="/credit-logs" element={<ProtectedRoute><CreditLogs /></ProtectedRoute>} />
       <Route path="/pricing" element={<ProtectedRoute><Pricing /></ProtectedRoute>} />
       <Route path="/referrals" element={<ProtectedRoute><Referrals /></ProtectedRoute>} />
+      {/* Developer & Settings */}
+      <Route path="/settings/menu" element={<ProtectedRoute><SettingsMenu /></ProtectedRoute>} />
+      <Route path="/developer" element={<ProtectedRoute><DeveloperSettings /></ProtectedRoute>} />
+      <Route path="/api-docs" element={<ProtectedRoute><ApiDocs /></ProtectedRoute>} />
+      <Route path="/mcp-settings" element={<ProtectedRoute><McpSettings /></ProtectedRoute>} />
       {/* Not Found */}
       <Route path="*" element={<NotFound />} />
     </Routes>

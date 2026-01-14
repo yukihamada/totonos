@@ -54,6 +54,9 @@ import {
   Coins,
   Gift,
   Sparkles,
+  Menu,
+  Code,
+  Plug,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -137,6 +140,11 @@ const iconMap: Record<string, LucideIcon> = {
   'credit-logs': History,
   pricing: Sparkles,
   referrals: Gift,
+  // Developer & Settings
+  'settings-menu': Menu,
+  developer: Code,
+  'api-docs': Book,
+  'mcp-settings': Plug,
 };
 
 // URL mapping
@@ -202,6 +210,11 @@ const urlMap: Record<string, string> = {
   'credit-logs': '/credit-logs',
   pricing: '/pricing',
   referrals: '/referrals',
+  // Developer & Settings
+  'settings-menu': '/settings/menu',
+  developer: '/developer',
+  'api-docs': '/api-docs',
+  'mcp-settings': '/mcp-settings',
 };
 
 export function AppSidebar() {

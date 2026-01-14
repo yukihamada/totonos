@@ -135,6 +135,10 @@ const defaultMenuGroups: MenuGroupConfig[] = [
       { id: 'email-templates', title: 'メールテンプレート', visible: true, order: 4 },
       { id: 'audit-log', title: '監査ログ', visible: true, order: 5 },
       { id: 'sso-settings', title: 'SSO設定', visible: true, order: 6 },
+      { id: 'settings-menu', title: 'メニュー設定', visible: true, order: 7 },
+      { id: 'developer', title: '開発者設定', visible: true, order: 8 },
+      { id: 'api-docs', title: 'APIドキュメント', visible: true, order: 9 },
+      { id: 'mcp-settings', title: 'MCP設定', visible: true, order: 10 },
     ],
   },
   {
