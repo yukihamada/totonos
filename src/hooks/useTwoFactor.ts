@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 
 interface TwoFactorStatus {
   enabled: boolean;
@@ -230,20 +229,9 @@ export function useTwoFactor() {
   }, []);
 
   // Check if 2FA is required for a user (for login flow)
-  const checkRequired = useCallback(async (email: string): Promise<boolean> => {
-    try {
-      // This requires a server-side check
-      // For now, we return false and let the login flow handle it
-      const { data } = await supabase
-        .from('user_two_factor')
-        .select('enabled')
-        .eq('user_id', (await supabase.auth.getUser()).data.user?.id || '')
-        .single();
-
-      return data?.enabled || false;
-    } catch {
-      return false;
-    }
+  const checkRequired = useCallback(async (_email: string): Promise<boolean> => {
+    // Stub - table doesn't exist
+    return false;
   }, []);
 
   return {

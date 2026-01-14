@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 
 const EXPORT_CATEGORIES = [
   { value: 'all', label: '全データ', description: 'すべてのテーブルをエクスポート' },
