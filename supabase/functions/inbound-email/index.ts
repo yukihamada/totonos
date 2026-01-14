@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, svix-id, svix-timestamp, svix-signature",
 };
 
 interface InboundEmail {
@@ -29,6 +29,32 @@ interface InboundEmail {
   charsets?: string;
   SPF?: string;
   DKIM?: string;
+}
+
+// Resend Inbound Email format
+interface ResendInboundEmail {
+  type: "email.received";
+  created_at: string;
+  data: {
+    email_id: string;
+    from: string;
+    to: string[];
+    cc?: string[];
+    bcc?: string[];
+    reply_to?: string[];
+    subject: string;
+    text?: string;
+    html?: string;
+    attachments?: Array<{
+      filename: string;
+      content: string; // base64
+      content_type: string;
+    }>;
+    headers?: Array<{
+      name: string;
+      value: string;
+    }>;
+  };
 }
 
 // メールアドレスからcompany_idを特定
@@ -207,8 +233,43 @@ serve(async (req) => {
         }
       }
     } else {
-      // JSON format (Mailgun, Postmark, etc.)
-      emailData = await req.json();
+      // JSON format (Resend, Mailgun, Postmark, etc.)
+      const jsonPayload = await req.json();
+
+      // Resend format detection
+      if (jsonPayload.type === "email.received" && jsonPayload.data) {
+        const resendData = jsonPayload as ResendInboundEmail;
+        const data = resendData.data;
+
+        // Convert headers array to object
+        const headersObj: Record<string, string> = {};
+        if (data.headers) {
+          for (const h of data.headers) {
+            headersObj[h.name] = h.value;
+          }
+        }
+
+        emailData = {
+          from: data.from,
+          to: data.to[0] || "",
+          cc: data.cc?.join(", "),
+          subject: data.subject,
+          text: data.text,
+          html: data.html,
+          replyTo: data.reply_to?.[0],
+          messageId: data.email_id,
+          headers: headersObj,
+          attachments: data.attachments?.map(att => ({
+            filename: att.filename,
+            type: att.content_type,
+            size: att.content ? Math.ceil(att.content.length * 0.75) : 0, // base64 to byte estimate
+            content: att.content,
+          })),
+        };
+      } else {
+        // Generic JSON format
+        emailData = jsonPayload;
+      }
     }
 
     // 送信元からname/emailを分離
