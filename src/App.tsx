@@ -94,10 +94,20 @@ import CompanySettings from "./pages/CompanySettings";
 // Legal
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
+// Data Import
+import DataImport from "./pages/DataImport";
 // Chat
 import { ChatWidget } from "./components/chat/ChatWidget";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -208,6 +218,8 @@ function AppRoutes() {
       <Route path="/developer" element={<ProtectedRoute><DeveloperSettings /></ProtectedRoute>} />
       <Route path="/api-docs" element={<ProtectedRoute><ApiDocs /></ProtectedRoute>} />
       <Route path="/mcp-settings" element={<ProtectedRoute><McpSettings /></ProtectedRoute>} />
+      {/* Data Import */}
+      <Route path="/data-import" element={<ProtectedRoute><DataImport /></ProtectedRoute>} />
       {/* Legal */}
       <Route path="/terms" element={<Terms />} />
       <Route path="/privacy" element={<Privacy />} />
