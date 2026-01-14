@@ -54,3 +54,7 @@ verify_jwt = false
 # Generate Document: AI文書生成（内部でJWT検証）
 [functions.generate-document]
 verify_jwt = false
+
+# OCR Receipt: レシートOCR処理（内部でJWT検証）
+[functions.ocr-receipt]
+verify_jwt = false

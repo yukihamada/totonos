@@ -2313,6 +2313,91 @@ export type Database = {
           },
         ]
       }
+      receipts: {
+        Row: {
+          category: string | null
+          company_id: string | null
+          confidence: number | null
+          created_at: string | null
+          expense_claim_id: string | null
+          id: string
+          image_url: string | null
+          items: Json | null
+          raw_text: string | null
+          receipt_date: string | null
+          source: string
+          source_email_id: string | null
+          status: string | null
+          tax_amount: number | null
+          total_amount: number | null
+          updated_at: string | null
+          user_id: string
+          vendor: string | null
+        }
+        Insert: {
+          category?: string | null
+          company_id?: string | null
+          confidence?: number | null
+          created_at?: string | null
+          expense_claim_id?: string | null
+          id?: string
+          image_url?: string | null
+          items?: Json | null
+          raw_text?: string | null
+          receipt_date?: string | null
+          source: string
+          source_email_id?: string | null
+          status?: string | null
+          tax_amount?: number | null
+          total_amount?: number | null
+          updated_at?: string | null
+          user_id: string
+          vendor?: string | null
+        }
+        Update: {
+          category?: string | null
+          company_id?: string | null
+          confidence?: number | null
+          created_at?: string | null
+          expense_claim_id?: string | null
+          id?: string
+          image_url?: string | null
+          items?: Json | null
+          raw_text?: string | null
+          receipt_date?: string | null
+          source?: string
+          source_email_id?: string | null
+          status?: string | null
+          tax_amount?: number | null
+          total_amount?: number | null
+          updated_at?: string | null
+          user_id?: string
+          vendor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipts_expense_claim_id_fkey"
+            columns: ["expense_claim_id"]
+            isOneToOne: false
+            referencedRelation: "expense_claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipts_source_email_id_fkey"
+            columns: ["source_email_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_emails"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales_targets: {
         Row: {
           achieved_amount: number | null
