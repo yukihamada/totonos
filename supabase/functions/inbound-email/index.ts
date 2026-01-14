@@ -59,6 +59,8 @@ interface ResendInboundEmail {
 
 // メールアドレスからcompany_idを特定
 async function findCompanyByEmail(supabase: any, toEmail: string): Promise<string | null> {
+  if (!toEmail) return null;
+  
   // totonos.jp のサブドメインからcompany_idを特定
   // 例: inbox@company-slug.totonos.jp
   const match = toEmail.match(/^[^@]+@([^.]+)\.totonos\.jp$/i);
@@ -235,11 +237,15 @@ serve(async (req) => {
     } else {
       // JSON format (Resend, Mailgun, Postmark, etc.)
       const jsonPayload = await req.json();
+      
+      console.log("Received JSON payload:", JSON.stringify(jsonPayload, null, 2));
 
       // Resend format detection
       if (jsonPayload.type === "email.received" && jsonPayload.data) {
         const resendData = jsonPayload as ResendInboundEmail;
         const data = resendData.data;
+
+        console.log("Detected Resend format");
 
         // Convert headers array to object
         const headersObj: Record<string, string> = {};
@@ -250,10 +256,10 @@ serve(async (req) => {
         }
 
         emailData = {
-          from: data.from,
-          to: data.to[0] || "",
+          from: data.from || "",
+          to: data.to?.[0] || "",
           cc: data.cc?.join(", "),
-          subject: data.subject,
+          subject: data.subject || "",
           text: data.text,
           html: data.html,
           replyTo: data.reply_to?.[0],
@@ -269,27 +275,37 @@ serve(async (req) => {
       } else {
         // Generic JSON format
         emailData = jsonPayload;
+        // Ensure required fields
+        emailData.from = emailData.from || "";
+        emailData.to = emailData.to || "";
       }
     }
 
     // 送信元からname/emailを分離
-    let fromEmail = emailData.from;
+    let fromEmail = emailData.from || "";
     let fromName = emailData.fromName;
-    const fromMatch = emailData.from.match(/^(.+?)\s*<([^>]+)>$/);
-    if (fromMatch) {
-      fromName = fromMatch[1].replace(/^["']|["']$/g, "");
-      fromEmail = fromMatch[2];
+    if (emailData.from) {
+      const fromMatch = emailData.from.match(/^(.+?)\s*<([^>]+)>$/);
+      if (fromMatch) {
+        fromName = fromMatch[1].replace(/^["']|["']$/g, "");
+        fromEmail = fromMatch[2];
+      }
     }
 
     // 宛先メールアドレスを正規化
-    let toEmail = emailData.to;
-    const toMatch = emailData.to.match(/<([^>]+)>/);
-    if (toMatch) {
-      toEmail = toMatch[1];
+    let toEmail = emailData.to || "";
+    if (emailData.to) {
+      const toMatch = emailData.to.match(/<([^>]+)>/);
+      if (toMatch) {
+        toEmail = toMatch[1];
+      }
     }
+
+    console.log(`Processing email from: ${fromEmail} to: ${toEmail}`);
 
     // 会社を特定
     const companyId = await findCompanyByEmail(supabase, toEmail);
+    console.log(`Found company: ${companyId}`);
 
     // ルーティングルール適用
     let routingResult: any = {};
