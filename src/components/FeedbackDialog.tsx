@@ -93,10 +93,11 @@ export function FeedbackDialog({ open, onOpenChange }: FeedbackDialogProps) {
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            📝 ご意見・ご要望
+            📝 バグ報告・ご意見・ご要望
           </DialogTitle>
           <DialogDescription>
-            製品の改善にご協力ください。いただいたフィードバックは開発チームが確認し、製品の改善に活用させていただきます。
+            現在ベータ版として運用中です。バグの報告やご意見・ご要望をお待ちしております。
+            いただいたフィードバックは開発チームが確認し、製品の改善に活用させていただきます。
           </DialogDescription>
         </DialogHeader>
 
