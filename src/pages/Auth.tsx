@@ -128,10 +128,10 @@ export default function Auth() {
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
             <div className="flex h-12 w-12 items-center justify-center border-2 border-foreground bg-foreground text-background text-2xl font-bold">
-              I
+              T
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold">Invox</CardTitle>
+          <CardTitle className="text-2xl font-bold">Totonos</CardTitle>
           <CardDescription>
             メールアドレスを入力してログイン・登録
           </CardDescription>

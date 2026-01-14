@@ -1,4 +1,4 @@
-// Accounting types for Invox
+// Accounting types for Totonos
 
 export type AccountType = 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
 export type JournalSourceType = 'manual' | 'invoice' | 'payment' | 'expense' | 'depreciation' | 'purchase_order';

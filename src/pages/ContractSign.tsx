@@ -155,9 +155,9 @@ export default function ContractSign() {
       <div className="container max-w-3xl mx-auto py-8 px-4">
         <div className="flex items-center justify-center gap-2 mb-8">
           <div className="flex h-8 w-8 items-center justify-center border-2 border-foreground bg-foreground text-background font-bold">
-            I
+            T
           </div>
-          <span className="text-xl font-bold tracking-tight">Invox</span>
+          <span className="text-xl font-bold tracking-tight">Totonos</span>
         </div>
 
         {step === "loading" && (

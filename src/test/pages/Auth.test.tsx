@@ -46,10 +46,10 @@ describe("Auth Page", () => {
     mockSupabase = createMockSupabase();
   });
 
-  it("renders the login form with Invox branding", async () => {
+  it("renders the login form with Totonos branding", async () => {
     renderAuth();
     await waitFor(() => {
-      expect(screen.getByText("Invox")).toBeInTheDocument();
+      expect(screen.getByText("Totonos")).toBeInTheDocument();
     });
     expect(screen.getByText("メールアドレスを入力してログイン・登録")).toBeInTheDocument();
   });

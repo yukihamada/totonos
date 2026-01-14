@@ -1,4 +1,4 @@
-// Database types for Invox
+// Database types for Totonos
 export type InvoiceStatus = 'draft' | 'sent' | 'pending' | 'paid' | 'overdue' | 'cancelled';
 export type BoostStatus = 'pending' | 'approved' | 'completed' | 'rejected';
 export type TrustRank = 'S' | 'A' | 'B' | 'C' | 'D';

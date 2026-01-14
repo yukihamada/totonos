@@ -9,11 +9,11 @@ describe("Landing Page", () => {
     expect(screen.getByText("1つに統合")).toBeInTheDocument();
   });
 
-  it("renders the Invox logo", () => {
+  it("renders the Totonos logo", () => {
     render(<Landing />);
-    // There are multiple "Invox" texts, so use getAllByText
-    const invoxElements = screen.getAllByText("Invox");
-    expect(invoxElements.length).toBeGreaterThan(0);
+    // There are multiple "Totonos" texts, so use getAllByText
+    const totonosElements = screen.getAllByText("Totonos");
+    expect(totonosElements.length).toBeGreaterThan(0);
   });
 
   it("renders login and signup buttons", () => {
@@ -63,7 +63,7 @@ describe("Landing Page", () => {
 
   it("renders the footer", () => {
     render(<Landing />);
-    expect(screen.getByText("© 2026 Invox. All rights reserved.")).toBeInTheDocument();
+    expect(screen.getByText("© 2026 Totonos. All rights reserved.")).toBeInTheDocument();
   });
 
   it("renders CTA section", () => {
