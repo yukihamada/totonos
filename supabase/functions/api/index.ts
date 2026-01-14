@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,8 +16,6 @@ function validateApiKey(apiKey: string): boolean {
 // Parse URL path to get resource and ID
 function parsePath(url: URL): { resource: string; id?: string; version: string } {
   const parts = url.pathname.split("/").filter(Boolean);
-  // Expected format: /api/v1/resource or /api/v1/resource/:id
-  // parts[0] = function name (api), parts[1] = v1, parts[2] = resource, parts[3] = id
   const version = parts[1] || "v1";
   const resource = parts[2] || "";
   const id = parts[3];
@@ -25,13 +23,11 @@ function parsePath(url: URL): { resource: string; id?: string; version: string }
 }
 
 serve(async (req: Request) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Get API key from Authorization header
     const authHeader = req.headers.get("authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return new Response(
@@ -48,25 +44,21 @@ serve(async (req: Request) => {
       );
     }
 
-    // Get Supabase credentials
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Parse request
     const url = new URL(req.url);
     const { resource, id, version } = parsePath(url);
     const method = req.method;
 
-    // Parse query params
     const limit = parseInt(url.searchParams.get("limit") || "50");
     const offset = parseInt(url.searchParams.get("offset") || "0");
     const status = url.searchParams.get("status");
 
     let result: unknown;
 
-    // Route to appropriate handler
     switch (resource) {
       case "invoices":
         result = await handleInvoices(supabase, method, id, { limit, offset, status }, req);
@@ -111,7 +103,7 @@ serve(async (req: Request) => {
 
 // Invoice handlers
 async function handleInvoices(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   method: string,
   id: string | undefined,
   params: { limit: number; offset: number; status: string | null },
@@ -180,7 +172,7 @@ async function handleInvoices(
 
 // Contract handlers
 async function handleContracts(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   method: string,
   id: string | undefined,
   params: { limit: number; offset: number; status: string | null },
@@ -240,7 +232,7 @@ async function handleContracts(
 
 // Lead handlers
 async function handleLeads(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   method: string,
   id: string | undefined,
   params: { limit: number; offset: number; status: string | null },
@@ -300,7 +292,7 @@ async function handleLeads(
 
 // Employee handlers
 async function handleEmployees(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   method: string,
   id: string | undefined,
   params: { limit: number; offset: number; status: string | null },
@@ -348,7 +340,7 @@ async function handleEmployees(
 
 // Deal handlers
 async function handleDeals(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   method: string,
   id: string | undefined,
   params: { limit: number; offset: number; status: string | null },
@@ -396,7 +388,7 @@ async function handleDeals(
 
 // Wiki handlers
 async function handleWiki(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   method: string,
   id: string | undefined,
   params: { limit: number; offset: number },
