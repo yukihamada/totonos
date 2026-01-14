@@ -1,5 +1,8 @@
 project_id = "wnqfmvoyvipebipdpvcx"
 
+[functions.send-contract-signature]
+verify_jwt = false
+
 # Chat: 内部でJWT検証を実施
 [functions.chat]
 verify_jwt = false

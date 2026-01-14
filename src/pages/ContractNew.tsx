@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useClients } from "@/hooks/useClients";
+import { ClientQuickCreate } from "@/components/ClientQuickCreate";
 import { useCreateContract } from "@/hooks/useContracts";
 import { useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Plus, Trash2, GripVertical } from "lucide-react";
