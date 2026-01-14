@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useInvoices } from '@/hooks/useInvoices';
-import { TrustPassportMini } from '@/components/TrustPassportMini';
+import { TrustPassportMini } from '@/components/dashboard/TrustPassportMini';
 import { Shield, TrendingUp, Clock, Users, Zap, Star, Award, Target } from 'lucide-react';
 import { getRankFromScore, getRankColor, TrustRank } from '@/types/database';
 

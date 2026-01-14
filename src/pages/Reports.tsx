@@ -79,10 +79,10 @@ export default function Reports() {
       stageCounts[deal.stage] = (stageCounts[deal.stage] || 0) + 1;
     });
     const stageLabels: Record<string, string> = {
-      qualification: '見込み',
-      meeting: '商談中',
+      initial: '初期',
       proposal: '提案中',
       negotiation: '交渉中',
+      contract: '契約',
       won: '成約',
       lost: '失注',
     };
@@ -100,7 +100,7 @@ export default function Reports() {
   // Summary stats
   const totalRevenue = invoices?.reduce((sum, inv) => sum + inv.total_amount, 0) || 0;
   const paidRevenue = invoices?.filter(inv => inv.status === 'paid').reduce((sum, inv) => sum + inv.total_amount, 0) || 0;
-  const dealValue = deals?.reduce((sum, d) => sum + d.value, 0) || 0;
+  const dealValue = deals?.reduce((sum, d) => sum + (d.amount || 0), 0) || 0;
 
   const handleExport = (type: string) => {
     alert(`${type}レポートをエクスポートしました`);

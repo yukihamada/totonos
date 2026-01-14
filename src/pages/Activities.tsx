@@ -185,7 +185,7 @@ export default function Activities() {
                         <SelectContent>
                           {leads?.map((lead) => (
                             <SelectItem key={lead.id} value={lead.id}>
-                              {lead.name} ({lead.company})
+                              {lead.company_name} ({lead.contact_name || ''})
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -199,7 +199,7 @@ export default function Activities() {
                         <SelectContent>
                           {deals?.map((deal) => (
                             <SelectItem key={deal.id} value={deal.id}>
-                              {deal.title}
+                              {deal.deal_name}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -323,8 +323,8 @@ export default function Activities() {
                     const Icon = config.icon;
                     const relatedTo =
                       (activity as any).client?.name ||
-                      (activity as any).lead?.name ||
-                      (activity as any).deal?.title ||
+                      (activity as any).lead?.company_name ||
+                      (activity as any).deal?.deal_name ||
                       "-";
 
                     return (
