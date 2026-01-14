@@ -466,6 +466,50 @@ export type Database = {
           },
         ]
       }
+      company_email_settings: {
+        Row: {
+          alert_keywords: string[] | null
+          auto_reply_enabled: boolean | null
+          company_id: string
+          created_at: string | null
+          id: string
+          notification_slack_webhook: string | null
+          updated_at: string | null
+          vip_email_addresses: string[] | null
+          vip_email_domains: string[] | null
+        }
+        Insert: {
+          alert_keywords?: string[] | null
+          auto_reply_enabled?: boolean | null
+          company_id: string
+          created_at?: string | null
+          id?: string
+          notification_slack_webhook?: string | null
+          updated_at?: string | null
+          vip_email_addresses?: string[] | null
+          vip_email_domains?: string[] | null
+        }
+        Update: {
+          alert_keywords?: string[] | null
+          auto_reply_enabled?: boolean | null
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          notification_slack_webhook?: string | null
+          updated_at?: string | null
+          vip_email_addresses?: string[] | null
+          vip_email_domains?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_email_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_invitations: {
         Row: {
           accepted_at: string | null
@@ -1469,6 +1513,8 @@ export type Database = {
       inbound_emails: {
         Row: {
           ai_category: string | null
+          ai_command_executed_at: string | null
+          ai_command_response: string | null
           ai_extracted_deadline: string | null
           ai_sentiment: string | null
           ai_summary: string | null
@@ -1504,6 +1550,8 @@ export type Database = {
         }
         Insert: {
           ai_category?: string | null
+          ai_command_executed_at?: string | null
+          ai_command_response?: string | null
           ai_extracted_deadline?: string | null
           ai_sentiment?: string | null
           ai_summary?: string | null
@@ -1539,6 +1587,8 @@ export type Database = {
         }
         Update: {
           ai_category?: string | null
+          ai_command_executed_at?: string | null
+          ai_command_response?: string | null
           ai_extracted_deadline?: string | null
           ai_sentiment?: string | null
           ai_summary?: string | null
@@ -2804,6 +2854,7 @@ export type Database = {
         | "contract"
         | "recruit"
         | "general"
+        | "ai_command"
       employee_status: "active" | "on_leave" | "resigned"
       employment_type: "full_time" | "part_time" | "contract" | "intern"
       estimate_status: "draft" | "sent" | "accepted" | "rejected" | "expired"
@@ -3074,6 +3125,7 @@ export const Constants = {
         "contract",
         "recruit",
         "general",
+        "ai_command",
       ],
       employee_status: ["active", "on_leave", "resigned"],
       employment_type: ["full_time", "part_time", "contract", "intern"],
