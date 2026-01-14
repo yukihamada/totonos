@@ -6,6 +6,11 @@ import { hrTools, executeHrTool } from "./hr.ts";
 import { wikiTools, executeWikiTool } from "./wiki.ts";
 import { itAssetTools, executeItAssetTool } from "./it-assets.ts";
 import { invoiceTools, executeInvoiceTool } from "./invoices.ts";
+import { clientTools, executeClientTool } from "./clients.ts";
+import { estimateTools, executeEstimateTool } from "./estimates.ts";
+import { projectTools, executeProjectTool } from "./projects.ts";
+import { purchaseOrderTools, executePurchaseOrderTool } from "./purchase-orders.ts";
+import { emailTools, executeEmailTool } from "./emails.ts";
 
 // Combine all tools
 export const allTools = [
@@ -16,6 +21,11 @@ export const allTools = [
   ...wikiTools,
   ...itAssetTools,
   ...invoiceTools,
+  ...clientTools,
+  ...estimateTools,
+  ...projectTools,
+  ...purchaseOrderTools,
+  ...emailTools,
 ];
 
 // Tool execution router
@@ -30,11 +40,16 @@ export async function executeToolCall(
     return executeContractTool(toolName, input, userId, supabase);
   }
 
-  // CRM tools
+  // CRM tools (leads, deals, activities)
   if (toolName.startsWith("lead_") || toolName.startsWith("deal_") ||
       toolName === "list_leads" || toolName === "list_deals" ||
       toolName === "get_pipeline_stats" || toolName === "log_activity") {
     return executeCrmTool(toolName, input, userId, supabase);
+  }
+
+  // Client tools
+  if (toolName.startsWith("client_") || toolName === "list_clients") {
+    return executeClientTool(toolName, input, userId, supabase);
   }
 
   // Accounting tools
@@ -63,6 +78,27 @@ export async function executeToolCall(
   // Invoice tools
   if (toolName.startsWith("invoice_")) {
     return executeInvoiceTool(toolName, input, userId, supabase);
+  }
+
+  // Estimate tools
+  if (toolName.startsWith("estimate_") || toolName === "list_estimates") {
+    return executeEstimateTool(toolName, input, userId, supabase);
+  }
+
+  // Project and Task tools
+  if (toolName.startsWith("project_") || toolName.startsWith("task_") || 
+      toolName === "list_projects" || toolName === "list_tasks") {
+    return executeProjectTool(toolName, input, userId, supabase);
+  }
+
+  // Purchase Order tools
+  if (toolName.startsWith("purchase_order_") || toolName === "list_purchase_orders") {
+    return executePurchaseOrderTool(toolName, input, userId, supabase);
+  }
+
+  // Email tools
+  if (toolName.startsWith("email_") || toolName === "list_emails") {
+    return executeEmailTool(toolName, input, userId, supabase);
   }
 
   throw new Error(`Unknown tool: ${toolName}`);
