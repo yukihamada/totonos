@@ -216,7 +216,7 @@ export default function InboundEmails() {
 
                         <div className="text-right shrink-0">
                           <p className="text-xs text-muted-foreground">
-                            {format(new Date(email.received_at), 'M/d HH:mm', { locale: ja })}
+                            {format(new Date(email.created_at), 'M/d HH:mm', { locale: ja })}
                           </p>
                           {email.related_type && (
                             <Badge variant="outline" className="mt-1 text-xs">
@@ -263,7 +263,7 @@ export default function InboundEmails() {
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {format(new Date(selectedEmail.received_at), 'yyyy/MM/dd HH:mm', { locale: ja })}
+                      {format(new Date(selectedEmail.created_at), 'yyyy/MM/dd HH:mm', { locale: ja })}
                     </p>
                   </div>
 

@@ -57,12 +57,60 @@ interface ResendInboundEmail {
   };
 }
 
-// メールアドレスからcompany_idを特定
+interface EmailAddressConfig {
+  id: string;
+  company_id: string;
+  address_prefix: string;
+  purpose: string;
+  is_active: boolean;
+  auto_create_entity: boolean;
+  ai_processing_enabled: boolean;
+  assigned_to: string | null;
+}
+
+// メールアドレスのプレフィックスから設定を取得
+async function findEmailAddressConfig(
+  supabase: any, 
+  toEmail: string
+): Promise<{ config: EmailAddressConfig | null; companyId: string | null }> {
+  if (!toEmail) return { config: null, companyId: null };
+  
+  // Parse email address: prefix@company-slug.totonos.jp
+  const match = toEmail.match(/^([^@]+)@([^.]+)\.totonos\.jp$/i);
+  if (!match) return { config: null, companyId: null };
+
+  const prefix = match[1].toLowerCase();
+  const slug = match[2];
+
+  // Find company by slug
+  const { data: company } = await supabase
+    .from("companies")
+    .select("id")
+    .or(`name.ilike.${slug},id.eq.${slug}`)
+    .single();
+
+  if (!company) return { config: null, companyId: null };
+
+  // Find email address config
+  const { data: emailConfig } = await supabase
+    .from("company_email_addresses")
+    .select("*")
+    .eq("company_id", company.id)
+    .eq("address_prefix", prefix)
+    .eq("is_active", true)
+    .single();
+
+  return { 
+    config: emailConfig as EmailAddressConfig | null, 
+    companyId: company.id 
+  };
+}
+
+// メールアドレスからcompany_idを特定（fallback）
 async function findCompanyByEmail(supabase: any, toEmail: string): Promise<string | null> {
   if (!toEmail) return null;
   
   // totonos.jp のサブドメインからcompany_idを特定
-  // 例: inbox@company-slug.totonos.jp
   const match = toEmail.match(/^[^@]+@([^.]+)\.totonos\.jp$/i);
   if (match) {
     const slug = match[1];
@@ -84,56 +132,51 @@ async function findCompanyByEmail(supabase: any, toEmail: string): Promise<strin
   return data?.id || null;
 }
 
-// ルーティングルールを適用
-async function applyRoutingRules(
+// 自動エンティティ作成
+async function autoCreateEntity(
   supabase: any,
   companyId: string,
-  email: InboundEmail
-): Promise<{ relatedType?: string; relatedId?: string; assignedTo?: string; tags?: string[] }> {
-  const { data: rules } = await supabase
-    .from("email_routing_rules")
-    .select("*")
-    .eq("company_id", companyId)
-    .eq("is_active", true)
-    .order("priority", { ascending: false });
+  purpose: string,
+  fromEmail: string,
+  fromName: string | null,
+  subject: string | null
+): Promise<{ type: string; id: string } | null> {
+  console.log(`Auto-creating entity for purpose: ${purpose}`);
 
-  if (!rules || rules.length === 0) return {};
+  switch (purpose) {
+    case "lead_capture": {
+      // Create a new lead
+      const { data: lead, error } = await supabase
+        .from("leads")
+        .insert({
+          company_id: companyId,
+          email: fromEmail,
+          contact_name: fromName || fromEmail.split("@")[0],
+          company_name: fromName || "メール経由リード",
+          source: "email",
+          status: "new",
+          notes: `件名: ${subject || "(なし)"}`,
+        })
+        .select()
+        .single();
 
-  for (const rule of rules) {
-    const conditions = rule.conditions || {};
-    let matches = true;
-
-    // 条件チェック
-    if (conditions.from_contains && !email.from.toLowerCase().includes(conditions.from_contains.toLowerCase())) {
-      matches = false;
-    }
-    if (conditions.from_equals && email.from.toLowerCase() !== conditions.from_equals.toLowerCase()) {
-      matches = false;
-    }
-    if (conditions.subject_contains && email.subject && !email.subject.toLowerCase().includes(conditions.subject_contains.toLowerCase())) {
-      matches = false;
-    }
-    if (conditions.subject_regex && email.subject) {
-      try {
-        const regex = new RegExp(conditions.subject_regex, "i");
-        if (!regex.test(email.subject)) matches = false;
-      } catch {
-        matches = false;
+      if (error) {
+        console.error("Failed to create lead:", error);
+        return null;
       }
+      return { type: "lead", id: lead.id };
     }
 
-    if (matches) {
-      const actions = rule.actions || {};
-      return {
-        relatedType: actions.related_type,
-        relatedId: actions.related_id,
-        assignedTo: actions.assign_to,
-        tags: actions.add_tags,
-      };
+    case "recruit": {
+      // Create a candidate (if candidates table exists)
+      // For now, just log
+      console.log(`Would create candidate from: ${fromEmail}`);
+      return null;
     }
+
+    default:
+      return null;
   }
-
-  return {};
 }
 
 // 既存のリード/取引先を検索して関連付け
@@ -146,7 +189,6 @@ async function findRelatedEntity(
   const { data: lead } = await supabase
     .from("leads")
     .select("id")
-    .eq("company_id", companyId)
     .eq("email", fromEmail)
     .single();
 
@@ -156,13 +198,33 @@ async function findRelatedEntity(
   const { data: client } = await supabase
     .from("clients")
     .select("id")
-    .eq("company_id", companyId)
     .eq("email", fromEmail)
     .single();
 
   if (client) return { type: "client", id: client.id };
 
   return null;
+}
+
+// AI分析をトリガー
+async function triggerAIAnalysis(
+  supabase: any,
+  emailId: string,
+  textContent: string,
+  subject: string | null
+): Promise<void> {
+  try {
+    // Call the analyze-email edge function
+    const { error } = await supabase.functions.invoke("analyze-email", {
+      body: { emailId, textContent, subject },
+    });
+    
+    if (error) {
+      console.error("AI analysis failed:", error);
+    }
+  } catch (err) {
+    console.error("Failed to trigger AI analysis:", err);
+  }
 }
 
 serve(async (req) => {
@@ -303,21 +365,45 @@ serve(async (req) => {
 
     console.log(`Processing email from: ${fromEmail} to: ${toEmail}`);
 
-    // 会社を特定
-    const companyId = await findCompanyByEmail(supabase, toEmail);
-    console.log(`Found company: ${companyId}`);
+    // メールアドレス設定を取得
+    const { config: emailAddressConfig, companyId: configCompanyId } = 
+      await findEmailAddressConfig(supabase, toEmail);
+    
+    // 会社IDを決定
+    const companyId = configCompanyId || await findCompanyByEmail(supabase, toEmail);
+    console.log(`Found company: ${companyId}, email config: ${emailAddressConfig?.id}`);
 
-    // ルーティングルール適用
-    let routingResult: any = {};
+    let relatedType: string | null = null;
+    let relatedId: string | null = null;
+    let autoCreatedEntityType: string | null = null;
+    let autoCreatedEntityId: string | null = null;
+    let assignedTo: string | null = emailAddressConfig?.assigned_to || null;
+
     if (companyId) {
-      routingResult = await applyRoutingRules(supabase, companyId, emailData);
+      // 自動エンティティ作成
+      if (emailAddressConfig?.auto_create_entity) {
+        const created = await autoCreateEntity(
+          supabase,
+          companyId,
+          emailAddressConfig.purpose,
+          fromEmail,
+          fromName || null,
+          emailData.subject || null
+        );
+        if (created) {
+          autoCreatedEntityType = created.type;
+          autoCreatedEntityId = created.id;
+          relatedType = created.type;
+          relatedId = created.id;
+        }
+      }
 
-      // 自動関連付け
-      if (!routingResult.relatedType) {
+      // 既存エンティティとの関連付け
+      if (!relatedType) {
         const related = await findRelatedEntity(supabase, companyId, fromEmail);
         if (related) {
-          routingResult.relatedType = related.type;
-          routingResult.relatedId = related.id;
+          relatedType = related.type;
+          relatedId = related.id;
         }
       }
     }
@@ -348,10 +434,13 @@ serve(async (req) => {
         headers: emailData.headers || {},
         raw_payload: emailData,
         status: "received",
-        related_type: routingResult.relatedType,
-        related_id: routingResult.relatedId,
-        assigned_to: routingResult.assignedTo,
-        tags: routingResult.tags || [],
+        related_type: relatedType,
+        related_id: relatedId,
+        assigned_to: assignedTo,
+        tags: [],
+        email_address_id: emailAddressConfig?.id || null,
+        auto_created_entity_type: autoCreatedEntityType,
+        auto_created_entity_id: autoCreatedEntityId,
       })
       .select()
       .single();
@@ -366,8 +455,22 @@ serve(async (req) => {
 
     console.log(`Email saved: ${savedEmail.id} from ${fromEmail} to ${toEmail}`);
 
+    // AI分析をトリガー（非同期）
+    if (emailAddressConfig?.ai_processing_enabled !== false) {
+      triggerAIAnalysis(
+        supabase,
+        savedEmail.id,
+        emailData.text || emailData.html || "",
+        emailData.subject || null
+      );
+    }
+
     return new Response(
-      JSON.stringify({ success: true, id: savedEmail.id }),
+      JSON.stringify({ 
+        success: true, 
+        id: savedEmail.id,
+        autoCreated: autoCreatedEntityType ? { type: autoCreatedEntityType, id: autoCreatedEntityId } : null
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

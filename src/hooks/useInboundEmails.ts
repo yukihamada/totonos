@@ -19,43 +19,80 @@ export interface InboundEmail {
     filename: string;
     type: string;
     size: number;
-  }>;
-  status: 'received' | 'processed' | 'failed' | 'archived';
-  processed_at: string | null;
+  }> | null;
+  status: string;
   related_type: string | null;
   related_id: string | null;
   assigned_to: string | null;
-  tags: string[];
+  tags: string[] | null;
   is_read: boolean;
   is_starred: boolean;
   is_spam: boolean;
-  received_at: string;
+  is_archived: boolean;
+  // AI analysis fields
+  ai_summary: string | null;
+  ai_category: string | null;
+  ai_urgency: string | null;
+  ai_sentiment: string | null;
+  ai_extracted_deadline: string | null;
+  email_address_id: string | null;
+  auto_created_entity_type: string | null;
+  auto_created_entity_id: string | null;
   created_at: string;
+  updated_at: string;
 }
 
-// Note: This hook requires the inbound_emails table to be created
-// The table doesn't exist yet, so returning empty data for now
-export function useInboundEmails(_options?: { status?: string; isRead?: boolean; isStarred?: boolean }) {
+export function useInboundEmails(options?: { status?: string; isRead?: boolean; isStarred?: boolean; isSpam?: boolean; isArchived?: boolean }) {
   const { data: currentCompany } = useCurrentCompany();
 
   return useQuery({
-    queryKey: ['inbound-emails', currentCompany?.id, _options],
+    queryKey: ['inbound-emails', currentCompany?.id, options],
     queryFn: async (): Promise<InboundEmail[]> => {
-      // Table doesn't exist yet - return empty array
-      return [];
+      if (!currentCompany?.id) return [];
+
+      let query = supabase
+        .from('inbound_emails')
+        .select('*')
+        .eq('company_id', currentCompany.id)
+        .order('created_at', { ascending: false });
+
+      if (options?.isRead !== undefined) {
+        query = query.eq('is_read', options.isRead);
+      }
+      if (options?.isStarred !== undefined) {
+        query = query.eq('is_starred', options.isStarred);
+      }
+      if (options?.isSpam !== undefined) {
+        query = query.eq('is_spam', options.isSpam);
+      }
+      if (options?.isArchived !== undefined) {
+        query = query.eq('is_archived', options.isArchived);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data || []) as unknown as InboundEmail[];
     },
     enabled: !!currentCompany?.id,
   });
 }
 
-export function useInboundEmail(_id: string) {
+export function useInboundEmail(id: string) {
   return useQuery({
-    queryKey: ['inbound-email', _id],
+    queryKey: ['inbound-email', id],
     queryFn: async (): Promise<InboundEmail | null> => {
-      // Table doesn't exist yet
-      return null;
+      if (!id) return null;
+
+      const { data, error } = await supabase
+        .from('inbound_emails')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      return data as unknown as InboundEmail;
     },
-    enabled: !!_id,
+    enabled: !!id,
   });
 }
 
@@ -63,12 +100,16 @@ export function useMarkEmailAsRead() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (_params: { id: string; isRead: boolean }) => {
-      // Table doesn't exist yet
-      console.warn('inbound_emails table not yet created');
+    mutationFn: async ({ id, isRead }: { id: string; isRead: boolean }) => {
+      const { error } = await supabase
+        .from('inbound_emails')
+        .update({ is_read: isRead })
+        .eq('id', id);
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inbound-emails'] });
+      queryClient.invalidateQueries({ queryKey: ['inbound-emails-unread-count'] });
     },
   });
 }
@@ -77,9 +118,12 @@ export function useToggleEmailStar() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (_params: { id: string; isStarred: boolean }) => {
-      // Table doesn't exist yet
-      console.warn('inbound_emails table not yet created');
+    mutationFn: async ({ id, isStarred }: { id: string; isStarred: boolean }) => {
+      const { error } = await supabase
+        .from('inbound_emails')
+        .update({ is_starred: isStarred })
+        .eq('id', id);
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inbound-emails'] });
@@ -91,9 +135,12 @@ export function useArchiveEmail() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (_id: string) => {
-      // Table doesn't exist yet
-      console.warn('inbound_emails table not yet created');
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('inbound_emails')
+        .update({ is_archived: true })
+        .eq('id', id);
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inbound-emails'] });
@@ -109,9 +156,12 @@ export function useMarkAsSpam() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (_params: { id: string; isSpam: boolean }) => {
-      // Table doesn't exist yet
-      console.warn('inbound_emails table not yet created');
+    mutationFn: async ({ id, isSpam }: { id: string; isSpam: boolean }) => {
+      const { error } = await supabase
+        .from('inbound_emails')
+        .update({ is_spam: isSpam })
+        .eq('id', id);
+      if (error) throw error;
     },
     onSuccess: (_: void, { isSpam }: { id: string; isSpam: boolean }) => {
       queryClient.invalidateQueries({ queryKey: ['inbound-emails'] });
@@ -126,8 +176,18 @@ export function useUnreadCount() {
   return useQuery({
     queryKey: ['inbound-emails-unread-count', currentCompany?.id],
     queryFn: async (): Promise<number> => {
-      // Table doesn't exist yet
-      return 0;
+      if (!currentCompany?.id) return 0;
+
+      const { count, error } = await supabase
+        .from('inbound_emails')
+        .select('*', { count: 'exact', head: true })
+        .eq('company_id', currentCompany.id)
+        .eq('is_read', false)
+        .eq('is_archived', false)
+        .eq('is_spam', false);
+
+      if (error) throw error;
+      return count || 0;
     },
     enabled: !!currentCompany?.id,
     refetchInterval: 30000,
