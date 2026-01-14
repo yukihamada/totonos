@@ -6,6 +6,7 @@ export const CREDIT_COSTS = {
   ai_email_analysis: { cost: 2, apiCost: 0.005, name: "メールAI分析" },
   ai_email_reply: { cost: 3, apiCost: 0.008, name: "AI返信生成" },
   ai_email_command: { cost: 5, apiCost: 0.015, name: "メールAI指示" },
+  ai_document_generate: { cost: 3, apiCost: 0.015, name: "AI文書生成" },
   ocr: { cost: 2, apiCost: 0.003, name: "OCR処理" },
   pdf: { cost: 1, apiCost: 0.001, name: "PDF生成" },
   email: { cost: 1, apiCost: 0.0002, name: "メール送信" },

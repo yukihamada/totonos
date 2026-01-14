@@ -17,6 +17,8 @@ import { useCreatePaymentSession } from "@/hooks/useStripePayment";
 import { Plus, MoreHorizontal, FileText, Send, CheckCircle, Clock, AlertCircle, X, Trash2, Mail, Bell, CreditCard } from "lucide-react";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
+import { AIDocumentAssistant } from "@/components/AIDocumentAssistant";
+import { GeneratedInvoiceData } from "@/hooks/useDocumentAI";
 
 const statusConfig = {
   draft: { label: "下書き", variant: "secondary" as const, icon: FileText },
@@ -147,6 +149,26 @@ export default function Invoices() {
                 <DialogTitle>請求書を作成</DialogTitle>
                 <DialogDescription>新しい請求書を作成します</DialogDescription>
               </DialogHeader>
+              
+              <AIDocumentAssistant
+                documentType="invoice"
+                clientInfo={clientId && clients ? clients.find(c => c.id === clientId) ? { id: clientId, name: clients.find(c => c.id === clientId)!.name } : undefined : undefined}
+                onGenerate={(data) => {
+                  const invoiceData = data as GeneratedInvoiceData;
+                  setTitle(invoiceData.title || "");
+                  if (invoiceData.client_id) setClientId(invoiceData.client_id);
+                  setDescription(invoiceData.description || "");
+                  setDueDate(invoiceData.due_date || "");
+                  if (invoiceData.items && invoiceData.items.length > 0) {
+                    setItems(invoiceData.items.map(item => ({
+                      description: item.description || "",
+                      quantity: item.quantity || 1,
+                      unit_price: item.unit_price || 0,
+                    })));
+                  }
+                }}
+              />
+              
               <div className="space-y-4 py-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
