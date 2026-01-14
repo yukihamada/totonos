@@ -1,11 +1,11 @@
-import { 
-  LayoutDashboard, 
-  FileText, 
-  Users, 
-  ArrowLeftRight, 
-  Zap, 
-  Shield, 
-  BarChart3, 
+import {
+  LayoutDashboard,
+  FileText,
+  Users,
+  ArrowLeftRight,
+  Zap,
+  Shield,
+  BarChart3,
   Settings,
   LogOut,
   FileSignature,
@@ -22,6 +22,15 @@ import {
   DollarSign,
   FileCheck,
   UserCircle,
+  ClipboardList,
+  ShoppingCart,
+  Activity,
+  Kanban,
+  Scale,
+  Banknote,
+  CalendarDays,
+  Palmtree,
+  Map,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -47,11 +56,15 @@ const mainNavItems = [
 const crmNavItems = [
   { title: "リード", url: "/leads", icon: UserPlus },
   { title: "商談", url: "/deals", icon: Target },
+  { title: "パイプライン", url: "/pipeline", icon: Kanban },
+  { title: "活動履歴", url: "/activities", icon: Activity },
   { title: "取引先", url: "/clients", icon: Users },
 ];
 
 const docNavItems = [
   { title: "請求書", url: "/invoices", icon: FileText },
+  { title: "見積書", url: "/estimates", icon: ClipboardList },
+  { title: "発注書", url: "/purchase-orders", icon: ShoppingCart },
   { title: "契約書", url: "/contracts", icon: FileSignature },
 ];
 
@@ -65,6 +78,8 @@ const accountingNavItems = [
   { title: "会計ダッシュボード", url: "/accounting", icon: Calculator },
   { title: "仕訳帳", url: "/accounting/journal", icon: BookOpen },
   { title: "財務諸表", url: "/accounting/statements", icon: PieChart },
+  { title: "予算管理", url: "/accounting/budget", icon: Scale },
+  { title: "売掛金年齢表", url: "/accounting/receivables", icon: Banknote },
   { title: "固定資産", url: "/accounting/assets", icon: Building2 },
   { title: "経費管理", url: "/accounting/expenses", icon: Wallet },
 ];
@@ -72,6 +87,8 @@ const accountingNavItems = [
 const hrNavItems = [
   { title: "従業員", url: "/employees", icon: Users },
   { title: "勤怠管理", url: "/attendance", icon: Clock },
+  { title: "シフト管理", url: "/shifts", icon: CalendarDays },
+  { title: "休暇管理", url: "/leave-requests", icon: Palmtree },
   { title: "給与計算", url: "/payroll", icon: DollarSign },
   { title: "年末調整", url: "/year-end", icon: FileCheck },
 ];
@@ -85,6 +102,7 @@ const otherNavItems = [
   { title: "レポート", url: "/reports", icon: BarChart3 },
   { title: "プロフィール", url: "/profile", icon: UserCircle },
   { title: "設定", url: "/settings", icon: Settings },
+  { title: "ページ一覧", url: "/pages", icon: Map },
 ];
 
 export function AppSidebar() {

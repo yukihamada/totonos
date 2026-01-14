@@ -22,21 +22,37 @@ import AccountingStatements from "./pages/AccountingStatements";
 import AccountingAssets from "./pages/AccountingAssets";
 import AccountingExpenses from "./pages/AccountingExpenses";
 import AccountingSettings from "./pages/AccountingSettings";
+import AccountingBudget from "./pages/AccountingBudget";
+import AccountingReceivables from "./pages/AccountingReceivables";
 // CRM
 import Leads from "./pages/Leads";
 import Deals from "./pages/Deals";
+import Activities from "./pages/Activities";
+import Pipeline from "./pages/Pipeline";
 // HR
 import Employees from "./pages/Employees";
 import Attendance from "./pages/Attendance";
 import Payroll from "./pages/Payroll";
 import YearEnd from "./pages/YearEnd";
+import Shifts from "./pages/Shifts";
+import LeaveRequests from "./pages/LeaveRequests";
 // Info
 import Wiki from "./pages/Wiki";
 import ITAssets from "./pages/ITAssets";
-// Invoices
+// Invoices & Documents
 import Invoices from "./pages/Invoices";
-// Settings
+import Estimates from "./pages/Estimates";
+import PurchaseOrders from "./pages/PurchaseOrders";
+// Finance
+import Clients from "./pages/Clients";
+import Reconciliation from "./pages/Reconciliation";
+import Boost from "./pages/Boost";
+import TrustPassport from "./pages/TrustPassport";
+// Reports & Settings
+import Reports from "./pages/Reports";
+import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
+import PageIndex from "./pages/PageIndex";
 // Chat
 import { ChatWidget } from "./components/chat/ChatWidget";
 
@@ -70,6 +86,8 @@ function AppRoutes() {
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       {/* Documents */}
       <Route path="/invoices" element={<ProtectedRoute><Invoices /></ProtectedRoute>} />
+      <Route path="/estimates" element={<ProtectedRoute><Estimates /></ProtectedRoute>} />
+      <Route path="/purchase-orders" element={<ProtectedRoute><PurchaseOrders /></ProtectedRoute>} />
       <Route path="/contracts" element={<ProtectedRoute><Contracts /></ProtectedRoute>} />
       <Route path="/contracts/new" element={<ProtectedRoute><ContractNew /></ProtectedRoute>} />
       <Route path="/contracts/:id" element={<ProtectedRoute><ContractDetail /></ProtectedRoute>} />
@@ -84,20 +102,33 @@ function AppRoutes() {
       <Route path="/accounting/assets" element={<ProtectedRoute><AccountingAssets /></ProtectedRoute>} />
       <Route path="/accounting/expenses" element={<ProtectedRoute><AccountingExpenses /></ProtectedRoute>} />
       <Route path="/accounting/settings" element={<ProtectedRoute><AccountingSettings /></ProtectedRoute>} />
+      <Route path="/accounting/budget" element={<ProtectedRoute><AccountingBudget /></ProtectedRoute>} />
+      <Route path="/accounting/receivables" element={<ProtectedRoute><AccountingReceivables /></ProtectedRoute>} />
       {/* CRM */}
       <Route path="/leads" element={<ProtectedRoute><Leads /></ProtectedRoute>} />
       <Route path="/deals" element={<ProtectedRoute><Deals /></ProtectedRoute>} />
+      <Route path="/activities" element={<ProtectedRoute><Activities /></ProtectedRoute>} />
+      <Route path="/pipeline" element={<ProtectedRoute><Pipeline /></ProtectedRoute>} />
       {/* HR */}
       <Route path="/employees" element={<ProtectedRoute><Employees /></ProtectedRoute>} />
       <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
       <Route path="/payroll" element={<ProtectedRoute><Payroll /></ProtectedRoute>} />
       <Route path="/year-end" element={<ProtectedRoute><YearEnd /></ProtectedRoute>} />
-      {/* Info */}
+      <Route path="/shifts" element={<ProtectedRoute><Shifts /></ProtectedRoute>} />
+      <Route path="/leave-requests" element={<ProtectedRoute><LeaveRequests /></ProtectedRoute>} />
       {/* Info */}
       <Route path="/wiki" element={<ProtectedRoute><Wiki /></ProtectedRoute>} />
       <Route path="/it-assets" element={<ProtectedRoute><ITAssets /></ProtectedRoute>} />
-      {/* Settings */}
+      {/* Finance */}
+      <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
+      <Route path="/reconciliation" element={<ProtectedRoute><Reconciliation /></ProtectedRoute>} />
+      <Route path="/boost" element={<ProtectedRoute><Boost /></ProtectedRoute>} />
+      <Route path="/trust-passport" element={<ProtectedRoute><TrustPassport /></ProtectedRoute>} />
+      {/* Reports & Settings */}
+      <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+      <Route path="/pages" element={<ProtectedRoute><PageIndex /></ProtectedRoute>} />
       {/* Not Found */}
       <Route path="*" element={<NotFound />} />
     </Routes>
