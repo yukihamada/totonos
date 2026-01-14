@@ -13,7 +13,6 @@ import {
   LayoutDashboard,
   Users,
   FileText,
-  Briefcase,
   Calculator,
   UserPlus,
   Settings,
@@ -27,17 +26,16 @@ import {
   Workflow,
   Shield,
   Package,
-  Calendar,
   TrendingUp,
   Target,
   FolderKanban,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useOrganization } from '@/hooks/useOrganization';
+import { useAuth } from '@/hooks/useAuth';
 
 interface SearchResult {
   id: string;
-  type: 'page' | 'client' | 'invoice' | 'employee' | 'lead' | 'contract' | 'project';
+  type: 'page' | 'client' | 'invoice' | 'employee' | 'lead' | 'contract';
   title: string;
   subtitle?: string;
   url: string;
@@ -73,7 +71,7 @@ export function GlobalSearch() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const navigate = useNavigate();
-  const { currentOrganization } = useOrganization();
+  const { user } = useAuth();
 
   // Keyboard shortcut
   useEffect(() => {
@@ -90,7 +88,7 @@ export function GlobalSearch() {
 
   // Search database when query changes
   const searchDatabase = useCallback(async (searchQuery: string) => {
-    if (!currentOrganization?.id || searchQuery.length < 2) {
+    if (!user?.id || searchQuery.length < 2) {
       setResults([]);
       return;
     }
@@ -102,9 +100,9 @@ export function GlobalSearch() {
       // Search clients
       const { data: clients } = await supabase
         .from('clients')
-        .select('id, company_name, contact_person')
-        .eq('organization_id', currentOrganization.id)
-        .ilike('company_name', `%${searchQuery}%`)
+        .select('id, name, email')
+        .eq('user_id', user.id)
+        .ilike('name', `%${searchQuery}%`)
         .limit(5);
 
       if (clients) {
@@ -112,8 +110,8 @@ export function GlobalSearch() {
           searchResults.push({
             id: client.id,
             type: 'client',
-            title: client.company_name,
-            subtitle: client.contact_person || undefined,
+            title: client.name,
+            subtitle: client.email || undefined,
             url: `/clients?id=${client.id}`,
             icon: Building2,
           });
@@ -123,9 +121,9 @@ export function GlobalSearch() {
       // Search employees
       const { data: employees } = await supabase
         .from('employees')
-        .select('id, first_name, last_name, department')
-        .eq('organization_id', currentOrganization.id)
-        .or(`first_name.ilike.%${searchQuery}%,last_name.ilike.%${searchQuery}%`)
+        .select('id, name, department')
+        .eq('user_id', user.id)
+        .ilike('name', `%${searchQuery}%`)
         .limit(5);
 
       if (employees) {
@@ -133,7 +131,7 @@ export function GlobalSearch() {
           searchResults.push({
             id: emp.id,
             type: 'employee',
-            title: `${emp.last_name} ${emp.first_name}`,
+            title: emp.name,
             subtitle: emp.department || undefined,
             url: `/employees?id=${emp.id}`,
             icon: Users,
@@ -145,7 +143,7 @@ export function GlobalSearch() {
       const { data: leads } = await supabase
         .from('leads')
         .select('id, company_name, contact_name')
-        .eq('organization_id', currentOrganization.id)
+        .eq('user_id', user.id)
         .ilike('company_name', `%${searchQuery}%`)
         .limit(5);
 
@@ -166,7 +164,7 @@ export function GlobalSearch() {
       const { data: contracts } = await supabase
         .from('contracts')
         .select('id, title, status')
-        .eq('organization_id', currentOrganization.id)
+        .eq('user_id', user.id)
         .ilike('title', `%${searchQuery}%`)
         .limit(5);
 
@@ -183,34 +181,13 @@ export function GlobalSearch() {
         });
       }
 
-      // Search projects
-      const { data: projects } = await supabase
-        .from('projects')
-        .select('id, name, status')
-        .eq('organization_id', currentOrganization.id)
-        .ilike('name', `%${searchQuery}%`)
-        .limit(5);
-
-      if (projects) {
-        projects.forEach((project) => {
-          searchResults.push({
-            id: project.id,
-            type: 'project',
-            title: project.name,
-            subtitle: project.status,
-            url: `/projects/${project.id}`,
-            icon: FolderKanban,
-          });
-        });
-      }
-
       setResults(searchResults);
     } catch (error) {
       console.error('Search error:', error);
     } finally {
       setIsSearching(false);
     }
-  }, [currentOrganization?.id]);
+  }, [user?.id]);
 
   // Debounced search
   useEffect(() => {
@@ -353,30 +330,6 @@ export function GlobalSearch() {
                 <CommandGroup heading="契約">
                   {results
                     .filter((r) => r.type === 'contract')
-                    .map((result) => (
-                      <CommandItem
-                        key={result.id}
-                        value={result.title}
-                        onSelect={() => handleSelect(result.url)}
-                      >
-                        <result.icon className="mr-2 h-4 w-4" />
-                        <div className="flex flex-col">
-                          <span>{result.title}</span>
-                          {result.subtitle && (
-                            <span className="text-xs text-muted-foreground">
-                              {result.subtitle}
-                            </span>
-                          )}
-                        </div>
-                      </CommandItem>
-                    ))}
-                </CommandGroup>
-              )}
-
-              {results.filter((r) => r.type === 'project').length > 0 && (
-                <CommandGroup heading="プロジェクト">
-                  {results
-                    .filter((r) => r.type === 'project')
                     .map((result) => (
                       <CommandItem
                         key={result.id}

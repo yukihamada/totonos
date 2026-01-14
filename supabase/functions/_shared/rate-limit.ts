@@ -66,6 +66,26 @@ export function getRateLimitHeaders(result: RateLimitResult): Record<string, str
   };
 }
 
+export function createRateLimitResponse(
+  result: RateLimitResult, 
+  corsHeaders: Record<string, string> = {}
+): Response {
+  return new Response(
+    JSON.stringify({ 
+      error: "Rate limit exceeded",
+      retryAfter: Math.ceil((result.resetTime - Date.now()) / 1000)
+    }),
+    {
+      status: 429,
+      headers: {
+        "Content-Type": "application/json",
+        ...corsHeaders,
+        ...getRateLimitHeaders(result),
+      },
+    }
+  );
+}
+
 // Cleanup old entries periodically (call this occasionally)
 export function cleanupRateLimitStore(): void {
   const now = Date.now();
