@@ -32,6 +32,12 @@ import {
   Palmtree,
   Map,
   LucideIcon,
+  Bell,
+  Workflow,
+  Package,
+  CreditCard,
+  Mail,
+  Link,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -86,6 +92,14 @@ const iconMap: Record<string, LucideIcon> = {
   profile: UserCircle,
   settings: Settings,
   pages: Map,
+  // New features
+  notifications: Bell,
+  team: Users,
+  'bank-connections': Building2,
+  workflows: Workflow,
+  products: Package,
+  'payment-links': CreditCard,
+  'email-templates': Mail,
 };
 
 // URL mapping
@@ -122,6 +136,14 @@ const urlMap: Record<string, string> = {
   profile: '/profile',
   settings: '/settings',
   pages: '/pages',
+  // New features
+  notifications: '/notifications',
+  team: '/team',
+  'bank-connections': '/bank-connections',
+  workflows: '/workflows',
+  products: '/products',
+  'payment-links': '/payment-links',
+  'email-templates': '/email-templates',
 };
 
 export function AppSidebar() {

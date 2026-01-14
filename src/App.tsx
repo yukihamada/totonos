@@ -54,6 +54,14 @@ import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
 import PageIndex from "./pages/PageIndex";
+// New Features
+import Notifications from "./pages/Notifications";
+import TeamMembers from "./pages/TeamMembers";
+import BankConnections from "./pages/BankConnections";
+import Workflows from "./pages/Workflows";
+import Products from "./pages/Products";
+import PaymentLinks from "./pages/PaymentLinks";
+import EmailTemplates from "./pages/EmailTemplates";
 // Chat
 import { ChatWidget } from "./components/chat/ChatWidget";
 
@@ -130,6 +138,14 @@ function AppRoutes() {
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/pages" element={<ProtectedRoute><PageIndex /></ProtectedRoute>} />
+      {/* New Features */}
+      <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+      <Route path="/team" element={<ProtectedRoute><TeamMembers /></ProtectedRoute>} />
+      <Route path="/bank-connections" element={<ProtectedRoute><BankConnections /></ProtectedRoute>} />
+      <Route path="/workflows" element={<ProtectedRoute><Workflows /></ProtectedRoute>} />
+      <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
+      <Route path="/payment-links" element={<ProtectedRoute><PaymentLinks /></ProtectedRoute>} />
+      <Route path="/email-templates" element={<ProtectedRoute><EmailTemplates /></ProtectedRoute>} />
       {/* Not Found */}
       <Route path="*" element={<NotFound />} />
     </Routes>

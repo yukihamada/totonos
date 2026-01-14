@@ -35,6 +35,11 @@ import {
   Palmtree,
   Map,
   LucideIcon,
+  Bell,
+  Workflow,
+  Package,
+  CreditCard,
+  Mail,
 } from 'lucide-react';
 
 interface PageInfo {
@@ -64,8 +69,10 @@ const allPages: PageInfo[] = [
 
   // ファイナンス
   { title: '自動消込', url: '/reconciliation', icon: ArrowLeftRight, description: '入金と請求書の自動マッチング', category: 'ファイナンス' },
+  { title: '銀行連携', url: '/bank-connections', icon: Building2, description: '銀行口座API連携・明細自動取込', category: 'ファイナンス' },
   { title: 'Dynamic Boost', url: '/boost', icon: Zap, description: '請求書の即時資金化', category: 'ファイナンス' },
   { title: 'Trust Passport', url: '/trust-passport', icon: Shield, description: '信用スコアとランク確認', category: 'ファイナンス' },
+  { title: '決済リンク', url: '/payment-links', icon: CreditCard, description: 'オンライン決済リンク生成', category: 'ファイナンス' },
 
   // 会計
   { title: '会計ダッシュボード', url: '/accounting', icon: Calculator, description: '会計概要と残高確認', category: '会計' },
@@ -87,6 +94,13 @@ const allPages: PageInfo[] = [
   // 情報管理
   { title: '社内Wiki', url: '/wiki', icon: Book, description: 'ナレッジベース・ドキュメント', category: '情報管理' },
   { title: 'IT資産', url: '/it-assets', icon: Laptop, description: 'IT機器・ソフトウェア管理', category: '情報管理' },
+  { title: '商品管理', url: '/products', icon: Package, description: '商品マスタ・在庫管理', category: '情報管理' },
+
+  // システム管理
+  { title: '通知センター', url: '/notifications', icon: Bell, description: '通知一覧・管理', category: 'システム管理' },
+  { title: 'チーム管理', url: '/team', icon: Users, description: 'チームメンバー・権限管理', category: 'システム管理' },
+  { title: 'ワークフロー', url: '/workflows', icon: Workflow, description: '業務自動化・ワークフロー設定', category: 'システム管理' },
+  { title: 'メールテンプレート', url: '/email-templates', icon: Mail, description: 'メールテンプレート管理', category: 'システム管理' },
 
   // その他
   { title: 'レポート', url: '/reports', icon: BarChart3, description: 'ビジネスレポート・分析', category: 'その他' },
@@ -111,6 +125,7 @@ const categoryOrder = [
   '会計',
   '人事・労務',
   '情報管理',
+  'システム管理',
   'その他',
 ];
 

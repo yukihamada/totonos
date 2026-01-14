@@ -65,8 +65,10 @@ const defaultMenuGroups: MenuGroupConfig[] = [
     order: 3,
     items: [
       { id: 'reconciliation', title: '自動消込', visible: true, order: 0 },
-      { id: 'boost', title: 'Dynamic Boost', visible: true, order: 1 },
-      { id: 'trust-passport', title: 'Trust Passport', visible: true, order: 2 },
+      { id: 'bank-connections', title: '銀行連携', visible: true, order: 1 },
+      { id: 'boost', title: 'Dynamic Boost', visible: true, order: 2 },
+      { id: 'trust-passport', title: 'Trust Passport', visible: true, order: 3 },
+      { id: 'payment-links', title: '決済リンク', visible: true, order: 4 },
     ],
   },
   {
@@ -106,13 +108,26 @@ const defaultMenuGroups: MenuGroupConfig[] = [
     items: [
       { id: 'wiki', title: '社内Wiki', visible: true, order: 0 },
       { id: 'it-assets', title: 'IT資産', visible: true, order: 1 },
+      { id: 'products', title: '商品管理', visible: true, order: 2 },
+    ],
+  },
+  {
+    id: 'system',
+    label: 'システム管理',
+    visible: true,
+    order: 7,
+    items: [
+      { id: 'notifications', title: '通知', visible: true, order: 0 },
+      { id: 'team', title: 'チーム', visible: true, order: 1 },
+      { id: 'workflows', title: 'ワークフロー', visible: true, order: 2 },
+      { id: 'email-templates', title: 'メールテンプレート', visible: true, order: 3 },
     ],
   },
   {
     id: 'other',
     label: 'その他',
     visible: true,
-    order: 7,
+    order: 8,
     items: [
       { id: 'reports', title: 'レポート', visible: true, order: 0 },
       { id: 'profile', title: 'プロフィール', visible: true, order: 1 },
