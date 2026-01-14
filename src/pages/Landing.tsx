@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -10,6 +10,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { 
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { 
   FileText, 
   ArrowLeftRight, 
@@ -25,7 +30,11 @@ import {
   Target,
   Book,
   Laptop,
+  Menu,
+  Eye,
 } from "lucide-react";
+import { useDemo } from "@/contexts/DemoContext";
+import { FeedbackButton } from "@/components/FeedbackButton";
 
 const features = [
   {
@@ -237,6 +246,14 @@ const renderCell = (value: boolean | string | "partial") => {
 
 export default function Landing() {
   const [activeTab, setActiveTab] = useState<CategoryKey>("invoice");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { enterDemoMode } = useDemo();
+  const navigate = useNavigate();
+
+  const handleDemoClick = () => {
+    enterDemoMode();
+    navigate("/dashboard");
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -244,23 +261,69 @@ export default function Landing() {
       <header className="border-b-2 border-foreground">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center border-2 border-foreground bg-foreground text-background text-xl font-bold">
+            <div className="flex h-8 w-8 md:h-10 md:w-10 items-center justify-center border-2 border-foreground bg-foreground text-background text-lg md:text-xl font-bold">
               T
             </div>
-            <span className="text-2xl font-bold tracking-tight">Totonos</span>
+            <span className="text-xl md:text-2xl font-bold tracking-tight">Totonos</span>
           </div>
-          <div className="flex items-center gap-4">
+          
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-4">
             <Link to="/auth">
               <Button variant="outline" className="border-2">
                 ログイン
               </Button>
             </Link>
+            <Button onClick={handleDemoClick} variant="ghost">
+              <Eye className="mr-2 h-4 w-4" />
+              デモを見る
+            </Button>
             <Link to="/auth">
               <Button>
                 無料で始める
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
+          </div>
+
+          {/* Mobile Navigation */}
+          <div className="flex md:hidden items-center gap-2">
+            <Button onClick={handleDemoClick} variant="ghost" size="sm">
+              <Eye className="h-4 w-4" />
+            </Button>
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon" className="border-2">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-64">
+                <div className="flex flex-col gap-4 mt-8">
+                  <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="outline" className="w-full border-2">
+                      ログイン
+                    </Button>
+                  </Link>
+                  <Button 
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      handleDemoClick();
+                    }} 
+                    variant="ghost" 
+                    className="w-full"
+                  >
+                    <Eye className="mr-2 h-4 w-4" />
+                    デモを見る
+                  </Button>
+                  <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
+                    <Button className="w-full">
+                      無料で始める
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </header>
@@ -472,6 +535,9 @@ export default function Landing() {
           <p>© 2026 Totonos. All rights reserved.</p>
         </div>
       </footer>
+
+      {/* Feedback Button */}
+      <FeedbackButton />
     </div>
   );
 }
