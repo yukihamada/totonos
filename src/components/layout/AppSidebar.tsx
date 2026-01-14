@@ -45,6 +45,12 @@ import {
   Brain,
   Lock,
   MailCheck,
+  FolderTree,
+  TrendingUp,
+  Table2,
+  ShieldCheck,
+  GitBranch,
+  KeyRound,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -116,6 +122,13 @@ const iconMap: Record<string, LucideIcon> = {
   'e-bookkeeping': FileCheck,
   'my-number': Lock,
   'email-integration': MailCheck,
+  // Phase 2 differentiation features
+  'wiki-hierarchy': FolderTree,
+  'sales-forecast': TrendingUp,
+  'database-views': Table2,
+  'social-insurance': ShieldCheck,
+  'approval-workflow': GitBranch,
+  'sso-settings': KeyRound,
 };
 
 // URL mapping
@@ -169,6 +182,13 @@ const urlMap: Record<string, string> = {
   'e-bookkeeping': '/e-bookkeeping',
   'my-number': '/my-number',
   'email-integration': '/email-integration',
+  // Phase 2 differentiation features
+  'wiki-hierarchy': '/wiki-hierarchy',
+  'sales-forecast': '/sales-forecast',
+  'database-views': '/database-views',
+  'social-insurance': '/social-insurance',
+  'approval-workflow': '/approval-workflow',
+  'sso-settings': '/sso-settings',
 };
 
 export function AppSidebar() {

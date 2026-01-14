@@ -46,6 +46,7 @@ const defaultMenuGroups: MenuGroupConfig[] = [
       { id: 'activities', title: '活動履歴', visible: true, order: 4 },
       { id: 'clients', title: '取引先', visible: true, order: 5 },
       { id: 'email-integration', title: 'メール連携', visible: true, order: 6 },
+      { id: 'sales-forecast', title: 'AI売上予測', visible: true, order: 7 },
     ],
   },
   {
@@ -105,6 +106,7 @@ const defaultMenuGroups: MenuGroupConfig[] = [
       { id: 'payslips', title: 'Web給与明細', visible: true, order: 5 },
       { id: 'year-end', title: '年末調整', visible: true, order: 6 },
       { id: 'my-number', title: 'マイナンバー', visible: true, order: 7 },
+      { id: 'social-insurance', title: '社会保険電子申請', visible: true, order: 8 },
     ],
   },
   {
@@ -114,8 +116,10 @@ const defaultMenuGroups: MenuGroupConfig[] = [
     order: 6,
     items: [
       { id: 'wiki', title: '社内Wiki', visible: true, order: 0 },
-      { id: 'it-assets', title: 'IT資産', visible: true, order: 1 },
-      { id: 'products', title: '商品管理', visible: true, order: 2 },
+      { id: 'wiki-hierarchy', title: 'Wiki（階層）', visible: true, order: 1 },
+      { id: 'database-views', title: 'データベース', visible: true, order: 2 },
+      { id: 'it-assets', title: 'IT資産', visible: true, order: 3 },
+      { id: 'products', title: '商品管理', visible: true, order: 4 },
     ],
   },
   {
@@ -127,8 +131,10 @@ const defaultMenuGroups: MenuGroupConfig[] = [
       { id: 'notifications', title: '通知', visible: true, order: 0 },
       { id: 'team', title: 'チーム', visible: true, order: 1 },
       { id: 'workflows', title: 'ワークフロー', visible: true, order: 2 },
-      { id: 'email-templates', title: 'メールテンプレート', visible: true, order: 3 },
-      { id: 'audit-log', title: '監査ログ', visible: true, order: 4 },
+      { id: 'approval-workflow', title: '承認ワークフロー', visible: true, order: 3 },
+      { id: 'email-templates', title: 'メールテンプレート', visible: true, order: 4 },
+      { id: 'audit-log', title: '監査ログ', visible: true, order: 5 },
+      { id: 'sso-settings', title: 'SSO設定', visible: true, order: 6 },
     ],
   },
   {

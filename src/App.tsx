@@ -72,6 +72,13 @@ import LeadScoring from "./pages/LeadScoring";
 import EBookkeeping from "./pages/EBookkeeping";
 import MyNumberManagement from "./pages/MyNumberManagement";
 import EmailIntegration from "./pages/EmailIntegration";
+// Phase 2 Features (Differentiation)
+import WikiHierarchy from "./pages/WikiHierarchy";
+import SalesForecast from "./pages/SalesForecast";
+import DatabaseViews from "./pages/DatabaseViews";
+import SocialInsurance from "./pages/SocialInsurance";
+import ApprovalWorkflow from "./pages/ApprovalWorkflow";
+import SSOSettings from "./pages/SSOSettings";
 // Chat
 import { ChatWidget } from "./components/chat/ChatWidget";
 
@@ -167,6 +174,13 @@ function AppRoutes() {
       <Route path="/e-bookkeeping" element={<ProtectedRoute><EBookkeeping /></ProtectedRoute>} />
       <Route path="/my-number" element={<ProtectedRoute><MyNumberManagement /></ProtectedRoute>} />
       <Route path="/email-integration" element={<ProtectedRoute><EmailIntegration /></ProtectedRoute>} />
+      {/* Phase 2 Features (Differentiation) */}
+      <Route path="/wiki-hierarchy" element={<ProtectedRoute><WikiHierarchy /></ProtectedRoute>} />
+      <Route path="/sales-forecast" element={<ProtectedRoute><SalesForecast /></ProtectedRoute>} />
+      <Route path="/database-views" element={<ProtectedRoute><DatabaseViews /></ProtectedRoute>} />
+      <Route path="/social-insurance" element={<ProtectedRoute><SocialInsurance /></ProtectedRoute>} />
+      <Route path="/approval-workflow" element={<ProtectedRoute><ApprovalWorkflow /></ProtectedRoute>} />
+      <Route path="/sso-settings" element={<ProtectedRoute><SSOSettings /></ProtectedRoute>} />
       {/* Not Found */}
       <Route path="*" element={<NotFound />} />
     </Routes>
