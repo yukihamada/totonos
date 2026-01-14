@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { allTools, executeToolCall } from "./tools/index.ts";
+import { consumeCompanyCredits, getCompanyIdForUser } from "../_shared/credits.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -259,6 +260,18 @@ serve(async (req: Request) => {
     for (const msg of messages) {
       if (typeof msg.content === "string" && msg.content.length > MAX_MESSAGE_LENGTH) {
         throw new Error(`Message too long (max ${MAX_MESSAGE_LENGTH} characters)`);
+      }
+    }
+
+    // Consume credits for AI chat
+    const companyId = await getCompanyIdForUser(supabaseAdmin, user.id);
+    if (companyId) {
+      const creditResult = await consumeCompanyCredits(supabaseAdmin, companyId, "ai_chat", "AIチャット");
+      if (!creditResult.success) {
+        return new Response(
+          JSON.stringify({ error: creditResult.error }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
     }
 

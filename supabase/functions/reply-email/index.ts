@@ -150,7 +150,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         reply,
-        creditsUsed: CREDIT_COSTS.ai_email_reply 
+        creditsUsed: CREDIT_COSTS.ai_email_reply.cost 
       } as ReplyResponse),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
