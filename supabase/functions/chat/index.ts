@@ -243,8 +243,23 @@ serve(async (req: Request) => {
       );
     }
 
+    // Input validation
     if (!messages || !Array.isArray(messages)) {
       throw new Error("Invalid request: messages array required");
+    }
+
+    // Limit message history size to prevent resource exhaustion
+    const MAX_MESSAGES = 50;
+    const MAX_MESSAGE_LENGTH = 10000;
+    
+    if (messages.length > MAX_MESSAGES) {
+      throw new Error(`Too many messages in history (max ${MAX_MESSAGES})`);
+    }
+
+    for (const msg of messages) {
+      if (typeof msg.content === "string" && msg.content.length > MAX_MESSAGE_LENGTH) {
+        throw new Error(`Message too long (max ${MAX_MESSAGE_LENGTH} characters)`);
+      }
     }
 
     // Get user's AI settings
