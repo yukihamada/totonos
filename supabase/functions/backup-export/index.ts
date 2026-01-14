@@ -15,12 +15,12 @@ const EXPORT_TABLES: Record<string, string[]> = {
   all: [
     'invoices', 'contracts', 'leads', 'deals', 'clients',
     'employees', 'estimates', 'purchase_orders', 'tasks',
-    'documents', 'journal_entries', 'accounts', 'expense_claims',
-    'attendance_records', 'leave_requests', 'wiki_pages', 'activities',
+    'journal_entries', 'accounts', 'expense_claims',
+    'attendance_records', 'activities',
   ],
   financial: ['invoices', 'journal_entries', 'accounts', 'expense_claims'],
   crm: ['leads', 'deals', 'clients', 'activities'],
-  hr: ['employees', 'attendance_records', 'leave_requests'],
+  hr: ['employees', 'attendance_records'],
   contracts: ['contracts', 'estimates', 'purchase_orders'],
 };
 
@@ -56,10 +56,10 @@ serve(async (req) => {
       });
     }
 
-    // Get user's organization with admin check
+    // Get user's company with admin check
     const { data: member } = await supabaseClient
-      .from('organization_members')
-      .select('organization_id, role')
+      .from('company_members')
+      .select('company_id, role')
       .eq('user_id', user.id)
       .in('role', ['owner', 'admin'])
       .single();
@@ -71,10 +71,10 @@ serve(async (req) => {
       });
     }
 
-    const organizationId = member.organization_id;
+    const companyId = member.company_id;
 
     // Rate limiting
-    const rateLimitResult = await checkRateLimit(`backup:${organizationId}`, RATE_LIMIT);
+    const rateLimitResult = checkRateLimit(`backup:${companyId}`, RATE_LIMIT);
     if (!rateLimitResult.allowed) {
       return createRateLimitResponse(rateLimitResult, corsHeaders);
     }
@@ -85,19 +85,19 @@ serve(async (req) => {
     const exportData: Record<string, unknown[]> = {};
     const exportMeta = {
       exportedAt: new Date().toISOString(),
-      organizationId,
+      companyId,
       exportedBy: user.id,
       category,
       tables,
     };
 
-    // Export each table
+    // Export each table - using user_id based filtering
     for (const table of tables) {
       try {
         const { data, error } = await supabaseClient
           .from(table)
           .select('*')
-          .eq('organization_id', organizationId)
+          .eq('user_id', user.id)
           .limit(10000); // Safety limit
 
         if (error) {
@@ -155,20 +155,6 @@ serve(async (req) => {
       contentType = 'application/json';
     }
 
-    // Log the export for audit
-    await supabaseClient.rpc('log_audit_event', {
-      p_organization_id: organizationId,
-      p_user_id: user.id,
-      p_action: 'backup.export',
-      p_resource_type: 'backup',
-      p_metadata: {
-        category,
-        format,
-        tables_count: tables.length,
-        total_records: Object.values(exportData).reduce((sum, arr) => sum + (arr as unknown[]).length, 0),
-      },
-    }).catch(err => console.error('Audit log failed:', err));
-
     return new Response(responseBody, {
       status: 200,
       headers: {
@@ -179,7 +165,8 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("Backup export error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

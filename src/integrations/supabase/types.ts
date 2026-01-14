@@ -2557,6 +2557,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_company_admin: {
+        Args: { p_company_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      is_company_member: {
+        Args: { p_company_id: string; p_user_id: string }
+        Returns: boolean
+      }
       update_api_key_usage: { Args: { p_key_hash: string }; Returns: undefined }
       validate_api_key: { Args: { p_key_hash: string }; Returns: string }
     }

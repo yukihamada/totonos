@@ -66,7 +66,7 @@ serve(async (req) => {
       });
     }
 
-    const webhook = delivery.webhook as Webhook;
+    const webhook = (delivery.webhook as unknown) as Webhook;
     if (!webhook) {
       console.error("Webhook not found for delivery:", deliveryId);
       return new Response(JSON.stringify({ error: "Webhook not found" }), {
@@ -133,11 +133,12 @@ serve(async (req) => {
       if (!success) {
         errorMessage = `HTTP ${statusCode}: ${responseBody.substring(0, 500)}`;
       }
-    } catch (fetchError) {
-      if (fetchError.name === "AbortError") {
+    } catch (fetchErr) {
+      const fe = fetchErr as Error;
+      if (fe.name === "AbortError") {
         errorMessage = `Timeout after ${webhook.timeout_seconds} seconds`;
       } else {
-        errorMessage = fetchError.message || "Unknown error";
+        errorMessage = fe.message || "Unknown error";
       }
     }
 
@@ -183,7 +184,8 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("Webhook dispatch error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
