@@ -39,3 +39,11 @@ verify_jwt = false
 # Analyze Email: 内部呼び出し用
 [functions.analyze-email]
 verify_jwt = false
+
+# Reply Email: AI返信案生成
+[functions.reply-email]
+verify_jwt = false
+
+# Process Email Command: メール経由AI指示処理
+[functions.process-email-command]
+verify_jwt = false
