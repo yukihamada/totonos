@@ -921,6 +921,7 @@ export type Database = {
           bank_name: string | null
           base_salary: number | null
           birth_date: string | null
+          company_id: string | null
           created_at: string
           department: string | null
           email: string | null
@@ -945,6 +946,7 @@ export type Database = {
           bank_name?: string | null
           base_salary?: number | null
           birth_date?: string | null
+          company_id?: string | null
           created_at?: string
           department?: string | null
           email?: string | null
@@ -969,6 +971,7 @@ export type Database = {
           bank_name?: string | null
           base_salary?: number | null
           birth_date?: string | null
+          company_id?: string | null
           created_at?: string
           department?: string | null
           email?: string | null
@@ -986,7 +989,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "employees_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       estimate_items: {
         Row: {
