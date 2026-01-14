@@ -38,6 +38,13 @@ import {
   CreditCard,
   Mail,
   Link,
+  AlertTriangle,
+  History,
+  Receipt,
+  Camera,
+  Brain,
+  Lock,
+  MailCheck,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -100,6 +107,15 @@ const iconMap: Record<string, LucideIcon> = {
   products: Package,
   'payment-links': CreditCard,
   'email-templates': Mail,
+  // Phase 1 competitive features
+  'contract-alerts': AlertTriangle,
+  'audit-log': History,
+  payslips: Receipt,
+  'receipt-capture': Camera,
+  'lead-scoring': Brain,
+  'e-bookkeeping': FileCheck,
+  'my-number': Lock,
+  'email-integration': MailCheck,
 };
 
 // URL mapping
@@ -144,6 +160,15 @@ const urlMap: Record<string, string> = {
   products: '/products',
   'payment-links': '/payment-links',
   'email-templates': '/email-templates',
+  // Phase 1 competitive features
+  'contract-alerts': '/contract-alerts',
+  'audit-log': '/audit-log',
+  payslips: '/payslips',
+  'receipt-capture': '/receipt-capture',
+  'lead-scoring': '/lead-scoring',
+  'e-bookkeeping': '/e-bookkeeping',
+  'my-number': '/my-number',
+  'email-integration': '/email-integration',
 };
 
 export function AppSidebar() {

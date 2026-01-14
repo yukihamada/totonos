@@ -40,10 +40,12 @@ const defaultMenuGroups: MenuGroupConfig[] = [
     order: 1,
     items: [
       { id: 'leads', title: 'リード', visible: true, order: 0 },
-      { id: 'deals', title: '商談', visible: true, order: 1 },
-      { id: 'pipeline', title: 'パイプライン', visible: true, order: 2 },
-      { id: 'activities', title: '活動履歴', visible: true, order: 3 },
-      { id: 'clients', title: '取引先', visible: true, order: 4 },
+      { id: 'lead-scoring', title: 'AIスコアリング', visible: true, order: 1 },
+      { id: 'deals', title: '商談', visible: true, order: 2 },
+      { id: 'pipeline', title: 'パイプライン', visible: true, order: 3 },
+      { id: 'activities', title: '活動履歴', visible: true, order: 4 },
+      { id: 'clients', title: '取引先', visible: true, order: 5 },
+      { id: 'email-integration', title: 'メール連携', visible: true, order: 6 },
     ],
   },
   {
@@ -56,6 +58,8 @@ const defaultMenuGroups: MenuGroupConfig[] = [
       { id: 'estimates', title: '見積書', visible: true, order: 1 },
       { id: 'purchase-orders', title: '発注書', visible: true, order: 2 },
       { id: 'contracts', title: '契約書', visible: true, order: 3 },
+      { id: 'contract-alerts', title: '契約期限アラート', visible: true, order: 4 },
+      { id: 'e-bookkeeping', title: '電子帳簿保存', visible: true, order: 5 },
     ],
   },
   {
@@ -84,6 +88,7 @@ const defaultMenuGroups: MenuGroupConfig[] = [
       { id: 'receivables', title: '売掛金年齢表', visible: true, order: 4 },
       { id: 'assets', title: '固定資産', visible: true, order: 5 },
       { id: 'expenses', title: '経費管理', visible: true, order: 6 },
+      { id: 'receipt-capture', title: 'レシートOCR', visible: true, order: 7 },
     ],
   },
   {
@@ -97,7 +102,9 @@ const defaultMenuGroups: MenuGroupConfig[] = [
       { id: 'shifts', title: 'シフト管理', visible: true, order: 2 },
       { id: 'leave-requests', title: '休暇管理', visible: true, order: 3 },
       { id: 'payroll', title: '給与計算', visible: true, order: 4 },
-      { id: 'year-end', title: '年末調整', visible: true, order: 5 },
+      { id: 'payslips', title: 'Web給与明細', visible: true, order: 5 },
+      { id: 'year-end', title: '年末調整', visible: true, order: 6 },
+      { id: 'my-number', title: 'マイナンバー', visible: true, order: 7 },
     ],
   },
   {
@@ -121,6 +128,7 @@ const defaultMenuGroups: MenuGroupConfig[] = [
       { id: 'team', title: 'チーム', visible: true, order: 1 },
       { id: 'workflows', title: 'ワークフロー', visible: true, order: 2 },
       { id: 'email-templates', title: 'メールテンプレート', visible: true, order: 3 },
+      { id: 'audit-log', title: '監査ログ', visible: true, order: 4 },
     ],
   },
   {

@@ -63,6 +63,15 @@ import Products from "./pages/Products";
 import PaymentLinks from "./pages/PaymentLinks";
 import EmailTemplates from "./pages/EmailTemplates";
 import PaymentSuccess from "./pages/PaymentSuccess";
+// Phase 1 Features (Competitive)
+import ContractAlerts from "./pages/ContractAlerts";
+import AuditLog from "./pages/AuditLog";
+import Payslips from "./pages/Payslips";
+import ReceiptCapture from "./pages/ReceiptCapture";
+import LeadScoring from "./pages/LeadScoring";
+import EBookkeeping from "./pages/EBookkeeping";
+import MyNumberManagement from "./pages/MyNumberManagement";
+import EmailIntegration from "./pages/EmailIntegration";
 // Chat
 import { ChatWidget } from "./components/chat/ChatWidget";
 
@@ -149,6 +158,15 @@ function AppRoutes() {
       <Route path="/email-templates" element={<ProtectedRoute><EmailTemplates /></ProtectedRoute>} />
       {/* Payment */}
       <Route path="/payment-success" element={<PaymentSuccess />} />
+      {/* Phase 1 Features (Competitive) */}
+      <Route path="/contract-alerts" element={<ProtectedRoute><ContractAlerts /></ProtectedRoute>} />
+      <Route path="/audit-log" element={<ProtectedRoute><AuditLog /></ProtectedRoute>} />
+      <Route path="/payslips" element={<ProtectedRoute><Payslips /></ProtectedRoute>} />
+      <Route path="/receipt-capture" element={<ProtectedRoute><ReceiptCapture /></ProtectedRoute>} />
+      <Route path="/lead-scoring" element={<ProtectedRoute><LeadScoring /></ProtectedRoute>} />
+      <Route path="/e-bookkeeping" element={<ProtectedRoute><EBookkeeping /></ProtectedRoute>} />
+      <Route path="/my-number" element={<ProtectedRoute><MyNumberManagement /></ProtectedRoute>} />
+      <Route path="/email-integration" element={<ProtectedRoute><EmailIntegration /></ProtectedRoute>} />
       {/* Not Found */}
       <Route path="*" element={<NotFound />} />
     </Routes>
