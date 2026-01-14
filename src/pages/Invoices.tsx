@@ -9,10 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useInvoices, useCreateInvoice, useUpdateInvoiceStatus, useDeleteInvoice } from "@/hooks/useInvoices";
 import { useClients } from "@/hooks/useClients";
-import { Plus, MoreHorizontal, FileText, Send, CheckCircle, Clock, AlertCircle, X, Trash2 } from "lucide-react";
+import { useSendEmail } from "@/hooks/useEmailSending";
+import { Plus, MoreHorizontal, FileText, Send, CheckCircle, Clock, AlertCircle, X, Trash2, Mail, Bell } from "lucide-react";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 
@@ -37,8 +38,15 @@ export default function Invoices() {
   const createInvoice = useCreateInvoice();
   const updateStatus = useUpdateInvoiceStatus();
   const deleteInvoice = useDeleteInvoice();
+  const sendEmail = useSendEmail();
 
   const [isOpen, setIsOpen] = useState(false);
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [emailType, setEmailType] = useState<'invoice' | 'reminder' | 'payment_confirmation'>('invoice');
+  const [recipientEmail, setRecipientEmail] = useState("");
+  const [customMessage, setCustomMessage] = useState("");
+
   const [title, setTitle] = useState("");
   const [clientId, setClientId] = useState<string>("");
   const [description, setDescription] = useState("");
@@ -46,6 +54,31 @@ export default function Invoices() {
   const [items, setItems] = useState<InvoiceItem[]>([
     { description: "", quantity: 1, unit_price: 0 },
   ]);
+
+  const handleOpenEmailDialog = (invoice: any, type: 'invoice' | 'reminder' | 'payment_confirmation') => {
+    setSelectedInvoice(invoice);
+    setEmailType(type);
+    setRecipientEmail(invoice.client?.email || "");
+    setCustomMessage("");
+    setIsEmailDialogOpen(true);
+  };
+
+  const handleSendEmail = async () => {
+    if (!selectedInvoice || !recipientEmail) return;
+    
+    await sendEmail.mutateAsync({
+      type: emailType,
+      invoiceId: selectedInvoice.id,
+      recipientEmail,
+      recipientName: selectedInvoice.client?.name,
+      customMessage: customMessage || undefined,
+    });
+    
+    setIsEmailDialogOpen(false);
+    setSelectedInvoice(null);
+    setRecipientEmail("");
+    setCustomMessage("");
+  };
 
   const handleAddItem = () => {
     setItems([...items, { description: "", quantity: 1, unit_price: 0 }]);
@@ -341,6 +374,23 @@ export default function Invoices() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleOpenEmailDialog(invoice, 'invoice')}>
+                                <Mail className="mr-2 h-4 w-4" />
+                                請求書をメール送信
+                              </DropdownMenuItem>
+                              {(invoice.status === 'sent' || invoice.status === 'pending' || invoice.status === 'overdue') && (
+                                <DropdownMenuItem onClick={() => handleOpenEmailDialog(invoice, 'reminder')}>
+                                  <Bell className="mr-2 h-4 w-4" />
+                                  リマインダー送信
+                                </DropdownMenuItem>
+                              )}
+                              {invoice.status === 'paid' && (
+                                <DropdownMenuItem onClick={() => handleOpenEmailDialog(invoice, 'payment_confirmation')}>
+                                  <CheckCircle className="mr-2 h-4 w-4" />
+                                  入金確認メール送信
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
                               {invoice.status === 'draft' && (
                                 <DropdownMenuItem onClick={() => updateStatus.mutate({ id: invoice.id, status: 'sent' })}>
                                   <Send className="mr-2 h-4 w-4" />
@@ -353,6 +403,7 @@ export default function Invoices() {
                                   入金済にする
                                 </DropdownMenuItem>
                               )}
+                              <DropdownMenuSeparator />
                               <DropdownMenuItem 
                                 onClick={() => deleteInvoice.mutate(invoice.id)}
                                 className="text-destructive"
@@ -371,6 +422,58 @@ export default function Invoices() {
             )}
           </CardContent>
         </Card>
+
+        {/* メール送信ダイアログ */}
+        <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {emailType === 'invoice' && '請求書をメール送信'}
+                {emailType === 'reminder' && 'リマインダーを送信'}
+                {emailType === 'payment_confirmation' && '入金確認メールを送信'}
+              </DialogTitle>
+              <DialogDescription>
+                {selectedInvoice?.invoice_number} - {selectedInvoice?.title}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="recipientEmail">送信先メールアドレス *</Label>
+                <Input
+                  id="recipientEmail"
+                  type="email"
+                  placeholder="example@company.com"
+                  value={recipientEmail}
+                  onChange={(e) => setRecipientEmail(e.target.value)}
+                />
+              </div>
+              {emailType === 'invoice' && (
+                <div className="space-y-2">
+                  <Label htmlFor="customMessage">カスタムメッセージ（任意）</Label>
+                  <Textarea
+                    id="customMessage"
+                    placeholder="追加のメッセージがあれば入力してください"
+                    value={customMessage}
+                    onChange={(e) => setCustomMessage(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEmailDialogOpen(false)}>
+                キャンセル
+              </Button>
+              <Button 
+                onClick={handleSendEmail} 
+                disabled={sendEmail.isPending || !recipientEmail}
+              >
+                <Mail className="mr-2 h-4 w-4" />
+                {sendEmail.isPending ? "送信中..." : "送信"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );
