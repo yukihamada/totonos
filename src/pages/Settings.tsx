@@ -9,12 +9,32 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
+import { useAppSettings } from '@/contexts/SettingsContext';
 import { toast } from 'sonner';
-import { Settings as SettingsIcon, Building2, Bell, Shield, Palette, Globe, CreditCard, Mail, Save } from 'lucide-react';
+import { 
+  Settings as SettingsIcon, 
+  Building2, 
+  Bell, 
+  Shield, 
+  Palette, 
+  Globe, 
+  CreditCard, 
+  Save,
+  Menu,
+  RotateCcw,
+  Sun,
+  Moon,
+  Monitor,
+  GripVertical,
+  Eye,
+  EyeOff,
+} from 'lucide-react';
 
 export default function Settings() {
   const { user } = useAuth();
+  const { settings, updateSettings, updateMenuGroup, updateMenuItem, resetToDefaults } = useAppSettings();
 
   // Company settings
   const [companyName, setCompanyName] = useState('株式会社サンプル');
@@ -45,6 +65,11 @@ export default function Settings() {
     toast.success('設定を保存しました');
   };
 
+  const handleResetMenu = () => {
+    resetToDefaults();
+    toast.success('メニュー設定をリセットしました');
+  };
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -62,15 +87,234 @@ export default function Settings() {
           </Button>
         </div>
 
-        <Tabs defaultValue="company" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5">
+        <Tabs defaultValue="appearance" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-6">
+            <TabsTrigger value="appearance">外観</TabsTrigger>
+            <TabsTrigger value="menu">メニュー</TabsTrigger>
             <TabsTrigger value="company">会社情報</TabsTrigger>
             <TabsTrigger value="invoice">請求書</TabsTrigger>
             <TabsTrigger value="notifications">通知</TabsTrigger>
-            <TabsTrigger value="display">表示</TabsTrigger>
             <TabsTrigger value="security">セキュリティ</TabsTrigger>
           </TabsList>
 
+          {/* Appearance Tab */}
+          <TabsContent value="appearance" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Palette className="h-5 w-5" />
+                  テーマ設定
+                </CardTitle>
+                <CardDescription>アプリケーションの外観をカスタマイズ</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <Label>カラーモード</Label>
+                  <div className="grid grid-cols-3 gap-4">
+                    <Button
+                      variant={settings.theme === 'light' ? 'default' : 'outline'}
+                      className="flex flex-col items-center gap-2 h-auto py-4"
+                      onClick={() => updateSettings({ theme: 'light' })}
+                    >
+                      <Sun className="h-6 w-6" />
+                      <span>ライト</span>
+                    </Button>
+                    <Button
+                      variant={settings.theme === 'dark' ? 'default' : 'outline'}
+                      className="flex flex-col items-center gap-2 h-auto py-4"
+                      onClick={() => updateSettings({ theme: 'dark' })}
+                    >
+                      <Moon className="h-6 w-6" />
+                      <span>ダーク</span>
+                    </Button>
+                    <Button
+                      variant={settings.theme === 'system' ? 'default' : 'outline'}
+                      className="flex flex-col items-center gap-2 h-auto py-4"
+                      onClick={() => updateSettings({ theme: 'system' })}
+                    >
+                      <Monitor className="h-6 w-6" />
+                      <span>システム</span>
+                    </Button>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <Label>フォントサイズ</Label>
+                  <div className="grid grid-cols-3 gap-4">
+                    <Button
+                      variant={settings.fontSize === 'sm' ? 'default' : 'outline'}
+                      onClick={() => updateSettings({ fontSize: 'sm' })}
+                    >
+                      小
+                    </Button>
+                    <Button
+                      variant={settings.fontSize === 'base' ? 'default' : 'outline'}
+                      onClick={() => updateSettings({ fontSize: 'base' })}
+                    >
+                      中（標準）
+                    </Button>
+                    <Button
+                      variant={settings.fontSize === 'lg' ? 'default' : 'outline'}
+                      onClick={() => updateSettings({ fontSize: 'lg' })}
+                    >
+                      大
+                    </Button>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>コンパクトモード</Label>
+                    <p className="text-sm text-muted-foreground">UIの余白を減らしてより多くの情報を表示</p>
+                  </div>
+                  <Switch
+                    checked={settings.compactMode}
+                    onCheckedChange={(checked) => updateSettings({ compactMode: checked })}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="h-5 w-5" />
+                  地域設定
+                </CardTitle>
+                <CardDescription>言語・地域・表示形式の設定</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>言語</Label>
+                    <Select value={language} onValueChange={setLanguage}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ja">日本語</SelectItem>
+                        <SelectItem value="en">English</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>タイムゾーン</Label>
+                    <Select value={timezone} onValueChange={setTimezone}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Asia/Tokyo">東京 (UTC+9)</SelectItem>
+                        <SelectItem value="America/New_York">ニューヨーク (UTC-5)</SelectItem>
+                        <SelectItem value="Europe/London">ロンドン (UTC+0)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>通貨</Label>
+                    <Select value={currency} onValueChange={setCurrency}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="JPY">日本円 (¥)</SelectItem>
+                        <SelectItem value="USD">米ドル ($)</SelectItem>
+                        <SelectItem value="EUR">ユーロ (€)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>日付形式</Label>
+                    <Select value={dateFormat} onValueChange={setDateFormat}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="yyyy/MM/dd">2026/01/14</SelectItem>
+                        <SelectItem value="yyyy-MM-dd">2026-01-14</SelectItem>
+                        <SelectItem value="MM/dd/yyyy">01/14/2026</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Menu Tab */}
+          <TabsContent value="menu" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Menu className="h-5 w-5" />
+                      メニューカスタマイズ
+                    </CardTitle>
+                    <CardDescription>サイドバーメニューの表示項目を設定</CardDescription>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={handleResetMenu}>
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                    リセット
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {settings.menuGroups.map((group) => (
+                  <div key={group.id} className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+                        <Label className="text-base font-semibold">{group.label}</Label>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => updateMenuGroup(group.id, { visible: !group.visible })}
+                      >
+                        {group.visible ? (
+                          <Eye className="h-4 w-4" />
+                        ) : (
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </div>
+                    {group.visible && (
+                      <div className="ml-8 space-y-2">
+                        {group.items.map((item) => (
+                          <div
+                            key={item.id}
+                            className="flex items-center justify-between py-1"
+                          >
+                            <div className="flex items-center gap-3">
+                              <Checkbox
+                                checked={item.visible}
+                                onCheckedChange={(checked) =>
+                                  updateMenuItem(group.id, item.id, { visible: checked as boolean })
+                                }
+                              />
+                              <span className={item.visible ? '' : 'text-muted-foreground line-through'}>
+                                {item.title}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <Separator />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Company Tab */}
           <TabsContent value="company" className="space-y-4">
             <Card>
               <CardHeader>
@@ -168,6 +412,7 @@ export default function Settings() {
             </Card>
           </TabsContent>
 
+          {/* Invoice Tab */}
           <TabsContent value="invoice" className="space-y-4">
             <Card>
               <CardHeader>
@@ -228,6 +473,7 @@ export default function Settings() {
             </Card>
           </TabsContent>
 
+          {/* Notifications Tab */}
           <TabsContent value="notifications" className="space-y-4">
             <Card>
               <CardHeader>
@@ -285,75 +531,7 @@ export default function Settings() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="display" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Globe className="h-5 w-5" />
-                  表示設定
-                </CardTitle>
-                <CardDescription>言語・地域・表示形式の設定</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>言語</Label>
-                    <Select value={language} onValueChange={setLanguage}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ja">日本語</SelectItem>
-                        <SelectItem value="en">English</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>タイムゾーン</Label>
-                    <Select value={timezone} onValueChange={setTimezone}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Asia/Tokyo">東京 (UTC+9)</SelectItem>
-                        <SelectItem value="America/New_York">ニューヨーク (UTC-5)</SelectItem>
-                        <SelectItem value="Europe/London">ロンドン (UTC+0)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>通貨</Label>
-                    <Select value={currency} onValueChange={setCurrency}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="JPY">日本円 (¥)</SelectItem>
-                        <SelectItem value="USD">米ドル ($)</SelectItem>
-                        <SelectItem value="EUR">ユーロ (€)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>日付形式</Label>
-                    <Select value={dateFormat} onValueChange={setDateFormat}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="yyyy/MM/dd">2026/01/14</SelectItem>
-                        <SelectItem value="yyyy-MM-dd">2026-01-14</SelectItem>
-                        <SelectItem value="MM/dd/yyyy">01/14/2026</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
+          {/* Security Tab */}
           <TabsContent value="security" className="space-y-4">
             <Card>
               <CardHeader>
@@ -397,17 +575,17 @@ export default function Settings() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">データのエクスポート</p>
-                    <p className="text-sm text-muted-foreground">すべてのデータをダウンロード</p>
+                  <div className="space-y-0.5">
+                    <p className="font-medium">すべてのデータを削除</p>
+                    <p className="text-sm text-muted-foreground">請求書、取引先、設定をすべて削除します</p>
                   </div>
-                  <Button variant="outline">エクスポート</Button>
+                  <Button variant="destructive">データを削除</Button>
                 </div>
                 <Separator />
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-destructive">アカウントの削除</p>
-                    <p className="text-sm text-muted-foreground">すべてのデータが完全に削除されます</p>
+                  <div className="space-y-0.5">
+                    <p className="font-medium">アカウントを削除</p>
+                    <p className="text-sm text-muted-foreground">アカウントを完全に削除します</p>
                   </div>
                   <Button variant="destructive">アカウントを削除</Button>
                 </div>
