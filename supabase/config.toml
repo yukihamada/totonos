@@ -31,3 +31,11 @@ verify_jwt = false
 # MCP: 内部でAPI Key検証を実施
 [functions.mcp]
 verify_jwt = false
+
+# Inbound Email: Resend/SendGrid Webhook受信
+[functions.inbound-email]
+verify_jwt = false
+
+# Analyze Email: 内部呼び出し用
+[functions.analyze-email]
+verify_jwt = false

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Building2, Plus, Users, Settings, CreditCard } from "lucide-react";
+import { Building2, Plus, Users, Settings, CreditCard, Mail } from "lucide-react";
+import { CompanyEmailSettings } from "@/components/settings/CompanyEmailSettings";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -252,7 +253,7 @@ export default function CompanySettings() {
 
         {currentCompany && (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="company">
                 <Settings className="h-4 w-4 mr-2" />
                 会社情報
@@ -262,6 +263,10 @@ export default function CompanySettings() {
                 メンバー
               </TabsTrigger>
               <TabsTrigger value="invitations">招待</TabsTrigger>
+              <TabsTrigger value="email">
+                <Mail className="h-4 w-4 mr-2" />
+                メール
+              </TabsTrigger>
               <TabsTrigger value="credits">
                 <CreditCard className="h-4 w-4 mr-2" />
                 クレジット
@@ -309,6 +314,10 @@ export default function CompanySettings() {
                   <Button>保存</Button>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="email" className="space-y-4 mt-4">
+              <CompanyEmailSettings />
             </TabsContent>
 
             <TabsContent value="members" className="space-y-4 mt-4">

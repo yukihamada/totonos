@@ -413,6 +413,59 @@ export type Database = {
           },
         ]
       }
+      company_email_addresses: {
+        Row: {
+          address_prefix: string
+          ai_processing_enabled: boolean
+          assigned_to: string | null
+          auto_create_entity: boolean
+          company_id: string
+          created_at: string
+          display_name: string | null
+          id: string
+          is_active: boolean
+          purpose: Database["public"]["Enums"]["email_purpose"]
+          updated_at: string
+          webhook_url: string | null
+        }
+        Insert: {
+          address_prefix: string
+          ai_processing_enabled?: boolean
+          assigned_to?: string | null
+          auto_create_entity?: boolean
+          company_id: string
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          is_active?: boolean
+          purpose?: Database["public"]["Enums"]["email_purpose"]
+          updated_at?: string
+          webhook_url?: string | null
+        }
+        Update: {
+          address_prefix?: string
+          ai_processing_enabled?: boolean
+          assigned_to?: string | null
+          auto_create_entity?: boolean
+          company_id?: string
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          is_active?: boolean
+          purpose?: Database["public"]["Enums"]["email_purpose"]
+          updated_at?: string
+          webhook_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_email_addresses_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_invitations: {
         Row: {
           accepted_at: string | null
@@ -1415,11 +1468,19 @@ export type Database = {
       }
       inbound_emails: {
         Row: {
+          ai_category: string | null
+          ai_extracted_deadline: string | null
+          ai_sentiment: string | null
+          ai_summary: string | null
+          ai_urgency: string | null
           assigned_to: string | null
           attachments: Json | null
+          auto_created_entity_id: string | null
+          auto_created_entity_type: string | null
           cc_emails: string[] | null
           company_id: string | null
           created_at: string
+          email_address_id: string | null
           from_email: string
           from_name: string | null
           headers: Json | null
@@ -1442,11 +1503,19 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_category?: string | null
+          ai_extracted_deadline?: string | null
+          ai_sentiment?: string | null
+          ai_summary?: string | null
+          ai_urgency?: string | null
           assigned_to?: string | null
           attachments?: Json | null
+          auto_created_entity_id?: string | null
+          auto_created_entity_type?: string | null
           cc_emails?: string[] | null
           company_id?: string | null
           created_at?: string
+          email_address_id?: string | null
           from_email: string
           from_name?: string | null
           headers?: Json | null
@@ -1469,11 +1538,19 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_category?: string | null
+          ai_extracted_deadline?: string | null
+          ai_sentiment?: string | null
+          ai_summary?: string | null
+          ai_urgency?: string | null
           assigned_to?: string | null
           attachments?: Json | null
+          auto_created_entity_id?: string | null
+          auto_created_entity_type?: string | null
           cc_emails?: string[] | null
           company_id?: string | null
           created_at?: string
+          email_address_id?: string | null
           from_email?: string
           from_name?: string | null
           headers?: Json | null
@@ -1501,6 +1578,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_emails_email_address_id_fkey"
+            columns: ["email_address_id"]
+            isOneToOne: false
+            referencedRelation: "company_email_addresses"
             referencedColumns: ["id"]
           },
         ]
@@ -2713,6 +2797,13 @@ export type Database = {
         | "won"
         | "lost"
       depreciation_method: "straight_line" | "declining_balance"
+      email_purpose:
+        | "lead_capture"
+        | "support"
+        | "invoice"
+        | "contract"
+        | "recruit"
+        | "general"
       employee_status: "active" | "on_leave" | "resigned"
       employment_type: "full_time" | "part_time" | "contract" | "intern"
       estimate_status: "draft" | "sent" | "accepted" | "rejected" | "expired"
@@ -2976,6 +3067,14 @@ export const Constants = {
         "lost",
       ],
       depreciation_method: ["straight_line", "declining_balance"],
+      email_purpose: [
+        "lead_capture",
+        "support",
+        "invoice",
+        "contract",
+        "recruit",
+        "general",
+      ],
       employee_status: ["active", "on_leave", "resigned"],
       employment_type: ["full_time", "part_time", "contract", "intern"],
       estimate_status: ["draft", "sent", "accepted", "rejected", "expired"],
