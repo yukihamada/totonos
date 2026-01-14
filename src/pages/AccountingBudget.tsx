@@ -31,22 +31,25 @@ export default function AccountingBudget() {
   const [isOpen, setIsOpen] = useState(false);
 
   const { data: accounts } = useAccounts();
+  const { data: entries } = useJournalEntries();
+
+  // Filter entries by date range
   const startDate = `${year}-${month}-01`;
   const endDate = new Date(parseInt(year), parseInt(month), 0).toISOString().split('T')[0];
-  const { data: entries } = useJournalEntries(startDate, endDate);
+  const filteredEntries = entries?.filter(e => e.entry_date >= startDate && e.entry_date <= endDate) || [];
 
   // Calculate actual amounts by account from journal entries
-  const actualByAccount = entries?.reduce((acc, entry) => {
-    entry.items.forEach(item => {
-      const key = item.account_id;
+  const actualByAccount = filteredEntries.reduce((acc, entry) => {
+    entry.lines?.forEach(line => {
+      const key = line.account_id;
       if (!acc[key]) {
         acc[key] = { debit: 0, credit: 0 };
       }
-      acc[key].debit += item.debit_amount || 0;
-      acc[key].credit += item.credit_amount || 0;
+      acc[key].debit += line.debit_amount || 0;
+      acc[key].credit += line.credit_amount || 0;
     });
     return acc;
-  }, {} as Record<string, { debit: number; credit: number }>) || {};
+  }, {} as Record<string, { debit: number; credit: number }>);
 
   // Filter expense accounts for budget tracking
   const expenseAccounts = accounts?.filter(a => a.account_type === 'expense') || [];
@@ -59,8 +62,8 @@ export default function AccountingBudget() {
     const actual = actualByAccount[account.id];
     return {
       accountId: account.id,
-      accountCode: account.code,
-      accountName: account.name,
+      accountCode: account.account_code,
+      accountName: account.account_name,
       budgetAmount: budgets[account.id] || 0,
       actualAmount: actual ? actual.debit - actual.credit : 0,
     };
@@ -77,8 +80,8 @@ export default function AccountingBudget() {
     const actual = actualByAccount[account.id];
     return {
       accountId: account.id,
-      accountCode: account.code,
-      accountName: account.name,
+      accountCode: account.account_code,
+      accountName: account.account_name,
       targetAmount: budgets[`rev_${account.id}`] || 0,
       actualAmount: actual ? actual.credit - actual.debit : 0,
     };
@@ -138,7 +141,7 @@ export default function AccountingBudget() {
                     <SelectContent>
                       {expenseAccounts.map(account => (
                         <SelectItem key={account.id} value={account.id}>
-                          {account.code} - {account.name}
+                          {account.account_code} - {account.account_name}
                         </SelectItem>
                       ))}
                     </SelectContent>

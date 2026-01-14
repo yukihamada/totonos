@@ -66,7 +66,7 @@ export function useDashboardStats() {
       // Fetch deals
       const { data: deals } = await supabase
         .from('deals')
-        .select('id, title, value, stage, probability, created_at')
+        .select('id, deal_name, amount, stage, probability, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -100,11 +100,11 @@ export function useDashboardStats() {
 
       // Calculate deal stats
       const openDeals = dealList.filter(d => d.stage !== 'won' && d.stage !== 'lost');
-      const pipelineValue = openDeals.reduce((sum, d) => sum + (d.value || 0) * ((d.probability || 0) / 100), 0);
+      const pipelineValue = openDeals.reduce((sum, d) => sum + (d.amount || 0) * ((d.probability || 0) / 100), 0);
       const dealsCount = openDeals.length;
       const wonDealsValue = dealList
         .filter(d => d.stage === 'won')
-        .reduce((sum, d) => sum + (d.value || 0), 0);
+        .reduce((sum, d) => sum + (d.amount || 0), 0);
 
       // Calculate monthly revenue (last 6 months)
       const monthlyRevenue: { month: string; amount: number; paid: number }[] = [];
@@ -129,12 +129,12 @@ export function useDashboardStats() {
       }
 
       // Pipeline by stage
-      const stages = ['qualification', 'meeting', 'proposal', 'negotiation', 'won'];
+      const stages = ['initial', 'proposal', 'negotiation', 'contract', 'won'];
       const stageLabels: Record<string, string> = {
-        qualification: '見込み',
-        meeting: '商談中',
+        initial: '初期',
         proposal: '提案中',
         negotiation: '交渉中',
+        contract: '契約',
         won: '成約',
       };
       const pipelineByStage = stages.map(stage => {
@@ -142,7 +142,7 @@ export function useDashboardStats() {
         return {
           stage: stageLabels[stage] || stage,
           count: stageDeals.length,
-          value: stageDeals.reduce((sum, d) => sum + (d.value || 0), 0),
+          value: stageDeals.reduce((sum, d) => sum + (d.amount || 0), 0),
         };
       });
 
@@ -178,8 +178,8 @@ export function useDashboardStats() {
         recentActivities.push({
           id: deal.id,
           type: 'deal',
-          title: deal.title,
-          amount: deal.value || 0,
+          title: deal.deal_name,
+          amount: deal.amount || 0,
           date: deal.created_at.split('T')[0],
           status: deal.stage,
         });

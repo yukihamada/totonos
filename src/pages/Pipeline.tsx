@@ -11,15 +11,15 @@ import type { Database } from "@/integrations/supabase/types";
 type DealStage = Database['public']['Enums']['deal_stage'];
 
 const stageConfig: Record<DealStage, { label: string; color: string; bgColor: string }> = {
-  qualification: { label: '見込み', color: 'text-blue-700', bgColor: 'bg-blue-50' },
-  meeting: { label: '商談中', color: 'text-yellow-700', bgColor: 'bg-yellow-50' },
+  initial: { label: '初期', color: 'text-blue-700', bgColor: 'bg-blue-50' },
   proposal: { label: '提案中', color: 'text-orange-700', bgColor: 'bg-orange-50' },
   negotiation: { label: '交渉中', color: 'text-purple-700', bgColor: 'bg-purple-50' },
+  contract: { label: '契約', color: 'text-yellow-700', bgColor: 'bg-yellow-50' },
   won: { label: '成約', color: 'text-green-700', bgColor: 'bg-green-50' },
   lost: { label: '失注', color: 'text-red-700', bgColor: 'bg-red-50' },
 };
 
-const stageOrder: DealStage[] = ['qualification', 'meeting', 'proposal', 'negotiation', 'won', 'lost'];
+const stageOrder: DealStage[] = ['initial', 'proposal', 'negotiation', 'contract', 'won', 'lost'];
 
 export default function Pipeline() {
   const { data: deals, isLoading } = useDeals();
@@ -28,13 +28,13 @@ export default function Pipeline() {
 
   // Calculate pipeline statistics
   const activeDeals = deals?.filter(d => d.stage !== 'won' && d.stage !== 'lost') || [];
-  const totalPipelineValue = activeDeals.reduce((sum, d) => sum + (d.value || 0), 0);
+  const totalPipelineValue = activeDeals.reduce((sum, d) => sum + (d.amount || 0), 0);
   const weightedPipelineValue = activeDeals.reduce(
-    (sum, d) => sum + (d.value || 0) * ((d.probability || 0) / 100),
+    (sum, d) => sum + (d.amount || 0) * ((d.probability || 0) / 100),
     0
   );
   const wonDeals = deals?.filter(d => d.stage === 'won') || [];
-  const wonValue = wonDeals.reduce((sum, d) => sum + (d.value || 0), 0);
+  const wonValue = wonDeals.reduce((sum, d) => sum + (d.amount || 0), 0);
   const lostDeals = deals?.filter(d => d.stage === 'lost') || [];
 
   // Group deals by stage
@@ -128,7 +128,7 @@ export default function Pipeline() {
             </CardHeader>
             <CardContent>
               <p className="text-xs text-red-600">
-                {formatCurrency(lostDeals.reduce((sum, d) => sum + (d.value || 0), 0))}
+                {formatCurrency(lostDeals.reduce((sum, d) => sum + (d.amount || 0), 0))}
               </p>
             </CardContent>
           </Card>
@@ -139,7 +139,7 @@ export default function Pipeline() {
           {stageOrder.map(stage => {
             const config = stageConfig[stage];
             const stageDeals = dealsByStage[stage] || [];
-            const stageValue = stageDeals.reduce((sum, d) => sum + (d.value || 0), 0);
+            const stageValue = stageDeals.reduce((sum, d) => sum + (d.amount || 0), 0);
 
             return (
               <div
@@ -171,7 +171,7 @@ export default function Pipeline() {
                       <CardContent className="p-3">
                         <div className="space-y-2">
                           <div className="font-medium text-sm line-clamp-2">
-                            {deal.title}
+                            {deal.deal_name}
                           </div>
                           {(deal as any).client?.name && (
                             <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -182,7 +182,7 @@ export default function Pipeline() {
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1 text-sm font-semibold">
                               <DollarSign className="h-3 w-3" />
-                              {formatCurrency(deal.value || 0)}
+                              {formatCurrency(deal.amount || 0)}
                             </div>
                             <Badge variant="outline" className="text-xs">
                               {deal.probability}%
