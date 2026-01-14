@@ -79,6 +79,11 @@ import DatabaseViews from "./pages/DatabaseViews";
 import SocialInsurance from "./pages/SocialInsurance";
 import ApprovalWorkflow from "./pages/ApprovalWorkflow";
 import SSOSettings from "./pages/SSOSettings";
+// Credit System
+import Credits from "./pages/Credits";
+import CreditLogs from "./pages/CreditLogs";
+import Pricing from "./pages/Pricing";
+import Referrals from "./pages/Referrals";
 // Chat
 import { ChatWidget } from "./components/chat/ChatWidget";
 
@@ -181,6 +186,11 @@ function AppRoutes() {
       <Route path="/social-insurance" element={<ProtectedRoute><SocialInsurance /></ProtectedRoute>} />
       <Route path="/approval-workflow" element={<ProtectedRoute><ApprovalWorkflow /></ProtectedRoute>} />
       <Route path="/sso-settings" element={<ProtectedRoute><SSOSettings /></ProtectedRoute>} />
+      {/* Credit System */}
+      <Route path="/credits" element={<ProtectedRoute><Credits /></ProtectedRoute>} />
+      <Route path="/credit-logs" element={<ProtectedRoute><CreditLogs /></ProtectedRoute>} />
+      <Route path="/pricing" element={<ProtectedRoute><Pricing /></ProtectedRoute>} />
+      <Route path="/referrals" element={<ProtectedRoute><Referrals /></ProtectedRoute>} />
       {/* Not Found */}
       <Route path="*" element={<NotFound />} />
     </Routes>

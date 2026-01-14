@@ -138,10 +138,22 @@ const defaultMenuGroups: MenuGroupConfig[] = [
     ],
   },
   {
+    id: 'billing',
+    label: '課金・クレジット',
+    visible: true,
+    order: 8,
+    items: [
+      { id: 'credits', title: 'クレジット', visible: true, order: 0 },
+      { id: 'credit-logs', title: '利用履歴', visible: true, order: 1 },
+      { id: 'pricing', title: '料金プラン', visible: true, order: 2 },
+      { id: 'referrals', title: '友達招待', visible: true, order: 3 },
+    ],
+  },
+  {
     id: 'other',
     label: 'その他',
     visible: true,
-    order: 8,
+    order: 9,
     items: [
       { id: 'reports', title: 'レポート', visible: true, order: 0 },
       { id: 'profile', title: 'プロフィール', visible: true, order: 1 },

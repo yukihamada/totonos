@@ -51,6 +51,9 @@ import {
   ShieldCheck,
   GitBranch,
   KeyRound,
+  Coins,
+  Gift,
+  Sparkles,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -129,6 +132,11 @@ const iconMap: Record<string, LucideIcon> = {
   'social-insurance': ShieldCheck,
   'approval-workflow': GitBranch,
   'sso-settings': KeyRound,
+  // Credit system
+  credits: Coins,
+  'credit-logs': History,
+  pricing: Sparkles,
+  referrals: Gift,
 };
 
 // URL mapping
@@ -189,6 +197,11 @@ const urlMap: Record<string, string> = {
   'social-insurance': '/social-insurance',
   'approval-workflow': '/approval-workflow',
   'sso-settings': '/sso-settings',
+  // Credit system
+  credits: '/credits',
+  'credit-logs': '/credit-logs',
+  pricing: '/pricing',
+  referrals: '/referrals',
 };
 
 export function AppSidebar() {
