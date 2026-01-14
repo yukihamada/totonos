@@ -94,7 +94,7 @@ const comparisonCategories = {
   invoice: {
     label: "請求・経理",
     competitors: [
-      { name: "Invox", sub: "" },
+      { name: "Totonos", sub: "" },
       { name: "バクラク", sub: "LayerX" },
       { name: "Bill One", sub: "Sansan" },
       { name: "freee", sub: "請求書" },
@@ -113,7 +113,7 @@ const comparisonCategories = {
   finance: {
     label: "資金調達",
     competitors: [
-      { name: "Invox", sub: "" },
+      { name: "Totonos", sub: "" },
       { name: "OLTA", sub: "ファクタリング" },
       { name: "GMO早払い", sub: "" },
       { name: "ラボル", sub: "" },
@@ -131,7 +131,7 @@ const comparisonCategories = {
   accounting: {
     label: "会計",
     competitors: [
-      { name: "Invox", sub: "" },
+      { name: "Totonos", sub: "" },
       { name: "freee会計", sub: "" },
       { name: "MF会計", sub: "" },
       { name: "弥生会計", sub: "" },
@@ -149,7 +149,7 @@ const comparisonCategories = {
   hr: {
     label: "人事・労務",
     competitors: [
-      { name: "Invox", sub: "" },
+      { name: "Totonos", sub: "" },
       { name: "SmartHR", sub: "" },
       { name: "freee人事労務", sub: "" },
       { name: "KING OF TIME", sub: "" },
@@ -167,7 +167,7 @@ const comparisonCategories = {
   crm: {
     label: "CRM・営業",
     competitors: [
-      { name: "Invox", sub: "" },
+      { name: "Totonos", sub: "" },
       { name: "Salesforce", sub: "" },
       { name: "HubSpot", sub: "" },
       { name: "kintone", sub: "" },
@@ -185,7 +185,7 @@ const comparisonCategories = {
   legal: {
     label: "法務・契約",
     competitors: [
-      { name: "Invox", sub: "" },
+      { name: "Totonos", sub: "" },
       { name: "クラウドサイン", sub: "" },
       { name: "GMOサイン", sub: "" },
       { name: "DocuSign", sub: "" },
@@ -203,7 +203,7 @@ const comparisonCategories = {
   info: {
     label: "情報管理",
     competitors: [
-      { name: "Invox", sub: "" },
+      { name: "Totonos", sub: "" },
       { name: "Notion", sub: "" },
       { name: "Confluence", sub: "" },
       { name: "Asana", sub: "" },
@@ -245,9 +245,9 @@ export default function Landing() {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="flex h-10 w-10 items-center justify-center border-2 border-foreground bg-foreground text-background text-xl font-bold">
-              I
+              T
             </div>
-            <span className="text-2xl font-bold tracking-tight">Invox</span>
+            <span className="text-2xl font-bold tracking-tight">Totonos</span>
           </div>
           <div className="flex items-center gap-4">
             <Link to="/auth">
@@ -333,7 +333,7 @@ export default function Landing() {
             </div>
             <div className="text-5xl font-bold">→</div>
             <div>
-              <p className="text-lg opacity-80">Invoxなら</p>
+              <p className="text-lg opacity-80">Totonosなら</p>
               <p className="text-5xl font-bold text-chart-2">0円</p>
             </div>
           </div>
@@ -345,7 +345,7 @@ export default function Landing() {
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl font-bold text-center mb-12">
-              Invoxで実現できること
+              Totonosで実現できること
             </h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {benefits.map((benefit) => (
@@ -369,7 +369,7 @@ export default function Landing() {
             カテゴリ別 競合比較
           </h2>
           <p className="text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
-            各カテゴリで業界トップのサービスと比較。Invoxはすべての機能を無料で提供します。
+            各カテゴリで業界トップのサービスと比較。Totonosはすべての機能を無料で提供します。
           </p>
 
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as CategoryKey)} className="w-full">
@@ -469,7 +469,7 @@ export default function Landing() {
       {/* Footer */}
       <footer className="border-t-2 border-foreground py-8">
         <div className="container mx-auto px-4 text-center text-muted-foreground">
-          <p>© 2026 Invox. All rights reserved.</p>
+          <p>© 2026 Totonos. All rights reserved.</p>
         </div>
       </footer>
     </div>

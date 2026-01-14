@@ -141,10 +141,10 @@ export function AppSidebar() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center border-2 border-foreground bg-foreground text-background font-bold">
-              I
+              T
             </div>
             {!collapsed && (
-              <span className="text-xl font-bold tracking-tight">Invox</span>
+              <span className="text-xl font-bold tracking-tight">Totonos</span>
             )}
           </div>
           {!collapsed && <ThemeToggle />}

@@ -1,4 +1,4 @@
-// Contract types for Invox
+// Contract types for Totonos
 export type ContractStatus = 'draft' | 'sent' | 'pending_signature' | 'partially_signed' | 'signed' | 'expired' | 'cancelled';
 export type SignatoryType = 'issuer' | 'recipient';
 export type SignatureMethod = 'email_otp' | 'wallet';
