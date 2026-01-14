@@ -37,7 +37,6 @@ import {
   Package,
   CreditCard,
   Mail,
-  Link,
   AlertTriangle,
   History,
   Receipt,
@@ -57,6 +56,7 @@ import {
   Menu,
   Code,
   Plug,
+  MessageCircle,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -76,6 +76,10 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+
+interface AppSidebarProps {
+  onChatOpen?: () => void;
+}
 
 // Icon mapping
 const iconMap: Record<string, LucideIcon> = {
@@ -217,7 +221,7 @@ const urlMap: Record<string, string> = {
   'mcp-settings': '/mcp-settings',
 };
 
-export function AppSidebar() {
+export function AppSidebar({ onChatOpen }: AppSidebarProps) {
   const { signOut, user } = useAuth();
   const { settings } = useAppSettings();
   const { state } = useSidebar();
@@ -285,6 +289,17 @@ export function AppSidebar() {
 
       <SidebarFooter className="border-t border-border p-4">
         <div className="flex flex-col gap-2">
+          {onChatOpen && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={onChatOpen}
+              className="w-full justify-start gap-2 bg-primary/5 hover:bg-primary/10 border-primary/20"
+            >
+              <MessageCircle className="h-4 w-4 text-primary" />
+              {!collapsed && <span>AIアシスタント</span>}
+            </Button>
+          )}
           {collapsed && (
             <ThemeToggle />
           )}
