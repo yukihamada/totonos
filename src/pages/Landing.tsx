@@ -144,13 +144,13 @@ const comparisonCategories = {
     label: "会計",
     competitors: [
       { name: "Totonos", sub: "" },
+      { name: "弥生会計", sub: "" },
       { name: "freee会計", sub: "" },
       { name: "MF会計", sub: "" },
-      { name: "弥生会計", sub: "" },
       { name: "勘定奉行", sub: "" },
     ],
     rows: [
-      { feature: "基本料金", values: ["0円", "月2,380円〜", "月2,980円〜", "月1,100円〜", "月5万円〜"] },
+      { feature: "基本料金", values: ["0円", "月1,100円〜", "月2,380円〜", "月2,980円〜", "月5万円〜"] },
       { feature: "仕訳帳・元帳", values: [true, true, true, true, true] },
       { feature: "決算書作成", values: [true, true, true, true, true] },
       { feature: "固定資産管理", values: [true, true, true, true, true] },
