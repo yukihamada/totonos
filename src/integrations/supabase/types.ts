@@ -1903,6 +1903,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_ai_settings: {
+        Row: {
+          created_at: string | null
+          custom_api_key: string | null
+          id: string
+          model: string
+          provider: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          custom_api_key?: string | null
+          id?: string
+          model?: string
+          provider?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          custom_api_key?: string | null
+          id?: string
+          model?: string
+          provider?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       wiki_pages: {
         Row: {
           category: Database["public"]["Enums"]["wiki_category"] | null

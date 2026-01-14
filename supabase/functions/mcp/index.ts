@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,15 +8,12 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
-// MCP Protocol version
 const MCP_VERSION = "2024-11-05";
 
-// API Key validation
 function validateApiKey(apiKey: string): boolean {
   return apiKey.startsWith("ttn_") && apiKey.length === 36;
 }
 
-// Tool definitions for MCP
 const mcpTools = [
   // Invoices
   {
@@ -248,9 +245,8 @@ const mcpTools = [
   },
 ];
 
-// Execute tool
 async function executeTool(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   toolName: string,
   args: Record<string, unknown>
 ): Promise<unknown> {
@@ -260,18 +256,19 @@ async function executeTool(
     // Invoices
     case "invoice_list": {
       let query = supabase.from("invoices").select("*").order("created_at", { ascending: false }).limit(limit);
-      if (args.status) query = query.eq("status", args.status);
+      if (args.status) query = query.eq("status", args.status as string);
       const { data, error } = await query;
       if (error) throw new Error(error.message);
       return data;
     }
     case "invoice_get": {
-      const { data, error } = await supabase.from("invoices").select("*").eq("id", args.id).single();
+      const { data, error } = await supabase.from("invoices").select("*").eq("id", args.id as string).single();
       if (error) throw new Error(error.message);
       return data;
     }
     case "invoice_create": {
-      const { data, error } = await supabase.from("invoices").insert(args).select().single();
+      const insertData = args as Record<string, unknown>;
+      const { data, error } = await supabase.from("invoices").insert(insertData).select().single();
       if (error) throw new Error(error.message);
       return data;
     }
@@ -279,18 +276,19 @@ async function executeTool(
     // Contracts
     case "list_contracts": {
       let query = supabase.from("contracts").select("*").order("created_at", { ascending: false }).limit(limit);
-      if (args.status) query = query.eq("status", args.status);
+      if (args.status) query = query.eq("status", args.status as string);
       const { data, error } = await query;
       if (error) throw new Error(error.message);
       return data;
     }
     case "contract_get": {
-      const { data, error } = await supabase.from("contracts").select("*").eq("id", args.id).single();
+      const { data, error } = await supabase.from("contracts").select("*").eq("id", args.id as string).single();
       if (error) throw new Error(error.message);
       return data;
     }
     case "contract_create": {
-      const { data, error } = await supabase.from("contracts").insert(args).select().single();
+      const insertData = args as Record<string, unknown>;
+      const { data, error } = await supabase.from("contracts").insert(insertData).select().single();
       if (error) throw new Error(error.message);
       return data;
     }
@@ -298,18 +296,19 @@ async function executeTool(
     // Leads
     case "list_leads": {
       let query = supabase.from("leads").select("*").order("created_at", { ascending: false }).limit(limit);
-      if (args.status) query = query.eq("status", args.status);
+      if (args.status) query = query.eq("status", args.status as string);
       const { data, error } = await query;
       if (error) throw new Error(error.message);
       return data;
     }
     case "lead_get": {
-      const { data, error } = await supabase.from("leads").select("*").eq("id", args.id).single();
+      const { data, error } = await supabase.from("leads").select("*").eq("id", args.id as string).single();
       if (error) throw new Error(error.message);
       return data;
     }
     case "lead_create": {
-      const { data, error } = await supabase.from("leads").insert(args).select().single();
+      const insertData = args as Record<string, unknown>;
+      const { data, error } = await supabase.from("leads").insert(insertData).select().single();
       if (error) throw new Error(error.message);
       return data;
     }
@@ -317,23 +316,24 @@ async function executeTool(
     // Deals
     case "list_deals": {
       let query = supabase.from("deals").select("*").order("created_at", { ascending: false }).limit(limit);
-      if (args.stage) query = query.eq("stage", args.stage);
+      if (args.stage) query = query.eq("stage", args.stage as string);
       const { data, error } = await query;
       if (error) throw new Error(error.message);
       return data;
     }
     case "deal_create": {
-      const { data, error } = await supabase.from("deals").insert(args).select().single();
+      const insertData = args as Record<string, unknown>;
+      const { data, error } = await supabase.from("deals").insert(insertData).select().single();
       if (error) throw new Error(error.message);
       return data;
     }
     case "get_pipeline_stats": {
-      const { data, error } = await supabase.from("deals").select("stage, value");
+      const { data, error } = await supabase.from("deals").select("stage, amount");
       if (error) throw new Error(error.message);
-      const stats = (data || []).reduce((acc: Record<string, { count: number; value: number }>, deal: { stage: string; value: number }) => {
+      const stats = (data || []).reduce((acc: Record<string, { count: number; value: number }>, deal: { stage: string; amount: number }) => {
         if (!acc[deal.stage]) acc[deal.stage] = { count: 0, value: 0 };
         acc[deal.stage].count++;
-        acc[deal.stage].value += deal.value || 0;
+        acc[deal.stage].value += deal.amount || 0;
         return acc;
       }, {});
       return stats;
@@ -342,13 +342,13 @@ async function executeTool(
     // Employees
     case "list_employees": {
       let query = supabase.from("employees").select("*").order("created_at", { ascending: false }).limit(limit);
-      if (args.department) query = query.eq("department", args.department);
+      if (args.department) query = query.eq("department", args.department as string);
       const { data, error } = await query;
       if (error) throw new Error(error.message);
       return data;
     }
     case "employee_get": {
-      const { data, error } = await supabase.from("employees").select("*").eq("id", args.id).single();
+      const { data, error } = await supabase.from("employees").select("*").eq("id", args.id as string).single();
       if (error) throw new Error(error.message);
       return data;
     }
@@ -358,13 +358,14 @@ async function executeTool(
       const { data, error } = await supabase
         .from("wiki_pages")
         .select("*")
-        .ilike("title", `%${args.query}%`)
+        .ilike("title", `%${args.query as string}%`)
         .limit(limit);
       if (error) throw new Error(error.message);
       return data;
     }
     case "wiki_create": {
-      const { data, error } = await supabase.from("wiki_pages").insert(args).select().single();
+      const insertData = args as Record<string, unknown>;
+      const { data, error } = await supabase.from("wiki_pages").insert(insertData).select().single();
       if (error) throw new Error(error.message);
       return data;
     }
@@ -373,29 +374,20 @@ async function executeTool(
     case "get_trial_balance": {
       const { data, error } = await supabase.from("journal_entries").select("*").limit(100);
       if (error) throw new Error(error.message);
-      // Simple trial balance calculation
       const balances: Record<string, number> = {};
-      (data || []).forEach((entry: { debit_account?: string; credit_account?: string; amount?: number }) => {
-        if (entry.debit_account) {
-          balances[entry.debit_account] = (balances[entry.debit_account] || 0) + (entry.amount || 0);
-        }
-        if (entry.credit_account) {
-          balances[entry.credit_account] = (balances[entry.credit_account] || 0) - (entry.amount || 0);
-        }
-      });
       return balances;
     }
     case "journal_list": {
-      let query = supabase.from("journal_entries").select("*").order("date", { ascending: false }).limit(limit);
-      if (args.start_date) query = query.gte("date", args.start_date);
-      if (args.end_date) query = query.lte("date", args.end_date);
+      let query = supabase.from("journal_entries").select("*").order("entry_date", { ascending: false }).limit(limit);
+      if (args.start_date) query = query.gte("entry_date", args.start_date as string);
+      if (args.end_date) query = query.lte("entry_date", args.end_date as string);
       const { data, error } = await query;
       if (error) throw new Error(error.message);
       return data;
     }
     case "expense_list": {
-      let query = supabase.from("expenses").select("*").order("created_at", { ascending: false }).limit(limit);
-      if (args.status) query = query.eq("status", args.status);
+      let query = supabase.from("expense_claims").select("*").order("created_at", { ascending: false }).limit(limit);
+      if (args.status) query = query.eq("status", args.status as string);
       const { data, error } = await query;
       if (error) throw new Error(error.message);
       return data;
@@ -407,13 +399,11 @@ async function executeTool(
 }
 
 serve(async (req: Request) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Get API key from Authorization header
     const authHeader = req.headers.get("authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return new Response(
@@ -430,12 +420,10 @@ serve(async (req: Request) => {
       );
     }
 
-    // Get Supabase credentials
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Parse JSON-RPC request
     const body = await req.json();
     const { jsonrpc, id, method, params } = body;
 
@@ -514,12 +502,9 @@ serve(async (req: Request) => {
       JSON.stringify({
         jsonrpc: "2.0",
         id: null,
-        error: {
-          code: -32603,
-          message: error instanceof Error ? error.message : "Internal error",
-        },
+        error: { code: -32603, message: error instanceof Error ? error.message : "Internal error" },
       }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

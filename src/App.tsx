@@ -89,6 +89,7 @@ import SettingsMenu from "./pages/SettingsMenu";
 import DeveloperSettings from "./pages/DeveloperSettings";
 import ApiDocs from "./pages/ApiDocs";
 import McpSettings from "./pages/McpSettings";
+import AISettings from "./pages/AISettings";
 // Legal
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
@@ -201,6 +202,7 @@ function AppRoutes() {
       <Route path="/referrals" element={<ProtectedRoute><Referrals /></ProtectedRoute>} />
       {/* Developer & Settings */}
       <Route path="/settings/menu" element={<ProtectedRoute><SettingsMenu /></ProtectedRoute>} />
+      <Route path="/settings/ai" element={<ProtectedRoute><AISettings /></ProtectedRoute>} />
       <Route path="/developer" element={<ProtectedRoute><DeveloperSettings /></ProtectedRoute>} />
       <Route path="/api-docs" element={<ProtectedRoute><ApiDocs /></ProtectedRoute>} />
       <Route path="/mcp-settings" element={<ProtectedRoute><McpSettings /></ProtectedRoute>} />
