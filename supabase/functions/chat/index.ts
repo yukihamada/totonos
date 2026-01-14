@@ -39,12 +39,31 @@ async function getAISettings(userId: string, supabase: any): Promise<AISettings>
   }
 }
 
-// Call Lovable AI Gateway
-async function callLovableAI(messages: Array<{ role: string; content: string }>, model: string, systemPrompt: string) {
+// Convert tools to OpenAI format for Lovable AI Gateway
+function convertToolsToOpenAIFormat(tools: unknown[]) {
+  return (tools as Array<{ name: string; description: string; input_schema: unknown }>).map((tool) => ({
+    type: "function" as const,
+    function: {
+      name: tool.name,
+      description: tool.description,
+      parameters: tool.input_schema,
+    },
+  }));
+}
+
+// Call Lovable AI Gateway with tool support
+async function callLovableAI(
+  messages: Array<{ role: string; content: string | unknown[] }>,
+  model: string,
+  systemPrompt: string,
+  tools: unknown[]
+) {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) {
     throw new Error("LOVABLE_API_KEY is not configured");
   }
+
+  const openaiTools = convertToolsToOpenAIFormat(tools);
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -58,6 +77,8 @@ async function callLovableAI(messages: Array<{ role: string; content: string }>,
         { role: "system", content: systemPrompt },
         ...messages,
       ],
+      tools: openaiTools,
+      tool_choice: "auto",
     }),
   });
 
@@ -74,9 +95,37 @@ async function callLovableAI(messages: Array<{ role: string; content: string }>,
   }
 
   const data = await response.json();
+  const choice = data.choices?.[0];
+  const message = choice?.message;
+
+  // Define the tool call type
+  interface ToolCallResponse {
+    id: string;
+    function: {
+      name: string;
+      arguments: string;
+    };
+  }
+
+  // Check for tool calls
+  if (message?.tool_calls && message.tool_calls.length > 0) {
+    const toolCalls = message.tool_calls.map((tc: ToolCallResponse) => ({
+      id: tc.id,
+      name: tc.function.name,
+      input: JSON.parse(tc.function.arguments || "{}"),
+    }));
+
+    return {
+      content: message.content || "",
+      toolCalls,
+      rawMessage: message,
+    };
+  }
+
   return {
-    content: data.choices?.[0]?.message?.content || "",
-    toolCalls: [],
+    content: message?.content || "",
+    toolCalls: [] as Array<{ id: string; name: string; input: unknown }>,
+    rawMessage: message,
   };
 }
 
@@ -212,16 +261,141 @@ serve(async (req: Request) => {
 - IT資産管理
 - 請求書管理
 
-ユーザーからの要望に応じて適切に対応してください。
-日本語で丁寧に回答してください。
-データを取得した場合は、わかりやすく要約して説明してください。`;
+ユーザーからの要望に応じて、適切なツールを使用してデータを作成・取得・更新してください。
+ツールを使用してデータを操作した場合は、その結果をわかりやすく説明してください。
+日本語で丁寧に回答してください。`;
 
     let result: { content: string; toolCalls: Array<{ id: string; name: string; input: unknown }> };
     let toolResults: Array<{ toolCallId: string; toolName: string; result: unknown; isError?: boolean }> = [];
 
     // Route to appropriate AI provider
     if (aiSettings.provider === "lovable") {
-      result = await callLovableAI(messages, aiSettings.model, systemPrompt);
+      // First call with tools
+      result = await callLovableAI(messages, aiSettings.model, systemPrompt, allTools);
+
+      // Process tool calls for Lovable AI
+      if (result.toolCalls.length > 0) {
+        console.log("Processing tool calls:", result.toolCalls.map(tc => tc.name));
+        
+        for (const toolCall of result.toolCalls) {
+          try {
+            const toolResult = await executeToolCall(
+              toolCall.name,
+              toolCall.input as Record<string, unknown>,
+              user.id,
+              supabase
+            );
+            toolResults.push({
+              toolCallId: toolCall.id,
+              toolName: toolCall.name,
+              result: toolResult,
+            });
+            console.log(`Tool ${toolCall.name} executed successfully`);
+          } catch (error) {
+            console.error(`Tool ${toolCall.name} error:`, error);
+            toolResults.push({
+              toolCallId: toolCall.id,
+              toolName: toolCall.name,
+              result: { error: error instanceof Error ? error.message : "Unknown error" },
+              isError: true,
+            });
+          }
+        }
+
+        // Send tool results back to AI for final response
+        if (toolResults.length > 0) {
+          const messagesWithToolResults = [
+            ...messages,
+            {
+              role: "assistant",
+              content: result.content || null,
+              tool_calls: result.toolCalls.map(tc => ({
+                id: tc.id,
+                type: "function",
+                function: {
+                  name: tc.name,
+                  arguments: JSON.stringify(tc.input),
+                },
+              })),
+            },
+            ...toolResults.map(tr => ({
+              role: "tool",
+              tool_call_id: tr.toolCallId,
+              content: JSON.stringify(tr.result),
+            })),
+          ];
+
+          const finalResult = await callLovableAI(
+            messagesWithToolResults,
+            aiSettings.model,
+            systemPrompt,
+            allTools
+          );
+          result.content = finalResult.content;
+          
+          // If more tool calls are needed, process them (recursive, max 3 rounds)
+          type ToolCallType = { id: string; name: string; input: unknown };
+          let rounds = 0;
+          while (finalResult.toolCalls.length > 0 && rounds < 3) {
+            rounds++;
+            console.log(`Processing additional tool calls (round ${rounds}):`, finalResult.toolCalls.map((tc: ToolCallType) => tc.name));
+            
+            const additionalResults: typeof toolResults = [];
+            for (const toolCall of finalResult.toolCalls) {
+              try {
+                const toolResult = await executeToolCall(
+                  toolCall.name,
+                  toolCall.input as Record<string, unknown>,
+                  user.id,
+                  supabase
+                );
+                additionalResults.push({
+                  toolCallId: toolCall.id,
+                  toolName: toolCall.name,
+                  result: toolResult,
+                });
+              } catch (error) {
+                additionalResults.push({
+                  toolCallId: toolCall.id,
+                  toolName: toolCall.name,
+                  result: { error: error instanceof Error ? error.message : "Unknown error" },
+                  isError: true,
+                });
+              }
+            }
+            
+            toolResults.push(...additionalResults);
+            
+            // Continue conversation with new tool results
+            const nextMessages = [
+              ...messagesWithToolResults,
+              {
+                role: "assistant",
+                content: finalResult.content || null,
+                tool_calls: finalResult.toolCalls.map((tc: ToolCallType) => ({
+                  id: tc.id,
+                  type: "function",
+                  function: {
+                    name: tc.name,
+                    arguments: JSON.stringify(tc.input),
+                  },
+                })),
+              },
+              ...additionalResults.map(tr => ({
+                role: "tool",
+                tool_call_id: tr.toolCallId,
+                content: JSON.stringify(tr.result),
+              })),
+            ];
+            
+            const nextResult = await callLovableAI(nextMessages, aiSettings.model, systemPrompt, allTools);
+            result.content = nextResult.content;
+            
+            if (nextResult.toolCalls.length === 0) break;
+            Object.assign(finalResult, nextResult);
+          }
+        }
+      }
     } else if (aiSettings.provider === "openai") {
       if (!aiSettings.custom_api_key) {
         throw new Error("OpenAI API key is not configured");
@@ -309,6 +483,7 @@ serve(async (req: Request) => {
         role: "assistant",
         content: result.content,
         toolCalls: result.toolCalls.length > 0 ? result.toolCalls : undefined,
+        toolResults: toolResults.length > 0 ? toolResults : undefined,
         stopReason: "end_turn",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
