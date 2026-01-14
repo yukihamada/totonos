@@ -21,7 +21,7 @@ export default function OrganizationSettings() {
 
   const [formData, setFormData] = useState({
     name: organization?.name || "",
-    slug: organization?.slug || "",
+    display_name: organization?.display_name || "",
   });
 
   const handleSave = async () => {
@@ -31,7 +31,7 @@ export default function OrganizationSettings() {
     try {
       await updateOrganization({
         name: formData.name,
-        slug: formData.slug,
+        display_name: formData.display_name,
       });
       toast({
         title: "保存しました",
@@ -124,20 +124,16 @@ export default function OrganizationSettings() {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="slug">URLスラッグ</Label>
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground">totonos.jp/</span>
-                    <Input
-                      id="slug"
-                      value={formData.slug}
-                      onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                      disabled={!isAdmin}
-                      className="flex-1"
-                    />
-                  </div>
+                <div>
+                  <Label htmlFor="display_name">表示名</Label>
+                  <Input
+                    id="display_name"
+                    value={formData.display_name}
+                    onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
+                    disabled={!isAdmin}
+                    placeholder="例: サンプル社"
+                  />
                 </div>
-
                 <div className="flex items-center gap-4 pt-4">
                   <div>
                     <Label>現在のプラン</Label>

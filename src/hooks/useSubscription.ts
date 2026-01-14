@@ -56,7 +56,7 @@ export const planFeatures: Record<Plan, PlanFeatures> = {
 };
 
 export function useSubscription() {
-  const { organization, refreshOrganization } = useOrganization();
+  const { organization, refreshOrganizations } = useOrganization();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,8 +73,6 @@ export function useSubscription() {
     setError(null);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-
       const response = await supabase.functions.invoke('create-subscription', {
         body: {
           priceId,
@@ -111,18 +109,13 @@ export function useSubscription() {
   };
 
   const cancelSubscription = async () => {
-    if (!organization?.stripe_subscription_id) {
-      setError('サブスクリプションがありません');
-      return false;
-    }
-
     setLoading(true);
     setError(null);
 
     try {
       const response = await supabase.functions.invoke('cancel-subscription', {
         body: {
-          subscriptionId: organization.stripe_subscription_id,
+          organizationId: organization?.id,
         },
       });
 
@@ -130,7 +123,7 @@ export function useSubscription() {
         throw new Error(response.error.message);
       }
 
-      await refreshOrganization();
+      await refreshOrganizations();
       return true;
     } catch (err: any) {
       setError(err.message);

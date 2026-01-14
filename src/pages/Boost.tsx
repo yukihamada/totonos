@@ -64,6 +64,8 @@ export default function Boost() {
             <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
               <Zap className="h-8 w-8 text-yellow-500" />
               Dynamic Boost
+              <Badge variant="secondary" className="ml-2">準備中</Badge>
+              <Badge variant="outline" className="text-xs">ベータ版</Badge>
             </h1>
             <p className="text-muted-foreground">請求書の即時資金化で、キャッシュフローを改善</p>
           </div>
