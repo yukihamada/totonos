@@ -360,7 +360,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         response: commandResponse,
-        creditsUsed: CREDIT_COSTS.ai_email_command 
+        creditsUsed: CREDIT_COSTS.ai_email_command.cost 
       } as CommandResponse),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

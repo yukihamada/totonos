@@ -1,20 +1,44 @@
-// Credit costs for various actions (must match frontend CREDIT_COSTS)
+// Credit costs for various actions with cost analysis
+// cost: credits charged to user
+// apiCost: approximate API cost in USD (for internal tracking)
 export const CREDIT_COSTS = {
-  ai_chat: 1,
-  ai_email_analysis: 2,
-  ai_email_reply: 3,
-  ai_email_command: 5,
-  ocr: 2,
-  pdf: 1,
-  email: 1,
-  export: 2,
-  contract_create: 3,
-  contract_sign: 2,
-  ai_forecast: 5,
-  ai_scoring: 3,
+  ai_chat: { cost: 1, apiCost: 0.002, name: "AIチャット" },
+  ai_email_analysis: { cost: 2, apiCost: 0.005, name: "メールAI分析" },
+  ai_email_reply: { cost: 3, apiCost: 0.008, name: "AI返信生成" },
+  ai_email_command: { cost: 5, apiCost: 0.015, name: "メールAI指示" },
+  ocr: { cost: 2, apiCost: 0.003, name: "OCR処理" },
+  pdf: { cost: 1, apiCost: 0.001, name: "PDF生成" },
+  email: { cost: 1, apiCost: 0.0002, name: "メール送信" },
+  export: { cost: 2, apiCost: 0.001, name: "データエクスポート" },
+  contract_create: { cost: 3, apiCost: 0.002, name: "契約書作成" },
+  contract_sign: { cost: 2, apiCost: 0.001, name: "署名依頼" },
+  contract_blockchain: { cost: 5, apiCost: 0.05, name: "ブロックチェーン証明" },
+  ai_forecast: { cost: 5, apiCost: 0.02, name: "AI予測" },
+  ai_scoring: { cost: 3, apiCost: 0.01, name: "AIスコアリング" },
+  mcp_call: { cost: 1, apiCost: 0.001, name: "MCP呼び出し" },
 } as const;
 
 export type CreditAction = keyof typeof CREDIT_COSTS;
+
+// Price per credit in JPY (for profit calculation)
+export const CREDIT_PRICE_JPY = 10; // 1クレジット = 10円
+export const USD_TO_JPY = 150; // 概算レート
+
+// Calculate profit margin for each action
+export function calculateProfitMargin(action: CreditAction): {
+  revenue: number;
+  cost: number;
+  profit: number;
+  margin: number;
+} {
+  const config = CREDIT_COSTS[action];
+  const revenue = config.cost * CREDIT_PRICE_JPY;
+  const cost = config.apiCost * USD_TO_JPY;
+  const profit = revenue - cost;
+  const margin = (profit / revenue) * 100;
+  
+  return { revenue, cost, profit, margin };
+}
 
 interface CreditBalance {
   remaining: number;
@@ -81,7 +105,8 @@ export async function consumeCompanyCredits(
   description?: string,
   metadata?: Record<string, unknown>
 ): Promise<ConsumeResult> {
-  const cost = CREDIT_COSTS[action];
+  const config = CREDIT_COSTS[action];
+  const cost = config.cost;
   
   // Get current balance
   const balance = await checkCompanyCredits(supabase, companyId);
@@ -140,16 +165,24 @@ export async function consumeCompanyCredits(
     };
   }
 
-  // Log the transaction
+  // Log the transaction with cost tracking
   const newBalance = balance.remaining - cost;
+  const profitInfo = calculateProfitMargin(action);
+  
   const { error: logError } = await supabase.from("credit_transactions").insert({
     company_id: companyId,
     transaction_type: "consume",
     action,
     amount: -cost,
     balance_after: newBalance,
-    description: description || `${action}の実行`,
-    metadata: metadata || {},
+    description: description || config.name,
+    metadata: {
+      ...metadata,
+      api_cost_usd: config.apiCost,
+      revenue_jpy: profitInfo.revenue,
+      cost_jpy: profitInfo.cost,
+      profit_jpy: profitInfo.profit,
+    },
   });
 
   if (logError) {
@@ -157,7 +190,7 @@ export async function consumeCompanyCredits(
     // Don't fail the operation, just log the error
   }
 
-  console.log(`Credits consumed: ${cost} for ${action}, new balance: ${newBalance}`);
+  console.log(`Credits consumed: ${cost} for ${action}, new balance: ${newBalance}, profit: ¥${profitInfo.profit.toFixed(2)}`);
 
   return {
     success: true,
@@ -176,5 +209,58 @@ export async function canUseCredits(
   action: CreditAction
 ): Promise<boolean> {
   const balance = await checkCompanyCredits(supabase, companyId);
-  return balance.remaining >= CREDIT_COSTS[action];
+  return balance.remaining >= CREDIT_COSTS[action].cost;
+}
+
+/**
+ * Get company ID from user ID
+ */
+// deno-lint-ignore no-explicit-any
+export async function getCompanyIdForUser(
+  supabase: any,
+  userId: string
+): Promise<string | null> {
+  // First try user_current_company
+  const { data: currentCompany } = await supabase
+    .from("user_current_company")
+    .select("company_id")
+    .eq("user_id", userId)
+    .single();
+
+  if (currentCompany?.company_id) {
+    return currentCompany.company_id;
+  }
+
+  // Fallback to company_members
+  const { data: membership } = await supabase
+    .from("company_members")
+    .select("company_id")
+    .eq("user_id", userId)
+    .eq("is_active", true)
+    .limit(1)
+    .single();
+
+  return membership?.company_id || null;
+}
+
+/**
+ * Get company ID from API key hash
+ */
+// deno-lint-ignore no-explicit-any
+export async function getCompanyIdFromApiKey(
+  supabase: any,
+  keyHash: string
+): Promise<{ companyId: string | null; userId: string | null }> {
+  const { data: apiKey } = await supabase
+    .from("api_keys")
+    .select("user_id")
+    .eq("key_hash", keyHash)
+    .single();
+
+  if (!apiKey?.user_id) {
+    return { companyId: null, userId: null };
+  }
+
+  const companyId = await getCompanyIdForUser(supabase, apiKey.user_id);
+  return { companyId, userId: apiKey.user_id };
 }

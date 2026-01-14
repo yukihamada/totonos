@@ -191,6 +191,7 @@ describe('InboundEmail type', () => {
     const mockEmail: InboundEmail = {
       id: 'email-123',
       company_id: 'company-123',
+      email_address_id: null,
       message_id: 'msg-123',
       from_email: 'sender@example.com',
       from_name: 'Sender Name',
@@ -204,7 +205,13 @@ describe('InboundEmail type', () => {
         { filename: 'test.pdf', type: 'application/pdf', size: 1024 },
       ],
       status: 'received',
-      processed_at: null,
+      ai_summary: null,
+      ai_category: null,
+      ai_urgency: null,
+      ai_sentiment: null,
+      ai_extracted_deadline: null,
+      auto_created_entity_type: null,
+      auto_created_entity_id: null,
       related_type: 'lead',
       related_id: 'lead-123',
       assigned_to: 'user-123',
@@ -212,8 +219,9 @@ describe('InboundEmail type', () => {
       is_read: false,
       is_starred: true,
       is_spam: false,
-      received_at: '2024-01-15T10:00:00Z',
+      is_archived: false,
       created_at: '2024-01-15T10:00:00Z',
+      updated_at: '2024-01-15T10:00:00Z',
     };
 
     expect(mockEmail.id).toBe('email-123');
