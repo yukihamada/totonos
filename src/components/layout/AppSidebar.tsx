@@ -57,6 +57,15 @@ import {
   Code,
   Plug,
   MessageCircle,
+  // Phase 4 icons
+  CircleDollarSign,
+  FolderKanban,
+  GanttChart,
+  Timer,
+  Briefcase,
+  UserSearch,
+  CalendarCheck,
+  FileBarChart,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -150,6 +159,19 @@ const iconMap: Record<string, LucideIcon> = {
   developer: Code,
   'api-docs': Book,
   'mcp-settings': Plug,
+  // Phase 4: Expense Management
+  'expense-list': CircleDollarSign,
+  'advance-payment': Wallet,
+  'expense-settings': Settings,
+  // Phase 4: Project Management
+  projects: FolderKanban,
+  timelog: Timer,
+  // Phase 4: Recruiting
+  recruiting: Briefcase,
+  'job-postings': FileText,
+  candidates: UserSearch,
+  interviews: CalendarCheck,
+  'recruiting-reports': FileBarChart,
 };
 
 // URL mapping
@@ -220,6 +242,19 @@ const urlMap: Record<string, string> = {
   developer: '/developer',
   'api-docs': '/api-docs',
   'mcp-settings': '/mcp-settings',
+  // Phase 4: Expense Management
+  'expense-list': '/expenses',
+  'advance-payment': '/advance-payment',
+  'expense-settings': '/expenses/settings',
+  // Phase 4: Project Management
+  projects: '/projects',
+  timelog: '/timelog',
+  // Phase 4: Recruiting
+  recruiting: '/recruiting',
+  'job-postings': '/job-postings',
+  candidates: '/candidates',
+  interviews: '/interviews',
+  'recruiting-reports': '/recruiting/reports',
 };
 
 export function AppSidebar({ onChatOpen }: AppSidebarProps) {
@@ -273,8 +308,8 @@ export function AppSidebar({ onChatOpen }: AppSidebarProps) {
                     return (
                       <SidebarMenuItem key={item.id}>
                         <SidebarMenuButton asChild>
-                          <NavLink 
-                            to={url} 
+                          <NavLink
+                            to={url}
                             className="flex items-center gap-2 hover:bg-accent"
                             activeClassName="bg-accent font-medium"
                           >
@@ -295,9 +330,9 @@ export function AppSidebar({ onChatOpen }: AppSidebarProps) {
       <SidebarFooter className="border-t border-border p-4">
         <div className="flex flex-col gap-2">
           {onChatOpen && (
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={onChatOpen}
               className="w-full justify-start gap-2 bg-primary/5 hover:bg-primary/10 border-primary/20"
             >
@@ -313,9 +348,9 @@ export function AppSidebar({ onChatOpen }: AppSidebarProps) {
               {user.email}
             </p>
           )}
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={signOut}
             className="w-full justify-start gap-2"
           >

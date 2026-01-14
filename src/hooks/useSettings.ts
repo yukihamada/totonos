@@ -93,10 +93,44 @@ const defaultMenuGroups: MenuGroupConfig[] = [
     ],
   },
   {
+    id: 'expense-reimbursement',
+    label: '経費精算',
+    visible: true,
+    order: 5,
+    items: [
+      { id: 'expense-list', title: '経費一覧', visible: true, order: 0 },
+      { id: 'advance-payment', title: '仮払い', visible: true, order: 1 },
+      { id: 'expense-settings', title: '経費設定', visible: true, order: 2 },
+    ],
+  },
+  {
+    id: 'project-management',
+    label: 'プロジェクト管理',
+    visible: true,
+    order: 6,
+    items: [
+      { id: 'projects', title: 'プロジェクト', visible: true, order: 0 },
+      { id: 'timelog', title: '工数記録', visible: true, order: 1 },
+    ],
+  },
+  {
+    id: 'recruiting',
+    label: '採用管理',
+    visible: true,
+    order: 7,
+    items: [
+      { id: 'recruiting', title: '採用ダッシュボード', visible: true, order: 0 },
+      { id: 'job-postings', title: '求人管理', visible: true, order: 1 },
+      { id: 'candidates', title: '候補者管理', visible: true, order: 2 },
+      { id: 'interviews', title: '面接スケジュール', visible: true, order: 3 },
+      { id: 'recruiting-reports', title: '採用レポート', visible: true, order: 4 },
+    ],
+  },
+  {
     id: 'hr',
     label: '人事・労務',
     visible: true,
-    order: 5,
+    order: 8,
     items: [
       { id: 'employees', title: '従業員', visible: true, order: 0 },
       { id: 'attendance', title: '勤怠管理', visible: true, order: 1 },
@@ -113,7 +147,7 @@ const defaultMenuGroups: MenuGroupConfig[] = [
     id: 'info',
     label: '情報管理',
     visible: true,
-    order: 6,
+    order: 9,
     items: [
       { id: 'wiki', title: '社内Wiki', visible: true, order: 0 },
       { id: 'wiki-hierarchy', title: 'Wiki（階層）', visible: true, order: 1 },
@@ -126,7 +160,7 @@ const defaultMenuGroups: MenuGroupConfig[] = [
     id: 'system',
     label: 'システム管理',
     visible: true,
-    order: 7,
+    order: 10,
     items: [
       { id: 'notifications', title: '通知', visible: true, order: 0 },
       { id: 'team', title: 'チーム', visible: true, order: 1 },
@@ -145,7 +179,7 @@ const defaultMenuGroups: MenuGroupConfig[] = [
     id: 'billing',
     label: '課金・クレジット',
     visible: true,
-    order: 8,
+    order: 11,
     items: [
       { id: 'credits', title: 'クレジット', visible: true, order: 0 },
       { id: 'credit-logs', title: '利用履歴', visible: true, order: 1 },
@@ -157,7 +191,7 @@ const defaultMenuGroups: MenuGroupConfig[] = [
     id: 'other',
     label: 'その他',
     visible: true,
-    order: 9,
+    order: 12,
     items: [
       { id: 'reports', title: 'レポート', visible: true, order: 0 },
       { id: 'profile', title: 'プロフィール', visible: true, order: 1 },

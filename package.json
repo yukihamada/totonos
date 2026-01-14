@@ -16,7 +16,9 @@
     "test:ui": "vitest --ui",
     "test:changed": "vitest run --changed",
     "test:ci": "vitest run --reporter=junit --outputFile=test-results.xml",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "screenshots": "node scripts/capture-screenshots.mjs",
+    "screenshots:dev": "npm run dev & sleep 3 && npm run screenshots && pkill -f 'vite'"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

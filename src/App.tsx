@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { DemoProvider, useDemo } from "@/contexts/DemoContext";
+import { OrganizationProvider } from "@/contexts/OrganizationContext";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -97,8 +99,34 @@ import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 // Data Import
 import DataImport from "./pages/DataImport";
+// Organization
+import Onboarding from "./pages/Onboarding";
+import OrganizationSettings from "./pages/OrganizationSettings";
+import EmployeePortal from "./pages/EmployeePortal";
+import Showcase from "./pages/Showcase";
 // Chat
 import { ChatWidget } from "./components/chat/ChatWidget";
+// Phase 4: Expense Management
+import Expenses from "./pages/Expenses";
+import ExpenseNew from "./pages/ExpenseNew";
+import ExpenseDetail from "./pages/ExpenseDetail";
+import AdvancePayment from "./pages/AdvancePayment";
+import ExpenseSettings from "./pages/ExpenseSettings";
+// Phase 4: Project Management
+import Projects from "./pages/Projects";
+import ProjectNew from "./pages/ProjectNew";
+import ProjectDetail from "./pages/ProjectDetail";
+import ProjectKanban from "./pages/ProjectKanban";
+import ProjectGantt from "./pages/ProjectGantt";
+import ProjectTimelog from "./pages/ProjectTimelog";
+// Phase 4: Recruiting (ATS)
+import Recruiting from "./pages/Recruiting";
+import JobPostings from "./pages/JobPostings";
+import JobPostingNew from "./pages/JobPostingNew";
+import Candidates from "./pages/Candidates";
+import CandidateDetail from "./pages/CandidateDetail";
+import InterviewSchedule from "./pages/InterviewSchedule";
+import RecruitingReports from "./pages/RecruitingReports";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -113,20 +141,20 @@ const queryClient = new QueryClient({
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const { isDemoMode } = useDemo();
-  
+
   // In demo mode, skip authentication
   if (isDemoMode) {
     return <>{children}</>;
   }
-  
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">読み込み中...</div>;
   }
-  
+
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
-  
+
   return <>{children}</>;
 }
 
@@ -230,6 +258,34 @@ function AppRoutes() {
       {/* Legal */}
       <Route path="/terms" element={<Terms />} />
       <Route path="/privacy" element={<Privacy />} />
+      {/* Organization */}
+      <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+      <Route path="/organization" element={<ProtectedRoute><OrganizationSettings /></ProtectedRoute>} />
+      {/* Employee Portal (public with token) */}
+      <Route path="/portal" element={<EmployeePortal />} />
+      {/* Showcase (public) */}
+      <Route path="/showcase" element={<Showcase />} />
+      {/* Phase 4: Expense Management */}
+      <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
+      <Route path="/expenses/new" element={<ProtectedRoute><ExpenseNew /></ProtectedRoute>} />
+      <Route path="/expenses/settings" element={<ProtectedRoute><ExpenseSettings /></ProtectedRoute>} />
+      <Route path="/expenses/:id" element={<ProtectedRoute><ExpenseDetail /></ProtectedRoute>} />
+      <Route path="/advance-payment" element={<ProtectedRoute><AdvancePayment /></ProtectedRoute>} />
+      {/* Phase 4: Project Management */}
+      <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
+      <Route path="/projects/new" element={<ProtectedRoute><ProjectNew /></ProtectedRoute>} />
+      <Route path="/projects/:id" element={<ProtectedRoute><ProjectDetail /></ProtectedRoute>} />
+      <Route path="/projects/:id/kanban" element={<ProtectedRoute><ProjectKanban /></ProtectedRoute>} />
+      <Route path="/projects/:id/gantt" element={<ProtectedRoute><ProjectGantt /></ProtectedRoute>} />
+      <Route path="/timelog" element={<ProtectedRoute><ProjectTimelog /></ProtectedRoute>} />
+      {/* Phase 4: Recruiting (ATS) */}
+      <Route path="/recruiting" element={<ProtectedRoute><Recruiting /></ProtectedRoute>} />
+      <Route path="/job-postings" element={<ProtectedRoute><JobPostings /></ProtectedRoute>} />
+      <Route path="/job-postings/new" element={<ProtectedRoute><JobPostingNew /></ProtectedRoute>} />
+      <Route path="/candidates" element={<ProtectedRoute><Candidates /></ProtectedRoute>} />
+      <Route path="/candidates/:id" element={<ProtectedRoute><CandidateDetail /></ProtectedRoute>} />
+      <Route path="/interviews" element={<ProtectedRoute><InterviewSchedule /></ProtectedRoute>} />
+      <Route path="/recruiting/reports" element={<ProtectedRoute><RecruitingReports /></ProtectedRoute>} />
       {/* Not Found */}
       <Route path="*" element={<NotFound />} />
     </Routes>
@@ -237,22 +293,26 @@ function AppRoutes() {
 }
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <DemoProvider>
-        <SettingsProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AppRoutes />
-              <ChatWidget />
-            </BrowserRouter>
-          </TooltipProvider>
-        </SettingsProvider>
-      </DemoProvider>
-    </AuthProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <DemoProvider>
+          <OrganizationProvider>
+            <SettingsProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <BrowserRouter>
+                  <AppRoutes />
+                  <ChatWidget />
+                </BrowserRouter>
+              </TooltipProvider>
+            </SettingsProvider>
+          </OrganizationProvider>
+        </DemoProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
