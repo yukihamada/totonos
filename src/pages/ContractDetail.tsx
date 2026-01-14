@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,9 +12,10 @@ import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { ArrowLeft, Pencil, Send, FileCheck, Shield, Clock, User, Building, CheckCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { toast } from "sonner";
+import { ContractSendSignature } from "@/components/ContractSendSignature";
 
 export default function ContractDetail() {
+  const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: contract, isLoading } = useContract(id!);
