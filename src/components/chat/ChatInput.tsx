@@ -41,8 +41,8 @@ export function ChatInput({ onSend, isLoading, disabled }: ChatInputProps) {
   };
 
   return (
-    <div className="border-t p-3">
-      <div className="flex gap-2 items-end">
+    <div className="border-t p-3 overflow-hidden">
+      <div className="flex gap-2 items-end w-full">
         <Textarea
           ref={textareaRef}
           value={input}
@@ -50,7 +50,7 @@ export function ChatInput({ onSend, isLoading, disabled }: ChatInputProps) {
           onKeyDown={handleKeyDown}
           placeholder="メッセージを入力... (Shift+Enterで改行)"
           disabled={isLoading || disabled}
-          className="min-h-[40px] max-h-[120px] resize-none text-sm"
+          className="flex-1 min-w-0 min-h-[40px] max-h-[120px] resize-none text-sm"
           rows={1}
         />
         <Button
