@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,99 +37,49 @@ import {
   Plus,
   Copy,
   Trash2,
-  Eye,
-  EyeOff,
   ExternalLink,
   Code,
   Shield,
   Activity,
+  Loader2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
-
-interface ApiKey {
-  id: string;
-  name: string;
-  key: string;
-  prefix: string;
-  createdAt: Date;
-  lastUsedAt: Date | null;
-  requestCount: number;
-}
-
-const API_KEYS_STORAGE = 'totonos_api_keys';
-
-function generateApiKey(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let key = 'ttn_';
-  for (let i = 0; i < 32; i++) {
-    key += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return key;
-}
-
-function loadApiKeys(): ApiKey[] {
-  try {
-    const stored = localStorage.getItem(API_KEYS_STORAGE);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return parsed.map((k: ApiKey) => ({
-        ...k,
-        createdAt: new Date(k.createdAt),
-        lastUsedAt: k.lastUsedAt ? new Date(k.lastUsedAt) : null,
-      }));
-    }
-  } catch {
-    // ignore
-  }
-  return [];
-}
-
-function saveApiKeys(keys: ApiKey[]): void {
-  localStorage.setItem(API_KEYS_STORAGE, JSON.stringify(keys));
-}
+import { useApiKeys } from '@/hooks/useApiKeys';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function DeveloperSettings() {
-  const [apiKeys, setApiKeys] = useState<ApiKey[]>(loadApiKeys);
+  const { user } = useAuth();
+  const { apiKeys, loading, createApiKey, deleteApiKey } = useApiKeys();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newKeyName, setNewKeyName] = useState('');
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<string | null>(null);
   const [deleteKeyId, setDeleteKeyId] = useState<string | null>(null);
-  const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
+  const [isCreating, setIsCreating] = useState(false);
 
-  useEffect(() => {
-    saveApiKeys(apiKeys);
-  }, [apiKeys]);
-
-  const handleCreateKey = () => {
+  const handleCreateKey = async () => {
     if (!newKeyName.trim()) {
       toast.error('API Key名を入力してください');
       return;
     }
 
-    const key = generateApiKey();
-    const newApiKey: ApiKey = {
-      id: crypto.randomUUID(),
-      name: newKeyName.trim(),
-      key,
-      prefix: key.slice(0, 8) + '...',
-      createdAt: new Date(),
-      lastUsedAt: null,
-      requestCount: 0,
-    };
-
-    setApiKeys(prev => [...prev, newApiKey]);
-    setNewlyCreatedKey(key);
-    setNewKeyName('');
-    toast.success('API Keyを作成しました');
+    setIsCreating(true);
+    try {
+      const key = await createApiKey(newKeyName.trim());
+      if (key) {
+        setNewlyCreatedKey(key);
+        setNewKeyName('');
+      }
+    } finally {
+      setIsCreating(false);
+    }
   };
 
-  const handleDeleteKey = () => {
+  const handleDeleteKey = async () => {
     if (!deleteKeyId) return;
-    setApiKeys(prev => prev.filter(k => k.id !== deleteKeyId));
+    await deleteApiKey(deleteKeyId);
     setDeleteKeyId(null);
-    toast.success('API Keyを削除しました');
   };
 
   const handleCopyKey = (key: string) => {
@@ -137,21 +87,15 @@ export default function DeveloperSettings() {
     toast.success('コピーしました');
   };
 
-  const toggleKeyVisibility = (keyId: string) => {
-    setVisibleKeys(prev => {
-      const next = new Set(prev);
-      if (next.has(keyId)) {
-        next.delete(keyId);
-      } else {
-        next.add(keyId);
-      }
-      return next;
-    });
-  };
-
-  const maskKey = (key: string) => {
-    return key.slice(0, 8) + '•'.repeat(24) + key.slice(-4);
-  };
+  if (!user) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-foreground">ログインが必要です</p>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -198,7 +142,7 @@ export default function DeveloperSettings() {
               <CardDescription>総リクエスト数</CardDescription>
               <CardTitle className="text-2xl flex items-center gap-2">
                 <Activity className="h-5 w-5" />
-                {apiKeys.reduce((sum, k) => sum + k.requestCount, 0).toLocaleString()}
+                {apiKeys.reduce((sum, k) => sum + k.request_count, 0).toLocaleString()}
               </CardTitle>
             </CardHeader>
           </Card>
@@ -232,7 +176,11 @@ export default function DeveloperSettings() {
             </div>
           </CardHeader>
           <CardContent>
-            {apiKeys.length > 0 ? (
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : apiKeys.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -249,42 +197,20 @@ export default function DeveloperSettings() {
                     <TableRow key={apiKey.id}>
                       <TableCell className="font-medium">{apiKey.name}</TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <code className="text-sm bg-muted px-2 py-1 rounded">
-                            {visibleKeys.has(apiKey.id) ? apiKey.key : maskKey(apiKey.key)}
-                          </code>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => toggleKeyVisibility(apiKey.id)}
-                          >
-                            {visibleKeys.has(apiKey.id) ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleCopyKey(apiKey.key)}
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        <code className="text-sm bg-muted px-2 py-1 rounded">
+                          {apiKey.key_prefix}
+                        </code>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {format(apiKey.createdAt, 'yyyy/MM/dd', { locale: ja })}
+                        {format(new Date(apiKey.created_at), 'yyyy/MM/dd', { locale: ja })}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {apiKey.lastUsedAt
-                          ? format(apiKey.lastUsedAt, 'yyyy/MM/dd HH:mm', { locale: ja })
+                        {apiKey.last_used_at
+                          ? format(new Date(apiKey.last_used_at), 'yyyy/MM/dd HH:mm', { locale: ja })
                           : '未使用'}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="secondary">{apiKey.requestCount.toLocaleString()}</Badge>
+                        <Badge variant="secondary">{apiKey.request_count.toLocaleString()}</Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <Button
@@ -346,6 +272,13 @@ export default function DeveloperSettings() {
                 </div>
               </div>
             </div>
+            <div className="p-4 bg-yellow-50 dark:bg-yellow-950 rounded-lg border border-yellow-200 dark:border-yellow-800">
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                <strong>セキュリティに関する注意:</strong> API Keyは作成時に一度だけ表示されます。
+                安全な場所に保存し、他者と共有しないでください。
+                API Keyはデータベースにハッシュ化して保存されるため、後から確認することはできません。
+              </p>
+            </div>
           </CardContent>
         </Card>
 
@@ -362,7 +295,7 @@ export default function DeveloperSettings() {
               <div className="space-y-4">
                 <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
                   <p className="text-sm text-green-800 dark:text-green-200 mb-2">
-                    API Keyが作成されました。このキーは一度だけ表示されます。
+                    API Keyが作成されました。このキーは一度だけ表示されます。安全な場所に保存してください。
                   </p>
                   <div className="flex items-center gap-2">
                     <code className="flex-1 p-2 bg-white dark:bg-gray-900 rounded text-sm break-all">
@@ -403,7 +336,8 @@ export default function DeveloperSettings() {
                   <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
                     キャンセル
                   </Button>
-                  <Button onClick={handleCreateKey}>
+                  <Button onClick={handleCreateKey} disabled={isCreating}>
+                    {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     作成
                   </Button>
                 </DialogFooter>
@@ -416,7 +350,7 @@ export default function DeveloperSettings() {
         <AlertDialog open={!!deleteKeyId} onOpenChange={() => setDeleteKeyId(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>API Keyを削除しますか？</AlertDialogTitle>
+              <AlertDialogTitle>API Keyを削除しますか?</AlertDialogTitle>
               <AlertDialogDescription>
                 このAPI Keyを使用しているシステムはアクセスできなくなります。
                 この操作は取り消せません。

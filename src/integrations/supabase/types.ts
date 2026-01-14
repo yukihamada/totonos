@@ -131,6 +131,45 @@ export type Database = {
           },
         ]
       }
+      api_keys: {
+        Row: {
+          created_at: string | null
+          id: string
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          request_count: number | null
+          scopes: string[] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name: string
+          request_count?: number | null
+          scopes?: string[] | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          request_count?: number | null
+          scopes?: string[] | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       attendance_records: {
         Row: {
           break_end: string | null
@@ -2518,6 +2557,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      update_api_key_usage: { Args: { p_key_hash: string }; Returns: undefined }
+      validate_api_key: { Args: { p_key_hash: string }; Returns: string }
     }
     Enums: {
       account_type: "asset" | "liability" | "equity" | "revenue" | "expense"
