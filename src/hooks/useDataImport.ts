@@ -58,7 +58,7 @@ export function useDataImport() {
           source_service: params.sourceService,
           target_module: params.targetModule,
           file_name: params.fileName,
-          mapping_config: params.mappingConfig as unknown as Record<string, unknown>,
+          mapping_config: params.mappingConfig ? JSON.parse(JSON.stringify(params.mappingConfig)) : null,
           status: 'pending',
         }])
         .select()
@@ -105,7 +105,7 @@ export function useDataImport() {
           template_name: params.templateName,
           source_service: params.sourceService,
           target_module: params.targetModule,
-          mapping: params.mapping as unknown as Record<string, unknown>,
+          mapping: JSON.parse(JSON.stringify(params.mapping)),
           is_default: params.isDefault || false,
         }])
         .select()
@@ -126,11 +126,16 @@ export function useDataImport() {
         try {
           const text = e.target?.result as string;
           const lines = text.split(/\r?\n/).filter(line => line.trim());
-          if (lines.length === 0) { reject(new Error('ファイルが空です')); return; }
+          if (lines.length === 0) { 
+            reject(new Error('ファイルが空です')); 
+            return; 
+          }
           const headers = parseCSVLine(lines[0]);
           const rows = lines.slice(1).map(line => parseCSVLine(line));
           resolve({ headers, rows });
-        } catch (error) { reject(error); }
+        } catch (error) { 
+          reject(error); 
+        }
       };
       reader.onerror = () => reject(new Error('ファイルの読み込みに失敗しました'));
       reader.readAsText(file, 'UTF-8');
@@ -154,62 +159,144 @@ export function useDataImport() {
       for (let i = 0; i < rows.length; i += batchSize) {
         const batch = rows.slice(i, i + batchSize);
         const mappedRows = batch.map((row, idx) => {
-          try { return mapRowToTarget(row, mappingConfig, user?.id || ''); }
-          catch (error) {
-            errors.push({ row: i + idx + (mappingConfig.skipFirstRow ? 2 : 1), message: error instanceof Error ? error.message : 'マッピングエラー' });
+          try { 
+            return mapRowToTarget(row, mappingConfig, user?.id || ''); 
+          } catch (error) {
+            errors.push({ 
+              row: i + idx + (mappingConfig.skipFirstRow ? 2 : 1), 
+              message: error instanceof Error ? error.message : 'マッピングエラー' 
+            });
             errorCount++;
             return null;
           }
         }).filter(Boolean);
 
         if (mappedRows.length > 0) {
-          const { error } = await supabase.from(targetModule).insert(mappedRows as Record<string, unknown>[]);
-          if (error) { errorCount += mappedRows.length; errors.push({ row: i + 1, message: `バッチエラー: ${error.message}` }); }
-          else { processedCount += mappedRows.length; }
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { error } = await supabase
+            .from(targetModule as any)
+            .insert(mappedRows as any[]);
+          
+          if (error) { 
+            errorCount += mappedRows.length; 
+            errors.push({ row: i + 1, message: `バッチエラー: ${error.message}` });
+          } else { 
+            processedCount += mappedRows.length; 
+          }
         }
+        
         setUploadProgress(Math.round(((i + batch.length) / rows.length) * 100));
-        await updateJobStatus.mutateAsync({ jobId, status: 'processing', processedRows: processedCount, errorRows: errorCount });
+        
+        await updateJobStatus.mutateAsync({ 
+          jobId, 
+          status: 'processing', 
+          processedRows: processedCount, 
+          errorRows: errorCount 
+        });
       }
-      await updateJobStatus.mutateAsync({ jobId, status: errorCount === rows.length ? 'failed' : 'completed', processedRows: processedCount, errorRows: errorCount, errorSummary: { totalErrors: errorCount, sampleErrors: errors.slice(0, 10).map(e => `行${e.row}: ${e.message}`) } });
-      toast({ title: 'インポートが完了しました', description: `${processedCount}件成功、${errorCount}件エラー` });
+      
+      await updateJobStatus.mutateAsync({ 
+        jobId, 
+        status: errorCount === rows.length ? 'failed' : 'completed', 
+        processedRows: processedCount, 
+        errorRows: errorCount, 
+        errorSummary: { 
+          totalErrors: errorCount, 
+          sampleErrors: errors.slice(0, 10).map(e => `行${e.row}: ${e.message}`) 
+        } 
+      });
+      
+      toast({ 
+        title: 'インポートが完了しました', 
+        description: `${processedCount}件成功、${errorCount}件エラー` 
+      });
     } catch (error) {
-      await updateJobStatus.mutateAsync({ jobId, status: 'failed', errorSummary: { totalErrors: 1, sampleErrors: [error instanceof Error ? error.message : '不明なエラー'] } });
-      toast({ title: 'インポートに失敗しました', description: error instanceof Error ? error.message : '不明なエラー', variant: 'destructive' });
+      await updateJobStatus.mutateAsync({ 
+        jobId, 
+        status: 'failed', 
+        errorSummary: { 
+          totalErrors: 1, 
+          sampleErrors: [error instanceof Error ? error.message : '不明なエラー'] 
+        } 
+      });
+      
+      toast({ 
+        title: 'インポートに失敗しました', 
+        description: error instanceof Error ? error.message : '不明なエラー', 
+        variant: 'destructive' 
+      });
     }
   }, [updateJobStatus, toast, user]);
 
-  return { jobs, templates, jobsLoading, templatesLoading, uploadProgress, createJob: createJob.mutateAsync, saveTemplate: saveTemplate.mutateAsync, parseCSV, processImport, isCreating: createJob.isPending };
+  return { 
+    jobs, 
+    templates, 
+    jobsLoading, 
+    templatesLoading, 
+    uploadProgress, 
+    createJob: createJob.mutateAsync, 
+    saveTemplate: saveTemplate.mutateAsync, 
+    parseCSV, 
+    processImport, 
+    isCreating: createJob.isPending 
+  };
 }
 
 function parseCSVLine(line: string): string[] {
   const result: string[] = [];
   let current = '';
   let inQuotes = false;
+  
   for (let i = 0; i < line.length; i++) {
     const char = line[i];
-    if (char === '"') { if (inQuotes && line[i + 1] === '"') { current += '"'; i++; } else { inQuotes = !inQuotes; } }
-    else if (char === ',' && !inQuotes) { result.push(current.trim()); current = ''; }
-    else { current += char; }
+    if (char === '"') { 
+      if (inQuotes && line[i + 1] === '"') { 
+        current += '"'; 
+        i++; 
+      } else { 
+        inQuotes = !inQuotes; 
+      } 
+    } else if (char === ',' && !inQuotes) { 
+      result.push(current.trim()); 
+      current = ''; 
+    } else { 
+      current += char; 
+    }
   }
+  
   result.push(current.trim());
   return result;
 }
 
 function mapRowToTarget(row: string[], config: MappingConfig, userId: string): Record<string, unknown> {
   const result: Record<string, unknown> = { user_id: userId };
+  
   for (const mapping of config.fieldMappings) {
     const sourceIndex = parseInt(mapping.sourceField, 10);
     let value: unknown = row[sourceIndex] || mapping.defaultValue || null;
+    
     if (value && mapping.transform) {
       switch (mapping.transform) {
-        case 'date': value = parseDate(value as string); break;
-        case 'number': value = parseFloat((value as string).replace(/[,¥$]/g, '')) || 0; break;
-        case 'boolean': value = ['true', '1', 'yes', 'はい', 'o', '○'].includes((value as string).toLowerCase()); break;
-        case 'trim': value = (value as string).trim(); break;
+        case 'date': 
+          value = parseDate(value as string); 
+          break;
+        case 'number': 
+          value = parseFloat((value as string).replace(/[,¥$]/g, '')) || 0; 
+          break;
+        case 'boolean': 
+          value = ['true', '1', 'yes', 'はい', 'o', '○'].includes((value as string).toLowerCase()); 
+          break;
+        case 'trim': 
+          value = (value as string).trim(); 
+          break;
       }
     }
-    if (mapping.targetField) result[mapping.targetField] = value;
+    
+    if (mapping.targetField) {
+      result[mapping.targetField] = value;
+    }
   }
+  
   return result;
 }
 
@@ -218,164 +305,5 @@ function parseDate(value: string): string | null {
   const cleanValue = value.replace(/[年月]/g, '/').replace(/日/g, '');
   const date = new Date(cleanValue);
   if (isNaN(date.getTime())) return null;
-  return date.toISOString().split('T')[0];
-}
-        }).filter(Boolean);
-
-        if (mappedRows.length > 0) {
-          const { error } = await supabase
-            .from(targetModule)
-            .insert(mappedRows as Record<string, unknown>[]);
-
-          if (error) {
-            // Handle batch errors
-            errorCount += mappedRows.length;
-            errors.push({
-              row: i + 1,
-              message: `バッチエラー: ${error.message}`,
-            });
-          } else {
-            processedCount += mappedRows.length;
-          }
-        }
-
-        // Update progress
-        setUploadProgress(Math.round(((i + batch.length) / rows.length) * 100));
-        
-        await updateJobStatus.mutateAsync({
-          jobId,
-          status: 'processing',
-          processedRows: processedCount,
-          errorRows: errorCount,
-        });
-      }
-
-      // Complete
-      await updateJobStatus.mutateAsync({
-        jobId,
-        status: errorCount === rows.length ? 'failed' : 'completed',
-        processedRows: processedCount,
-        errorRows: errorCount,
-        errorSummary: {
-          totalErrors: errorCount,
-          sampleErrors: errors.slice(0, 10).map(e => `行${e.row}: ${e.message}`),
-        },
-      });
-
-      toast({
-        title: 'インポートが完了しました',
-        description: `${processedCount}件成功、${errorCount}件エラー`,
-      });
-
-    } catch (error) {
-      await updateJobStatus.mutateAsync({
-        jobId,
-        status: 'failed',
-        errorSummary: {
-          totalErrors: 1,
-          sampleErrors: [error instanceof Error ? error.message : '不明なエラー'],
-        },
-      });
-
-      toast({
-        title: 'インポートに失敗しました',
-        description: error instanceof Error ? error.message : '不明なエラー',
-        variant: 'destructive',
-      });
-    }
-  }, [updateJobStatus, toast]);
-
-  return {
-    jobs,
-    templates,
-    jobsLoading,
-    templatesLoading,
-    uploadProgress,
-    createJob: createJob.mutateAsync,
-    saveTemplate: saveTemplate.mutateAsync,
-    parseCSV,
-    processImport,
-    isCreating: createJob.isPending,
-  };
-}
-
-// Helper function to parse CSV line
-function parseCSVLine(line: string): string[] {
-  const result: string[] = [];
-  let current = '';
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    
-    if (char === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        current += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (char === ',' && !inQuotes) {
-      result.push(current.trim());
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-  
-  result.push(current.trim());
-  return result;
-}
-
-// Helper function to map row to target format
-function mapRowToTarget(
-  row: string[],
-  config: MappingConfig
-): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
-
-  for (const mapping of config.fieldMappings) {
-    const sourceIndex = parseInt(mapping.sourceField, 10);
-    let value: unknown = row[sourceIndex] || mapping.defaultValue || null;
-
-    if (value && mapping.transform) {
-      switch (mapping.transform) {
-        case 'date':
-          value = parseDate(value as string, config.dateFormat);
-          break;
-        case 'number':
-          value = parseFloat((value as string).replace(/[,¥$]/g, '')) || 0;
-          break;
-        case 'boolean':
-          value = ['true', '1', 'yes', 'はい', 'o', '○'].includes(
-            (value as string).toLowerCase()
-          );
-          break;
-        case 'trim':
-          value = (value as string).trim();
-          break;
-      }
-    }
-
-    if (mapping.targetField) {
-      result[mapping.targetField] = value;
-    }
-  }
-
-  return result;
-}
-
-// Helper function to parse date
-function parseDate(value: string, format?: string): string | null {
-  if (!value) return null;
-  
-  // Try common formats
-  const cleanValue = value.replace(/[年月]/g, '/').replace(/日/g, '');
-  const date = new Date(cleanValue);
-  
-  if (isNaN(date.getTime())) {
-    return null;
-  }
-  
   return date.toISOString().split('T')[0];
 }
