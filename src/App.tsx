@@ -107,6 +107,8 @@ import Showcase from "./pages/Showcase";
 import Invite from "./pages/Invite";
 // Chat
 import { ChatWidget } from "./components/chat/ChatWidget";
+// LINE Integration
+import LineSettings from "./pages/LineSettings";
 // Phase 4: Expense Management
 import Expenses from "./pages/Expenses";
 import ExpenseNew from "./pages/ExpenseNew";
