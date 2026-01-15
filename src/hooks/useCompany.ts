@@ -293,7 +293,7 @@ export function useCreateInvitation() {
       email: string;
       role: MemberRole;
       permissions?: PermissionType[];
-    }) => {
+    }): Promise<{ invitation: any; inviteUrl: string; emailSent: boolean }> => {
       if (!user) throw new Error("認証が必要です");
 
       // Create invitation record
@@ -311,24 +311,37 @@ export function useCreateInvitation() {
 
       if (error) throw error;
 
-      // Send invitation email
-      const { error: emailError } = await supabase.functions.invoke("send-invitation", {
+      // Generate invite URL
+      const inviteUrl = `${window.location.origin}/invite?token=${data.token}`;
+
+      // Try to send invitation email
+      const { data: emailResult, error: emailError } = await supabase.functions.invoke("send-invitation", {
         body: { invitationId: data.id },
       });
 
       if (emailError) {
         console.error("Failed to send invitation email:", emailError);
-        // Don't throw - invitation was created, just email failed
       }
 
-      return data;
+      return { 
+        invitation: data, 
+        inviteUrl, 
+        emailSent: !emailError && emailResult?.success === true 
+      };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["company-invitations"] });
-      toast.success("招待を送信しました");
+      if (result.emailSent) {
+        toast.success("招待メールを送信しました");
+      } else {
+        toast.success("招待を作成しました", {
+          description: "メール送信に失敗しました。招待URLをコピーして共有してください。",
+          duration: 10000,
+        });
+      }
     },
     onError: (error) => {
-      toast.error("招待の送信に失敗しました", { description: error.message });
+      toast.error("招待の作成に失敗しました", { description: error.message });
     },
   });
 }

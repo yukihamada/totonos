@@ -43,6 +43,8 @@ import {
   Loader2,
   Clock,
   XCircle,
+  Copy,
+  Link,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -96,6 +98,8 @@ export default function TeamMembers() {
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<typeof members[0] | null>(null);
   const [newRole, setNewRole] = useState<MemberRole>('member');
+  const [lastInviteUrl, setLastInviteUrl] = useState<string | null>(null);
+  const [showInviteUrlDialog, setShowInviteUrlDialog] = useState(false);
 
   const isLoading = companyLoading || membersLoading || invitationsLoading;
 
@@ -112,7 +116,7 @@ export default function TeamMembers() {
     }
 
     try {
-      await createInvitation.mutateAsync({
+      const result = await createInvitation.mutateAsync({
         companyId: company.id,
         email: inviteEmail,
         role: inviteRole,
@@ -120,8 +124,21 @@ export default function TeamMembers() {
       setInviteDialogOpen(false);
       setInviteEmail('');
       setInviteRole('member');
+      
+      // If email wasn't sent, show the URL dialog
+      if (!result.emailSent) {
+        setLastInviteUrl(result.inviteUrl);
+        setShowInviteUrlDialog(true);
+      }
     } catch (error) {
       // Error handled by hook
+    }
+  };
+
+  const copyInviteUrl = () => {
+    if (lastInviteUrl) {
+      navigator.clipboard.writeText(lastInviteUrl);
+      toast.success('招待URLをコピーしました');
     }
   };
 
@@ -338,7 +355,7 @@ export default function TeamMembers() {
                     <TableHead>役割</TableHead>
                     <TableHead>招待日</TableHead>
                     <TableHead>有効期限</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
+                    <TableHead className="w-[100px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -357,15 +374,31 @@ export default function TeamMembers() {
                         {format(new Date(invitation.expires_at), 'yyyy/MM/dd', { locale: ja })}
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive"
-                          onClick={() => handleCancelInvitation(invitation.id)}
-                          disabled={cancelInvitation.isPending}
-                        >
-                          <XCircle className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => {
+                              const url = `${window.location.origin}/invite?token=${invitation.token}`;
+                              navigator.clipboard.writeText(url);
+                              toast.success('招待URLをコピーしました');
+                            }}
+                            title="URLをコピー"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive"
+                            onClick={() => handleCancelInvitation(invitation.id)}
+                            disabled={cancelInvitation.isPending}
+                            title="招待をキャンセル"
+                          >
+                            <XCircle className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -498,6 +531,42 @@ export default function TeamMembers() {
               <Button onClick={handleRoleChange} disabled={updateRole.isPending}>
                 {updateRole.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 変更を保存
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Invite URL Dialog */}
+        <Dialog open={showInviteUrlDialog} onOpenChange={setShowInviteUrlDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Link className="h-5 w-5" />
+                招待URLをコピー
+              </DialogTitle>
+              <DialogDescription>
+                メール送信に失敗しました。以下のURLを直接共有してください。
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4 space-y-4">
+              <div className="flex items-center gap-2">
+                <Input 
+                  value={lastInviteUrl || ''} 
+                  readOnly 
+                  className="flex-1 text-sm"
+                />
+                <Button onClick={copyInviteUrl} variant="outline" size="icon">
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                この招待リンクは7日間有効です。招待された方がすでにアカウントをお持ちの場合は、
+                ログイン後にこのリンクを開くと自動的にチームに参加できます。
+              </p>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setShowInviteUrlDialog(false)}>
+                閉じる
               </Button>
             </DialogFooter>
           </DialogContent>
