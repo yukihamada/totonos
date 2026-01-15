@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from "react";
-import { ChatMessage } from "@/types/chat";
-import { sendChatMessage } from "@/lib/chat-api";
+import { ChatMessage, ToolCall, ToolResult } from "@/types/chat";
+import { streamChatMessage } from "@/lib/chat-api";
 import { toast } from "sonner";
 
 function generateId(): string {
@@ -23,9 +23,7 @@ export function useChat() {
   }, []);
 
   const updateMessage = useCallback((id: string, updates: Partial<ChatMessage>) => {
-    setMessages((prev) =>
-      prev.map((msg) => (msg.id === id ? { ...msg, ...updates } : msg))
-    );
+    setMessages((prev) => prev.map((msg) => (msg.id === id ? { ...msg, ...updates } : msg)));
   }, []);
 
   const sendMessage = useCallback(
@@ -45,46 +43,68 @@ export function useChat() {
       });
 
       // Prepare messages for API
-      const apiMessages = [
-        ...messages,
-        { role: "user" as const, content: content.trim() },
-      ].map((msg) => ({
+      const apiMessages = [...messages, { role: "user" as const, content: content.trim() }].map((msg) => ({
         role: msg.role,
         content: msg.content,
       }));
 
       setIsLoading(true);
 
+      // Create a placeholder assistant message that we update via streaming
+      const assistantMessage = addMessage({
+        role: "assistant",
+        content: "",
+        toolCalls: [],
+        toolResults: [],
+        isStreaming: true,
+      });
+
       try {
-        const response = await sendChatMessage({
+        let contentBuffer = "";
+        let toolCalls: ToolCall[] = [];
+        let toolResults: ToolResult[] = [];
+
+        for await (const chunk of streamChatMessage({
           messages: apiMessages,
           signal: abortControllerRef.current.signal,
-        });
+        })) {
+          if (chunk.type === "content_block_delta" && chunk.delta?.text) {
+            contentBuffer += chunk.delta.text;
+            updateMessage(assistantMessage.id, { content: contentBuffer });
+          }
 
-        // Add assistant message
-        const assistantMessage = addMessage({
-          role: "assistant",
-          content: response.content,
-          toolCalls: response.toolCalls,
-        });
+          if (chunk.type === "tool_use" && chunk.toolCall) {
+            toolCalls = [...toolCalls, chunk.toolCall];
+            updateMessage(assistantMessage.id, { toolCalls });
+          }
 
-        // If there are tool results, update the message
-        if (response.toolCalls && response.toolCalls.length > 0) {
-          // Tool results would come from the API response
-          // For now, they're included in the response
+          if (chunk.type === "tool_result" && chunk.toolResult) {
+            toolResults = [...toolResults, chunk.toolResult];
+            updateMessage(assistantMessage.id, { toolResults });
+          }
+
+          if (chunk.type === "error") {
+            const errorMessage = chunk.error || "エラーが発生しました";
+            updateMessage(assistantMessage.id, {
+              content: `申し訳ありません。${errorMessage}`,
+              isStreaming: false,
+            });
+            toast.error("チャットエラー", { description: errorMessage });
+            return;
+          }
         }
+
+        updateMessage(assistantMessage.id, { isStreaming: false });
       } catch (error) {
         if (error instanceof Error && error.name === "AbortError") {
           return;
         }
 
-        const errorMessage =
-          error instanceof Error ? error.message : "エラーが発生しました";
+        const errorMessage = error instanceof Error ? error.message : "エラーが発生しました";
 
-        // Add error message
-        addMessage({
-          role: "assistant",
+        updateMessage(assistantMessage.id, {
           content: `申し訳ありません。${errorMessage}`,
+          isStreaming: false,
         });
 
         toast.error("チャットエラー", {
@@ -95,7 +115,7 @@ export function useChat() {
         abortControllerRef.current = null;
       }
     },
-    [messages, addMessage]
+    [messages, addMessage, updateMessage]
   );
 
   const clearMessages = useCallback(() => {
