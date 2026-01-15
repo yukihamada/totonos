@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
 import { useAppSettings } from '@/contexts/SettingsContext';
+import { useCurrentCompany, useUpdateCompany } from '@/hooks/useCompany';
 import { toast } from 'sonner';
 import { 
   Settings as SettingsIcon, 
@@ -35,13 +36,26 @@ import {
 export default function Settings() {
   const { user } = useAuth();
   const { settings, updateSettings, updateMenuGroup, updateMenuItem, resetToDefaults } = useAppSettings();
+  const { data: currentCompany } = useCurrentCompany();
+  const updateCompany = useUpdateCompany();
 
-  // Company settings
-  const [companyName, setCompanyName] = useState('株式会社サンプル');
-  const [companyAddress, setCompanyAddress] = useState('東京都渋谷区...');
-  const [companyPhone, setCompanyPhone] = useState('03-1234-5678');
-  const [companyEmail, setCompanyEmail] = useState('info@example.com');
-  const [taxNumber, setTaxNumber] = useState('T1234567890123');
+  // Company settings - sync with currentCompany
+  const [companyName, setCompanyName] = useState('');
+  const [companyAddress, setCompanyAddress] = useState('');
+  const [companyPhone, setCompanyPhone] = useState('');
+  const [companyEmail, setCompanyEmail] = useState('');
+  const [taxNumber, setTaxNumber] = useState('');
+
+  // Sync company data when currentCompany changes
+  useEffect(() => {
+    if (currentCompany) {
+      setCompanyName(currentCompany.name || '');
+      setCompanyAddress(currentCompany.address || '');
+      setCompanyPhone(currentCompany.phone || '');
+      setCompanyEmail(currentCompany.email || '');
+      // taxNumber is not in companies table yet, keep as local state
+    }
+  }, [currentCompany]);
 
   // Invoice settings
   const [invoicePrefix, setInvoicePrefix] = useState('INV');
@@ -61,8 +75,23 @@ export default function Settings() {
   const [currency, setCurrency] = useState('JPY');
   const [dateFormat, setDateFormat] = useState('yyyy/MM/dd');
 
-  const handleSave = () => {
-    toast.success('設定を保存しました');
+  const handleSave = async () => {
+    if (currentCompany) {
+      try {
+        await updateCompany.mutateAsync({
+          id: currentCompany.id,
+          name: companyName,
+          address: companyAddress,
+          phone: companyPhone,
+          email: companyEmail,
+        });
+        toast.success('設定を保存しました');
+      } catch (error) {
+        toast.error('保存に失敗しました');
+      }
+    } else {
+      toast.success('設定を保存しました');
+    }
   };
 
   const handleResetMenu = () => {
