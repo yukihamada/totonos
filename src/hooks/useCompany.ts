@@ -134,6 +134,54 @@ export function useCreateCompany() {
   });
 }
 
+// デフォルト会社を作成（会社名未登録）
+export function useEnsureDefaultCompany() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error("認証が必要です");
+
+      // Check if user has any companies
+      const { data: memberships } = await supabase
+        .from("company_members")
+        .select("company_id")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .limit(1);
+
+      if (memberships && memberships.length > 0) {
+        // User already has a company, return it
+        const { data: company } = await supabase
+          .from("companies")
+          .select("*")
+          .eq("id", memberships[0].company_id)
+          .single();
+        return company;
+      }
+
+      // Create a default company with "会社名未登録"
+      const { data: company, error } = await supabase
+        .from("companies")
+        .insert({
+          name: "会社名未登録",
+          display_name: "会社名未登録",
+          created_by: user.id,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return company;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user-companies"] });
+      queryClient.invalidateQueries({ queryKey: ["current-company"] });
+    },
+  });
+}
+
 // 会社を更新
 export function useUpdateCompany() {
   const queryClient = useQueryClient();
@@ -150,6 +198,46 @@ export function useUpdateCompany() {
     },
     onError: (error) => {
       toast.error("会社情報の更新に失敗しました", { description: error.message });
+    },
+  });
+}
+
+// 会社を削除
+export function useDeleteCompany() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (companyId: string) => {
+      if (!user) throw new Error("認証が必要です");
+
+      // Verify user is owner
+      const { data: membership } = await supabase
+        .from("company_members")
+        .select("role")
+        .eq("company_id", companyId)
+        .eq("user_id", user.id)
+        .single();
+
+      if (!membership || membership.role !== "owner") {
+        throw new Error("会社のオーナーのみが削除できます");
+      }
+
+      // Delete the company (CASCADE will handle related data)
+      const { error } = await supabase
+        .from("companies")
+        .delete()
+        .eq("id", companyId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user-companies"] });
+      queryClient.invalidateQueries({ queryKey: ["current-company"] });
+      toast.success("会社を削除しました");
+    },
+    onError: (error) => {
+      toast.error("会社の削除に失敗しました", { description: error.message });
     },
   });
 }

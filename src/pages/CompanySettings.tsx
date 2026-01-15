@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Building2, Plus, Users, Settings, CreditCard, Mail } from "lucide-react";
+import { Building2, Plus, Users, Settings, CreditCard, Mail, Trash2 } from "lucide-react";
 import { CompanyEmailSettings } from "@/components/settings/CompanyEmailSettings";
+import { DeleteCompanyDialog } from "@/components/DeleteCompanyDialog";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,6 +47,7 @@ import {
   useRemoveMember,
   useCancelInvitation,
   useUpdateMemberPermissions,
+  useDeleteCompany,
 } from "@/hooks/useCompany";
 import { useHybridCredits, PLANS, CHARGE_PACKS } from "@/hooks/useCreditsV2";
 import {
@@ -56,12 +58,15 @@ import {
   type PermissionType,
 } from "@/types/company";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 export default function CompanySettings() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("company");
   const [showNewCompanyDialog, setShowNewCompanyDialog] = useState(false);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [showPermissionDialog, setShowPermissionDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [selectedPermissions, setSelectedPermissions] = useState<PermissionType[]>([]);
 
@@ -94,6 +99,13 @@ export default function CompanySettings() {
   const updateMemberPermissions = useUpdateMemberPermissions();
   const removeMember = useRemoveMember();
   const cancelInvitation = useCancelInvitation();
+  const deleteCompany = useDeleteCompany();
+
+  // Check if current user is owner
+  const currentMembership = userCompanies.find(
+    (m: any) => m.company_id === currentCompany?.id
+  );
+  const isOwner = currentMembership?.role === "owner";
 
   // Update edit form when currentCompany changes
   useEffect(() => {
@@ -181,6 +193,13 @@ export default function CompanySettings() {
         ? prev.filter((p) => p !== permission)
         : [...prev, permission]
     );
+  };
+
+  const handleDeleteCompany = async () => {
+    if (!currentCompany) return;
+    await deleteCompany.mutateAsync(currentCompany.id);
+    // Navigate to dashboard or settings after deletion
+    navigate("/dashboard");
   };
 
   if (companyLoading) {
@@ -358,12 +377,23 @@ export default function CompanySettings() {
                       />
                     </div>
                   </div>
-                  <Button 
-                    onClick={handleUpdateCompany}
-                    disabled={updateCompany.isPending}
-                  >
-                    {updateCompany.isPending ? "保存中..." : "保存"}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={handleUpdateCompany}
+                      disabled={updateCompany.isPending}
+                    >
+                      {updateCompany.isPending ? "保存中..." : "保存"}
+                    </Button>
+                    {isOwner && (
+                      <Button 
+                        variant="destructive"
+                        onClick={() => setShowDeleteDialog(true)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        会社を削除
+                      </Button>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -725,6 +755,17 @@ export default function CompanySettings() {
               </Card>
             </TabsContent>
           </Tabs>
+        )}
+
+        {/* Delete Company Dialog */}
+        {currentCompany && (
+          <DeleteCompanyDialog
+            open={showDeleteDialog}
+            onOpenChange={setShowDeleteDialog}
+            companyName={currentCompany.name}
+            onConfirm={handleDeleteCompany}
+            isLoading={deleteCompany.isPending}
+          />
         )}
       </div>
     </AppLayout>
