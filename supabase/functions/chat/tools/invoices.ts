@@ -1,4 +1,5 @@
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import Stripe from "https://esm.sh/stripe@18.5.0";
 
 export const invoiceTools = [
   {
@@ -116,6 +117,20 @@ export const invoiceTools = [
       type: "object" as const,
       properties: {},
       required: [],
+    },
+  },
+  {
+    name: "invoice_create_payment_link",
+    description: "請求書の決済リンク（Stripe Checkoutセッション）を作成します。顧客がオンラインで支払いできるURLを生成します。",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        invoice_id: {
+          type: "string",
+          description: "請求書ID",
+        },
+      },
+      required: ["invoice_id"],
     },
   },
 ];
@@ -293,6 +308,76 @@ export async function executeInvoiceTool(
       return {
         stats,
         summary: `未払い: ¥${stats.unpaid.toLocaleString()}, 入金済: ¥${stats.paid.toLocaleString()}, 延滞: ¥${stats.overdue.toLocaleString()}`,
+      };
+    }
+
+    case "invoice_create_payment_link": {
+      // Get invoice details
+      const { data: invoice, error: invoiceError } = await supabase
+        .from("invoices")
+        .select(`
+          *,
+          client:clients (id, name, email)
+        `)
+        .eq("id", input.invoice_id)
+        .eq("user_id", userId)
+        .single();
+
+      if (invoiceError) throw new Error(invoiceError.message);
+      if (!invoice) throw new Error("請求書が見つかりません");
+
+      // Initialize Stripe
+      const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+      if (!stripeKey) throw new Error("Stripe APIキーが設定されていません");
+
+      const stripe = new Stripe(stripeKey, {
+        apiVersion: "2025-08-27.basil",
+      });
+
+      // Get client email if available
+      const clientEmail = invoice.client?.email || null;
+
+      // Check if customer exists
+      let customerId: string | undefined;
+      if (clientEmail) {
+        const customers = await stripe.customers.list({ email: clientEmail, limit: 1 });
+        if (customers.data.length > 0) {
+          customerId = customers.data[0].id;
+        }
+      }
+
+      // Create Stripe Checkout Session
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        customer_email: customerId ? undefined : clientEmail || undefined,
+        line_items: [
+          {
+            price_data: {
+              currency: "jpy",
+              product_data: {
+                name: `請求書 ${invoice.invoice_number}: ${invoice.title}`,
+                description: "Totonosからの請求書のお支払い",
+              },
+              unit_amount: invoice.total_amount,
+            },
+            quantity: 1,
+          },
+        ],
+        mode: "payment",
+        success_url: `https://totonos.lovable.app/payment-success?session_id={CHECKOUT_SESSION_ID}&invoice_id=${invoice.id}`,
+        cancel_url: `https://totonos.lovable.app/invoices`,
+        metadata: {
+          invoice_id: invoice.id,
+          user_id: userId,
+        },
+      });
+
+      return {
+        payment_url: session.url,
+        session_id: session.id,
+        invoice_number: invoice.invoice_number,
+        amount: invoice.total_amount,
+        message: `決済リンクを作成しました。金額: ¥${invoice.total_amount.toLocaleString()}`,
       };
     }
 
