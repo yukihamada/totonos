@@ -58,3 +58,7 @@ verify_jwt = false
 # OCR Receipt: レシートOCR処理（内部でJWT検証）
 [functions.ocr-receipt]
 verify_jwt = false
+
+# Close GitHub Issue: GitHub Issue操作（内部呼び出し）
+[functions.close-github-issue]
+verify_jwt = false
