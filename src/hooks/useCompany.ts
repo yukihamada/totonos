@@ -277,7 +277,7 @@ export function useRemoveMember() {
   });
 }
 
-// 招待を作成
+// 招待を作成してメールを送信
 export function useCreateInvitation() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -296,6 +296,7 @@ export function useCreateInvitation() {
     }) => {
       if (!user) throw new Error("認証が必要です");
 
+      // Create invitation record
       const { data, error } = await supabase
         .from("company_invitations")
         .insert({
@@ -309,6 +310,17 @@ export function useCreateInvitation() {
         .single();
 
       if (error) throw error;
+
+      // Send invitation email
+      const { error: emailError } = await supabase.functions.invoke("send-invitation", {
+        body: { invitationId: data.id },
+      });
+
+      if (emailError) {
+        console.error("Failed to send invitation email:", emailError);
+        // Don't throw - invitation was created, just email failed
+      }
+
       return data;
     },
     onSuccess: () => {
