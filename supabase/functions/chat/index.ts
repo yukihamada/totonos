@@ -421,12 +421,13 @@ serve(async (req: Request) => {
 
               // Final response (use tool results as context)
               if (first.toolCalls.length > 0) {
+                type ToolCallType = { id: string; name: string; input: unknown };
                 const messagesWithToolResults = [
                   ...messages,
                   {
                     role: "assistant",
                     content: first.content || null,
-                    tool_calls: first.toolCalls.map((tc) => ({
+                    tool_calls: first.toolCalls.map((tc: ToolCallType) => ({
                       id: tc.id,
                       type: "function",
                       function: {

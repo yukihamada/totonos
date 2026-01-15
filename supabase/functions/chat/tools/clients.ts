@@ -35,7 +35,7 @@ export const clientTools = [
   },
   {
     name: "client_create",
-    description: "新しい取引先を作成します。",
+    description: "新しい取引先を作成します。同名の取引先が既に存在する場合は確認が必要です。",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -58,6 +58,10 @@ export const clientTools = [
         notes: {
           type: "string",
           description: "備考",
+        },
+        force: {
+          type: "boolean",
+          description: "重複確認をスキップして強制登録する場合はtrue",
         },
       },
       required: ["name"],
@@ -150,11 +154,32 @@ export async function executeClientTool(
     }
 
     case "client_create": {
+      const clientName = String(input.name).trim();
+      const forceCreate = input.force === true;
+
+      // 重複チェック
+      if (!forceCreate) {
+        const { data: existing } = await supabase
+          .from("clients")
+          .select("id, name")
+          .eq("user_id", userId)
+          .ilike("name", clientName)
+          .limit(5);
+
+        if (existing && existing.length > 0) {
+          return {
+            duplicate: true,
+            existingClients: existing,
+            message: `「${clientName}」に似た取引先が既に ${existing.length} 件あります。それでも登録しますか？登録する場合は「はい」と返答してください。`,
+          };
+        }
+      }
+
       const { data, error } = await supabase
         .from("clients")
         .insert({
           user_id: userId,
-          name: input.name,
+          name: clientName,
           email: input.email,
           phone: input.phone,
           address: input.address,
