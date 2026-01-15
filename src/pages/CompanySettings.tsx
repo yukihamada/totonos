@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Building2, Plus, Users, Settings, CreditCard, Mail, Trash2 } from "lucide-react";
+import { Building2, Plus, Users, Settings, CreditCard, Mail, Trash2, Shield } from "lucide-react";
 import { CompanyEmailSettings } from "@/components/settings/CompanyEmailSettings";
 import { DeleteCompanyDialog } from "@/components/DeleteCompanyDialog";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -308,7 +308,7 @@ export default function CompanySettings() {
 
         {currentCompany && (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="company">
                 <Settings className="h-4 w-4 mr-2" />
                 会社情報
@@ -325,6 +325,10 @@ export default function CompanySettings() {
               <TabsTrigger value="credits">
                 <CreditCard className="h-4 w-4 mr-2" />
                 クレジット
+              </TabsTrigger>
+              <TabsTrigger value="security">
+                <Shield className="h-4 w-4 mr-2" />
+                セキュリティ
               </TabsTrigger>
             </TabsList>
 
@@ -377,23 +381,12 @@ export default function CompanySettings() {
                       />
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      onClick={handleUpdateCompany}
-                      disabled={updateCompany.isPending}
-                    >
-                      {updateCompany.isPending ? "保存中..." : "保存"}
-                    </Button>
-                    {isOwner && (
-                      <Button 
-                        variant="destructive"
-                        onClick={() => setShowDeleteDialog(true)}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        会社を削除
-                      </Button>
-                    )}
-                  </div>
+                  <Button 
+                    onClick={handleUpdateCompany}
+                    disabled={updateCompany.isPending}
+                  >
+                    {updateCompany.isPending ? "保存中..." : "保存"}
+                  </Button>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -753,6 +746,60 @@ export default function CompanySettings() {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* Security Tab */}
+            <TabsContent value="security" className="space-y-4 mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5" />
+                    セキュリティ設定
+                  </CardTitle>
+                  <CardDescription>
+                    会社のセキュリティと危険な操作を管理します
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="p-4 border rounded-lg">
+                    <h4 className="font-medium mb-2">アクセスログ</h4>
+                    <p className="text-sm text-muted-foreground">
+                      最近のログイン履歴やアクセスログを確認できます（近日公開予定）
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {isOwner && (
+                <Card className="border-destructive">
+                  <CardHeader>
+                    <CardTitle className="text-destructive flex items-center gap-2">
+                      <Trash2 className="h-5 w-5" />
+                      危険な操作
+                    </CardTitle>
+                    <CardDescription>
+                      これらの操作は取り消すことができません。十分ご注意ください。
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between p-4 border border-destructive/50 rounded-lg bg-destructive/5">
+                      <div className="space-y-1">
+                        <p className="font-medium">会社を完全に削除</p>
+                        <p className="text-sm text-muted-foreground">
+                          この会社に関連するすべてのデータ（請求書、契約書、顧客情報、従業員データなど）が完全に削除されます。この操作は取り消せません。
+                        </p>
+                      </div>
+                      <Button 
+                        variant="destructive"
+                        onClick={() => setShowDeleteDialog(true)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        会社を削除
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
           </Tabs>
         )}
