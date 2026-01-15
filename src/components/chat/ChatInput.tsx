@@ -34,11 +34,24 @@ export function ChatInput({ onSend, isLoading, disabled }: ChatInputProps) {
   };
 
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInput(e.target.value);
-    // Auto-resize textarea
+    const nextValue = e.target.value;
+    setInput(nextValue);
+
+    // Auto-resize textarea (grow-only to avoid "縮んだり広がったり" のちらつき)
     const textarea = e.target;
-    textarea.style.height = "auto";
-    textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
+    const currentHeight = textarea.style.height
+      ? parseInt(textarea.style.height.replace("px", ""), 10)
+      : textarea.offsetHeight;
+
+    if (!nextValue) {
+      textarea.style.height = "auto";
+      return;
+    }
+
+    const nextHeight = Math.min(textarea.scrollHeight, 120);
+    if (nextHeight > currentHeight) {
+      textarea.style.height = `${nextHeight}px`;
+    }
   };
 
   return (

@@ -268,7 +268,7 @@ serve(async (req: Request) => {
       });
     }
 
-    const { messages, test } = await req.json();
+    const { messages, test, stream } = await req.json();
     
     // Handle test connection
     if (test) {
@@ -318,10 +318,10 @@ serve(async (req: Request) => {
 【重要なルール - 必ず守ってください】
 1. タスク管理: 複雑な依頼を受けた場合は、まずタスクリストを作成し、1つずつ順番に実行してください。
    例: 「請求書を作成して送付」→ ①クライアント確認 ②請求書作成 ③送付確認
-   
+
 2. 削除操作は必ず確認: データを削除する前に必ず確認を取ってください。
    「○○を削除しますか？確認のため「はい」と返信してください」と聞いてから実行。
-   
+
 3. 禁止操作（以下は絶対に実行しないでください）:
    - 「全てのデータを削除」「全件削除」「リセット」
    - 100件以上のデータを一括で削除・更新する操作
@@ -330,6 +330,11 @@ serve(async (req: Request) => {
    これらの依頼には「セキュリティ上の理由でその操作は実行できません」と丁寧にお断りしてください。
 
 4. 安全第一: 不明確な指示の場合は、必ず確認を取ってから実行してください。
+
+5. 表現ルール（重要）:
+   - 「システムの不具合」などの曖昧な言い方は禁止。原因が「入力不足」ならそう明言し、DB/権限などの失敗ならエラー内容を短く提示してください。
+   - 「〜を実行中…」など進捗を文章で書かないでください（画面側で進捗が表示されます）。
+   - ツールの実行結果を受け取る前に「登録しました」「作成しました」と断定しないでください。
 
 【対応可能な機能】
 - 契約書の作成・管理・電子署名
@@ -352,6 +357,133 @@ serve(async (req: Request) => {
 
     let result: { content: string; toolCalls: Array<{ id: string; name: string; input: unknown }> };
     let toolResults: Array<{ toolCallId: string; toolName: string; result: unknown; isError?: boolean }> = [];
+
+    // Streaming (SSE): tool status (実行中→完了/失敗) を自然に表現するため
+    if (stream) {
+      const encoder = new TextEncoder();
+
+      const sseHeaders = {
+        ...corsHeaders,
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      };
+
+      const body = new ReadableStream({
+        start: async (controller) => {
+          const send = (chunk: unknown) => {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
+          };
+
+          try {
+            // Route to appropriate AI provider
+            if (aiSettings.provider === "lovable") {
+              // First call with tools
+              const first = await callLovableAI(messages, aiSettings.model, systemPrompt, allTools);
+
+              // Initial content (confirmation/questions) if present
+              if (first.content) {
+                send({
+                  type: "content_block_delta",
+                  delta: { type: "text_delta", text: first.content },
+                });
+              }
+
+              // Tool calls
+              for (const tc of first.toolCalls) {
+                send({ type: "tool_use", toolCall: tc });
+              }
+
+              // Execute tools and stream results
+              const streamedToolResults: typeof toolResults = [];
+              for (const toolCall of first.toolCalls) {
+                try {
+                  const toolResult = await executeToolCall(
+                    toolCall.name,
+                    toolCall.input as Record<string, unknown>,
+                    userId,
+                    supabase
+                  );
+                  const tr = { toolCallId: toolCall.id, toolName: toolCall.name, result: toolResult };
+                  streamedToolResults.push(tr);
+                  send({ type: "tool_result", toolResult: tr });
+                } catch (error) {
+                  const tr = {
+                    toolCallId: toolCall.id,
+                    toolName: toolCall.name,
+                    result: { error: error instanceof Error ? error.message : "Unknown error" },
+                    isError: true,
+                  };
+                  streamedToolResults.push(tr);
+                  send({ type: "tool_result", toolResult: tr });
+                }
+              }
+
+              // Final response (use tool results as context)
+              if (first.toolCalls.length > 0) {
+                const messagesWithToolResults = [
+                  ...messages,
+                  {
+                    role: "assistant",
+                    content: first.content || null,
+                    tool_calls: first.toolCalls.map((tc) => ({
+                      id: tc.id,
+                      type: "function",
+                      function: {
+                        name: tc.name,
+                        arguments: JSON.stringify(tc.input),
+                      },
+                    })),
+                  },
+                  ...streamedToolResults.map((tr) => ({
+                    role: "tool",
+                    tool_call_id: tr.toolCallId,
+                    content: JSON.stringify(tr.result),
+                  })),
+                ];
+
+                const final = await callLovableAI(messagesWithToolResults, aiSettings.model, systemPrompt, allTools);
+                if (final.content) {
+                  send({
+                    type: "content_block_delta",
+                    delta: { type: "text_delta", text: final.content },
+                  });
+                }
+              }
+            } else if (aiSettings.provider === "openai") {
+              if (!aiSettings.custom_api_key) {
+                throw new Error("OpenAI API key is not configured");
+              }
+              const openaiRes = await callOpenAI(messages, aiSettings.model, aiSettings.custom_api_key, systemPrompt);
+              send({
+                type: "content_block_delta",
+                delta: { type: "text_delta", text: openaiRes.content },
+              });
+            } else if (aiSettings.provider === "anthropic") {
+              if (!aiSettings.custom_api_key) {
+                throw new Error("Anthropic API key is not configured");
+              }
+              const anth = await callAnthropic(messages, aiSettings.model, aiSettings.custom_api_key, systemPrompt, allTools);
+              send({
+                type: "content_block_delta",
+                delta: { type: "text_delta", text: anth.content },
+              });
+            } else {
+              throw new Error(`Unknown provider: ${aiSettings.provider}`);
+            }
+
+            controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+            controller.close();
+          } catch (e) {
+            send({ type: "error", error: e instanceof Error ? e.message : "Internal server error" });
+            controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+            controller.close();
+          }
+        },
+      });
+
+      return new Response(body, { headers: sseHeaders });
+    }
 
     // Route to appropriate AI provider
     if (aiSettings.provider === "lovable") {

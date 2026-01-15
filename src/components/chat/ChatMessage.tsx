@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Bot, User, Wrench, AlertCircle } from "lucide-react";
+import { Bot, User, Wrench, Loader2, CheckCircle, XCircle } from "lucide-react";
 import { ChatMessage as ChatMessageType } from "@/types/chat";
 import { ToolResultCard } from "./ToolResultCard";
 import ReactMarkdown from "react-markdown";
@@ -10,16 +10,14 @@ interface ChatMessageProps {
 }
 
 export function ChatMessage({ message }: ChatMessageProps) {
-  const isUser = message.role === 'user';
-  const isAssistant = message.role === 'assistant';
+  const isUser = message.role === "user";
+
+  const toolResultsByCallId = new Map(
+    (message.toolResults ?? []).map((r) => [r.toolCallId, r])
+  );
 
   return (
-    <div
-      className={cn(
-        "flex gap-3 px-4 py-3",
-        isUser && "flex-row-reverse"
-      )}
-    >
+    <div className={cn("flex gap-3 px-4 py-3", isUser && "flex-row-reverse")}>
       {/* Avatar */}
       <div
         className={cn(
@@ -46,9 +44,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
           <div
             className={cn(
               "rounded-lg px-3 py-2 text-sm min-h-[2rem]",
-              isUser
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted",
+              isUser ? "bg-primary text-primary-foreground" : "bg-muted",
               message.isStreaming && "animate-pulse"
             )}
             style={{ wordBreak: "break-word" }}
@@ -56,7 +52,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
             {isUser ? (
               <p className="whitespace-pre-wrap break-words">{message.content}</p>
             ) : (
-              <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-pre:my-2 break-words overflow-hidden">
+              <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-pre:my-2 break-words">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
@@ -71,13 +67,16 @@ export function ChatMessage({ message }: ChatMessageProps) {
                       </code>
                     ),
                     a: ({ href, children }) => (
-                      <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline break-all">
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary underline break-all"
+                      >
                         {children}
                       </a>
                     ),
-                    p: ({ children }) => (
-                      <p className="break-words">{children}</p>
-                    ),
+                    p: ({ children }) => <p className="break-words">{children}</p>,
                   }}
                 >
                   {message.content}
@@ -87,18 +86,44 @@ export function ChatMessage({ message }: ChatMessageProps) {
           </div>
         )}
 
-        {/* Tool calls display */}
+        {/* Tool calls display (with status) */}
         {message.toolCalls && message.toolCalls.length > 0 && (
           <div className="flex flex-col gap-2 w-full">
-            {message.toolCalls.map((toolCall) => (
-              <div
-                key={toolCall.id}
-                className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded px-2 py-1"
-              >
-                <Wrench className="h-3 w-3" />
-                <span>{toolCall.name} を実行中...</span>
-              </div>
-            ))}
+            {message.toolCalls.map((toolCall) => {
+              const toolResult = toolResultsByCallId.get(toolCall.id);
+              const isDone = !!toolResult;
+              const isError = toolResult?.isError;
+
+              return (
+                <div
+                  key={toolCall.id}
+                  className="flex items-center justify-between gap-2 text-xs text-muted-foreground bg-muted/50 rounded px-2 py-1"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Wrench className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{toolCall.name}</span>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {!isDone ? (
+                      <>
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        <span>実行中</span>
+                      </>
+                    ) : isError ? (
+                      <>
+                        <XCircle className="h-3 w-3" />
+                        <span>失敗</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="h-3 w-3" />
+                        <span>完了</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -113,9 +138,9 @@ export function ChatMessage({ message }: ChatMessageProps) {
 
         {/* Timestamp */}
         <span className="text-[10px] text-muted-foreground">
-          {message.timestamp.toLocaleTimeString('ja-JP', {
-            hour: '2-digit',
-            minute: '2-digit',
+          {message.timestamp.toLocaleTimeString("ja-JP", {
+            hour: "2-digit",
+            minute: "2-digit",
           })}
         </span>
       </div>

@@ -42,19 +42,26 @@ export interface SendMessageRequest {
 
 export interface ChatResponse {
   id: string;
-  role: 'assistant';
+  role: "assistant";
   content: string;
   toolCalls?: ToolCall[];
-  stopReason?: 'end_turn' | 'tool_use' | 'max_tokens';
+  toolResults?: ToolResult[];
+  stopReason?: "end_turn" | "tool_use" | "max_tokens";
 }
 
 export interface StreamChunk {
-  type: 'content_block_delta' | 'message_delta' | 'tool_use' | 'tool_result' | 'error';
+  type:
+    | "content_block_delta"
+    | "message_delta"
+    | "tool_use"
+    | "tool_result"
+    | "error";
   delta?: {
-    type: 'text_delta';
+    type: "text_delta";
     text: string;
   };
   toolCall?: ToolCall;
+  toolResult?: ToolResult;
   error?: string;
 }
 
