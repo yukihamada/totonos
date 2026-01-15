@@ -70,3 +70,7 @@ verify_jwt = false
 # Send Auth Email: 認証メール送信（ログイン/登録/パスワードリセット）
 [functions.send-auth-email]
 verify_jwt = false
+
+# Link LINE: LINE連携処理（内部でJWT検証）
+[functions.link-line]
+verify_jwt = false

@@ -38,18 +38,26 @@ export default function LineSettings() {
 
   const fetchLineConnection = async () => {
     try {
-      const { data, error } = await supabase
-        .from("line_users")
-        .select("*")
-        .eq("user_id", user?.id)
-        .maybeSingle();
+      // Use Edge Function to get status (bypasses RLS)
+      const { data: response, error } = await supabase.functions.invoke("link-line", {
+        body: { action: "status" }
+      });
 
-      if (error && error.code !== "PGRST116") {
-        throw error;
-      }
-      setLineUser(data);
+      if (error) throw error;
+      setLineUser(response?.lineUser || null);
     } catch (error) {
       console.error("Failed to fetch LINE connection:", error);
+      // Fallback to direct query (will work if already linked)
+      try {
+        const { data } = await supabase
+          .from("line_users")
+          .select("*")
+          .eq("user_id", user?.id)
+          .maybeSingle();
+        setLineUser(data);
+      } catch {
+        // Ignore
+      }
     } finally {
       setIsLoading(false);
     }
@@ -61,37 +69,31 @@ export default function LineSettings() {
       return;
     }
 
+    if (linkCode.trim().length < 6) {
+      toast.error("連携コードは6文字以上入力してください");
+      return;
+    }
+
     setIsLinking(true);
     try {
-      // Find LINE user by code prefix
-      const { data: lineUsers, error: searchError } = await supabase
-        .from("line_users")
-        .select("*")
-        .is("user_id", null)
-        .ilike("line_user_id", `${linkCode}%`);
+      // Use Edge Function to link (bypasses RLS for unlinked users)
+      const { data: response, error } = await supabase.functions.invoke("link-line", {
+        body: { action: "link", linkCode: linkCode.trim() }
+      });
 
-      if (searchError) throw searchError;
-
-      if (!lineUsers || lineUsers.length === 0) {
-        toast.error("連携コードが見つかりません。LINEで「連携」と送信して新しいコードを取得してください。");
+      if (error) {
+        toast.error("連携処理でエラーが発生しました");
+        console.error("Link error:", error);
         return;
       }
 
-      const targetLineUser = lineUsers[0];
+      if (response?.error) {
+        toast.error(response.error);
+        return;
+      }
 
-      // Link the accounts
-      const { error: updateError } = await supabase
-        .from("line_users")
-        .update({
-          user_id: user?.id,
-          linked_at: new Date().toISOString(),
-        })
-        .eq("id", targetLineUser.id);
-
-      if (updateError) throw updateError;
-
-      toast.success("LINE連携が完了しました！");
-      fetchLineConnection();
+      toast.success(response?.message || "LINE連携が完了しました！");
+      setLineUser(response?.lineUser || null);
       setLinkCode("");
     } catch (error) {
       console.error("Failed to link LINE account:", error);
@@ -105,17 +107,19 @@ export default function LineSettings() {
     if (!lineUser) return;
 
     try {
-      const { error } = await supabase
-        .from("line_users")
-        .update({
-          user_id: null,
-          linked_at: null,
-        })
-        .eq("id", lineUser.id);
+      // Use Edge Function to unlink
+      const { data: response, error } = await supabase.functions.invoke("link-line", {
+        body: { action: "unlink" }
+      });
 
       if (error) throw error;
 
-      toast.success("LINE連携を解除しました");
+      if (response?.error) {
+        toast.error(response.error);
+        return;
+      }
+
+      toast.success(response?.message || "LINE連携を解除しました");
       setLineUser(null);
     } catch (error) {
       console.error("Failed to unlink LINE account:", error);
