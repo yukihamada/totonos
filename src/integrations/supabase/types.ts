@@ -2657,6 +2657,50 @@ export type Database = {
         }
         Relationships: []
       }
+      sensitive_data_audit_log: {
+        Row: {
+          accessed_at: string
+          action: string
+          company_id: string | null
+          id: string
+          ip_address: string | null
+          record_id: string | null
+          table_name: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          accessed_at?: string
+          action: string
+          company_id?: string | null
+          id?: string
+          ip_address?: string | null
+          record_id?: string | null
+          table_name: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          accessed_at?: string
+          action?: string
+          company_id?: string | null
+          id?: string
+          ip_address?: string | null
+          record_id?: string | null
+          table_name?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sensitive_data_audit_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       signature_verification_logs: {
         Row: {
           blockchain_confirmed: boolean | null
@@ -2982,6 +3026,41 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wiki_pages: {
         Row: {
           category: Database["public"]["Enums"]["wiki_category"] | null
@@ -3286,6 +3365,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      has_hr_access: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
       has_hr_payroll_permission: {
         Args: { p_company_id?: string }
         Returns: boolean
@@ -3295,6 +3378,14 @@ export type Database = {
           p_company_id: string
           p_permission: Database["public"]["Enums"]["permission_type"]
           p_user_id: string
+        }
+        Returns: boolean
+      }
+      has_role: {
+        Args: {
+          _company_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
         }
         Returns: boolean
       }
@@ -3337,6 +3428,7 @@ export type Database = {
     Enums: {
       account_type: "asset" | "liability" | "equity" | "revenue" | "expense"
       activity_type: "call" | "meeting" | "email" | "visit" | "demo" | "other"
+      app_role: "admin" | "hr" | "manager" | "user"
       asset_category:
         | "building"
         | "vehicle"
@@ -3603,6 +3695,7 @@ export const Constants = {
     Enums: {
       account_type: ["asset", "liability", "equity", "revenue", "expense"],
       activity_type: ["call", "meeting", "email", "visit", "demo", "other"],
+      app_role: ["admin", "hr", "manager", "user"],
       asset_category: [
         "building",
         "vehicle",
