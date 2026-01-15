@@ -23,7 +23,7 @@ const LINE_BOT_ID = "@165ikada";
 const LINE_ADD_FRIEND_URL = "https://line.me/R/ti/p/@165ikada";
 
 export default function LineSettings() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const isMobile = useIsMobile();
   const [lineUser, setLineUser] = useState<LineUser | null>(null);
   const [linkCode, setLinkCode] = useState("");
@@ -33,20 +33,31 @@ export default function LineSettings() {
   useEffect(() => {
     if (user) {
       fetchLineConnection();
+    } else {
+      setIsLoading(false);
     }
-  }, [user]);
+  }, [user, session?.access_token]);
 
   const fetchLineConnection = async () => {
     try {
-      // Use Edge Function to get status (bypasses RLS)
+      if (!session?.access_token) {
+        setLineUser(null);
+        return;
+      }
+
+      // Use backend function to get status (bypasses RLS)
       const { data: response, error } = await supabase.functions.invoke("link-line", {
-        body: { action: "status" }
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: { action: "status" },
       });
 
       if (error) throw error;
+      if (response?.error) throw new Error(response.error);
+
       setLineUser(response?.lineUser || null);
     } catch (error) {
       console.error("Failed to fetch LINE connection:", error);
+
       // Fallback to direct query (will work if already linked)
       try {
         const { data } = await supabase
@@ -64,6 +75,11 @@ export default function LineSettings() {
   };
 
   const handleLinkAccount = async () => {
+    if (!session?.access_token) {
+      toast.error("ログイン状態を確認できません。再ログインしてからお試しください。");
+      return;
+    }
+
     if (!linkCode.trim()) {
       toast.error("連携コードを入力してください");
       return;
@@ -76,14 +92,14 @@ export default function LineSettings() {
 
     setIsLinking(true);
     try {
-      // Use Edge Function to link (bypasses RLS for unlinked users)
       const { data: response, error } = await supabase.functions.invoke("link-line", {
-        body: { action: "link", linkCode: linkCode.trim() }
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: { action: "link", linkCode: linkCode.trim() },
       });
 
       if (error) {
-        toast.error("連携処理でエラーが発生しました");
-        console.error("Link error:", error);
+        console.error("Link invoke error:", error);
+        toast.error(error.message || "連携処理でエラーが発生しました");
         return;
       }
 
@@ -104,15 +120,24 @@ export default function LineSettings() {
   };
 
   const handleUnlinkAccount = async () => {
+    if (!session?.access_token) {
+      toast.error("ログイン状態を確認できません。再ログインしてからお試しください。");
+      return;
+    }
+
     if (!lineUser) return;
 
     try {
-      // Use Edge Function to unlink
       const { data: response, error } = await supabase.functions.invoke("link-line", {
-        body: { action: "unlink" }
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: { action: "unlink" },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Unlink invoke error:", error);
+        toast.error(error.message || "連携解除に失敗しました");
+        return;
+      }
 
       if (response?.error) {
         toast.error(response.error);

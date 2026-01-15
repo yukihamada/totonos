@@ -14,30 +14,32 @@ serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    // Use service role for accessing unlinked LINE users (and for token verification)
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
     // Get user from authorization header
-    const authHeader = req.headers.get("Authorization");
+    const authHeader = req.headers.get("Authorization") || req.headers.get("authorization");
     if (!authHeader) {
+      console.log("link-line: missing Authorization header");
       return new Response(
         JSON.stringify({ error: "認証が必要です" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Verify user
-    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-      global: {
-        headers: { Authorization: authHeader },
-      },
-    });
+    const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+    if (!token) {
+      console.log("link-line: empty bearer token");
+      return new Response(
+        JSON.stringify({ error: "認証が必要です" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
     if (userError || !user) {
+      console.log("link-line: auth failed", { message: userError?.message });
       return new Response(
         JSON.stringify({ error: "ユーザー認証に失敗しました" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -45,9 +47,11 @@ serve(async (req: Request) => {
     }
 
     const { linkCode, action } = await req.json();
-    
-    // Use service role for accessing unlinked LINE users
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
+    console.log("link-line request", {
+      action,
+      linkCodePrefix: typeof linkCode === "string" ? linkCode.slice(0, 10) : undefined,
+      userId: user.id,
+    });
 
     if (action === "link") {
       if (!linkCode || linkCode.length < 6) {
