@@ -11,6 +11,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useDemo } from "@/contexts/DemoContext";
 import { FeedbackButton } from "@/components/FeedbackButton";
 import { NotificationBell } from "@/components/NotificationBell";
+import { CompanySetupDialog } from "@/components/CompanySetupDialog";
+import { useCurrentCompany, useUpdateCompany, useEnsureDefaultCompany } from "@/hooks/useCompany";
+import { useAuth } from "@/hooks/useAuth";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -20,7 +23,30 @@ export function AppLayout({ children }: AppLayoutProps) {
   const isMobile = useIsMobile();
   const [chatOpen, setChatOpen] = useState(false);
   const { isDemoMode, exitDemoMode } = useDemo();
+  const { user } = useAuth();
   const navigate = useNavigate();
+
+  const { data: currentCompany, isLoading: companyLoading } = useCurrentCompany();
+  const updateCompany = useUpdateCompany();
+  const ensureDefaultCompany = useEnsureDefaultCompany();
+
+  // Check if company needs setup (name is "会社名未登録")
+  const needsCompanySetup = !isDemoMode && user && currentCompany && currentCompany.name === "会社名未登録";
+  const [showSetupDialog, setShowSetupDialog] = useState(false);
+
+  // Ensure user has a company when logged in
+  useEffect(() => {
+    if (!isDemoMode && user && !companyLoading && !currentCompany) {
+      ensureDefaultCompany.mutate();
+    }
+  }, [isDemoMode, user, companyLoading, currentCompany]);
+
+  // Show setup dialog when company name is not set
+  useEffect(() => {
+    if (needsCompanySetup) {
+      setShowSetupDialog(true);
+    }
+  }, [needsCompanySetup]);
 
   // Keyboard shortcut: Cmd+K or Ctrl+K to open chat
   useEffect(() => {
@@ -37,6 +63,16 @@ export function AppLayout({ children }: AppLayoutProps) {
   const handleExitDemo = () => {
     exitDemoMode();
     navigate("/");
+  };
+
+  const handleCompanySetup = async (companyName: string, displayName?: string) => {
+    if (!currentCompany) return;
+    await updateCompany.mutateAsync({
+      id: currentCompany.id,
+      name: companyName,
+      display_name: displayName || companyName,
+    });
+    setShowSetupDialog(false);
   };
 
   return (
@@ -106,6 +142,13 @@ export function AppLayout({ children }: AppLayoutProps) {
         )}
         <ChatWidget open={chatOpen} onOpenChange={setChatOpen} />
         <FeedbackButton />
+        
+        {/* Company Setup Dialog */}
+        <CompanySetupDialog
+          open={showSetupDialog}
+          onComplete={handleCompanySetup}
+          isLoading={updateCompany.isPending}
+        />
       </div>
     </SidebarProvider>
   );
