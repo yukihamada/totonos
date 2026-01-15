@@ -1,5 +1,9 @@
 project_id = "wnqfmvoyvipebipdpvcx"
 
+# LINE Webhook: LINE署名検証で保護
+[functions.line-webhook]
+verify_jwt = false
+
 [functions.send-contract-signature]
 verify_jwt = false
 

@@ -2011,6 +2011,75 @@ export type Database = {
           },
         ]
       }
+      line_chat_history: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          line_user_id: string
+          message_id: string | null
+          reply_token: string | null
+          role: string
+          user_id: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          line_user_id: string
+          message_id?: string | null
+          reply_token?: string | null
+          role: string
+          user_id?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          line_user_id?: string
+          message_id?: string | null
+          reply_token?: string | null
+          role?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      line_users: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          line_user_id: string
+          linked_at: string | null
+          picture_url: string | null
+          status_message: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          line_user_id: string
+          linked_at?: string | null
+          picture_url?: string | null
+          status_message?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          line_user_id?: string
+          linked_at?: string | null
+          picture_url?: string | null
+          status_message?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       member_permissions: {
         Row: {
           granted_at: string
