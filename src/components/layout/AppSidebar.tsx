@@ -152,6 +152,8 @@ const iconMap: Record<string, LucideIcon> = {
   'approval-workflow': GitBranch,
   'sso-settings': KeyRound,
   'line-settings': MessageSquare,
+  'ai-settings': Brain,
+  'data-import': FolderTree,
   // Credit system
   credits: Coins,
   'credit-logs': History,
@@ -242,7 +244,9 @@ const urlMap: Record<string, string> = {
   pricing: '/pricing',
   referrals: '/referrals',
   // Developer & Settings
-  'line-settings': '/settings/line',
+  'line-settings': '/line-settings',
+  'ai-settings': '/ai-settings',
+  'data-import': '/data-import',
   'settings-menu': '/settings/menu',
   developer: '/developer',
   'api-docs': '/api-docs',

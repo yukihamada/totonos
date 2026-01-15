@@ -15,6 +15,8 @@ import { CompanySetupDialog } from "@/components/CompanySetupDialog";
 import { useCurrentCompany, useUpdateCompany, useEnsureDefaultCompany } from "@/hooks/useCompany";
 import { useAuth } from "@/hooks/useAuth";
 
+const SIDEBAR_STATE_KEY = "sidebar-open-state";
+
 interface AppLayoutProps {
   children: ReactNode;
 }
@@ -75,8 +77,18 @@ export function AppLayout({ children }: AppLayoutProps) {
     setShowSetupDialog(false);
   };
 
+  // Load sidebar state from localStorage
+  const [sidebarDefaultOpen, setSidebarDefaultOpen] = useState(() => {
+    const saved = localStorage.getItem(SIDEBAR_STATE_KEY);
+    return saved !== null ? saved === "true" : true;
+  });
+
+  const handleSidebarOpenChange = (open: boolean) => {
+    localStorage.setItem(SIDEBAR_STATE_KEY, String(open));
+  };
+
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={sidebarDefaultOpen} onOpenChange={handleSidebarOpenChange}>
       <div className="min-h-screen flex w-full flex-col">
         {/* Demo Mode Banner */}
         {isDemoMode && (
