@@ -9,13 +9,18 @@ const corsHeaders = {
 };
 
 interface AuthEmailRequest {
-  type: "magic_link" | "welcome" | "password_reset";
+  type: "magic_link" | "welcome" | "password_reset" | "login_success";
   email: string;
   token?: string;
   redirectUrl?: string;
+  userName?: string;
 }
 
 const APP_NAME = "Totonos";
+const AI_AGENT_NAME = "ミナト";
+const AI_AGENT_EMAIL = "minato@totonos.lovable.app"; // 返信先として使用
+const SUPPORT_EMAIL = "support@totonos.lovable.app";
+
 const APP_FEATURES = [
   {
     icon: "📄",
@@ -57,6 +62,16 @@ const APP_FEATURES = [
     title: "プロジェクト管理",
     description: "タスク管理、ガントチャート、工数管理でプロジェクトを効率的に進行。"
   }
+];
+
+// AI Agent examples for what users can ask via email reply
+const EMAIL_COMMAND_EXAMPLES = [
+  { command: "今月の売上を教えて", description: "売上レポートを自動集計" },
+  { command: "請求書を作成して：〇〇株式会社宛、10万円", description: "請求書を即座に作成" },
+  { command: "未払いの請求書一覧", description: "入金待ちの請求書を確認" },
+  { command: "新規リードを登録：会社名、担当者名、メール", description: "リード情報を登録" },
+  { command: "明日の予定を教えて", description: "スケジュール確認" },
+  { command: "〇〇さんの連絡先", description: "顧客情報を検索" },
 ];
 
 const generateMagicLinkEmail = (token: string, redirectUrl: string) => {
@@ -170,7 +185,7 @@ const generateWelcomeEmail = (email: string) => {
           <div class="cta-section">
             <h3 style="margin-top: 0;">さっそく始めましょう！</h3>
             <p style="color: #6b7280;">まずはダッシュボードから各機能をお試しください。</p>
-            <a href="${Deno.env.get("SUPABASE_URL")?.replace('.supabase.co', '.lovable.app') || '#'}" class="button">ダッシュボードを開く</a>
+            <a href="https://totonos.lovable.app/dashboard" class="button">ダッシュボードを開く</a>
           </div>
           
           <div style="margin-top: 30px; padding: 20px; background: #fef3c7; border-radius: 8px;">
@@ -187,6 +202,131 @@ const generateWelcomeEmail = (email: string) => {
         </div>
         <div class="footer">
           <p>このメールは${APP_NAME}から自動送信されています。</p>
+          <p>© ${new Date().getFullYear()} ${APP_NAME}. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+};
+
+const generateLoginSuccessEmail = (email: string, userName?: string) => {
+  const appUrl = "https://totonos.lovable.app";
+  const lineSettingsUrl = `${appUrl}/settings/line`;
+  
+  const commandExamplesHtml = EMAIL_COMMAND_EXAMPLES.map(ex => `
+    <tr>
+      <td style="padding: 12px 15px; border-bottom: 1px solid #e5e7eb; font-family: monospace; background: #f9fafb; color: #374151;">
+        ${ex.command}
+      </td>
+      <td style="padding: 12px 15px; border-bottom: 1px solid #e5e7eb; color: #6b7280; font-size: 14px;">
+        ${ex.description}
+      </td>
+    </tr>
+  `).join("");
+
+  const greeting = userName ? `${userName}さん` : "お客様";
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 30px; border-radius: 12px 12px 0 0; }
+        .agent-avatar { width: 60px; height: 60px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; margin-bottom: 15px; }
+        .content { padding: 40px 30px; background: white; }
+        .button { display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-weight: bold; font-size: 14px; margin: 5px; }
+        .button-outline { display: inline-block; background: white; border: 2px solid #6366f1; color: #6366f1; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: bold; font-size: 14px; margin: 5px; }
+        .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; background: #f9f9f9; border-radius: 0 0 12px 12px; }
+        .tip-box { background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); padding: 20px; border-radius: 12px; margin: 25px 0; border-left: 4px solid #10b981; }
+        .line-box { background: linear-gradient(135deg, #ecfdf5 0%, #dcfce7 100%); padding: 20px; border-radius: 12px; margin: 25px 0; }
+        .feature-grid { display: grid; gap: 15px; margin: 20px 0; }
+        .feature-item { background: #f9fafb; padding: 15px; border-radius: 8px; }
+        .reply-box { background: #eff6ff; padding: 20px; border-radius: 12px; margin: 25px 0; border: 2px dashed #3b82f6; }
+        h1 { color: #1a1a1a; margin: 0 0 10px 0; font-size: 24px; }
+        h2 { color: #1a1a1a; margin-top: 30px; margin-bottom: 15px; font-size: 18px; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; border-radius: 8px; overflow: hidden; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <div class="agent-avatar">🤖</div>
+          <h1 style="color: white; margin: 0;">こんにちは！${AI_AGENT_NAME}です</h1>
+          <p style="margin: 10px 0 0 0; opacity: 0.9;">
+            ${APP_NAME} AIアシスタント
+          </p>
+        </div>
+        <div class="content">
+          <p style="font-size: 16px; color: #374151;">
+            ${greeting}、ログインありがとうございます！🎉<br><br>
+            私は${APP_NAME}のAIアシスタント「<strong>${AI_AGENT_NAME}</strong>」です。<br>
+            あなたのビジネスをサポートするために、いつでもお手伝いします。
+          </p>
+
+          <div class="reply-box">
+            <h3 style="margin-top: 0; color: #1e40af;">📧 このメールに返信するだけで操作できます！</h3>
+            <p style="margin-bottom: 0; color: #1e40af; font-size: 14px;">
+              わざわざアプリを開かなくても、このメールに返信するだけで<br>
+              請求書作成や顧客検索などの操作ができます。
+            </p>
+          </div>
+
+          <h2>💬 メールで私に依頼できること</h2>
+          <table>
+            <thead>
+              <tr style="background: #6366f1; color: white;">
+                <th style="padding: 12px 15px; text-align: left;">送信例</th>
+                <th style="padding: 12px 15px; text-align: left;">できること</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${commandExamplesHtml}
+            </tbody>
+          </table>
+
+          <div class="tip-box">
+            <strong>💡 ヒント</strong>
+            <p style="margin: 10px 0 0 0; font-size: 14px;">
+              上記は一例です。自然な言葉で何でも聞いてください！<br>
+              例：「先月より売上は増えた？」「〇〇会社との取引履歴を見せて」
+            </p>
+          </div>
+
+          <h2>📱 LINE連携もできます</h2>
+          <div class="line-box">
+            <p style="margin: 0 0 15px 0;">
+              LINEと連携すると、スマホからも簡単に${AI_AGENT_NAME}に話しかけられます。<br>
+              外出先でも、LINEでメッセージを送るだけで業務処理が可能です。
+            </p>
+            <a href="${lineSettingsUrl}" class="button-outline" style="color: #22c55e; border-color: #22c55e;">
+              📱 LINE連携を設定する
+            </a>
+          </div>
+
+          <h2>🖥️ アプリからも呼び出せます</h2>
+          <p style="color: #6b7280;">
+            ${APP_NAME}のアプリにログインして、右下のチャットボタンをクリックすると<br>
+            いつでも${AI_AGENT_NAME}と対話できます。
+          </p>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${appUrl}/dashboard" class="button">ダッシュボードを開く</a>
+          </div>
+
+          <div style="margin-top: 30px; padding: 20px; background: #f3f4f6; border-radius: 8px; text-align: center;">
+            <p style="margin: 0; color: #6b7280; font-size: 14px;">
+              何かお困りのことがあれば、いつでもこのメールに返信してください。<br>
+              ${AI_AGENT_NAME}がお手伝いします！ 🤝
+            </p>
+          </div>
+        </div>
+        <div class="footer">
+          <p><strong>${AI_AGENT_NAME}</strong> - ${APP_NAME} AIアシスタント</p>
           <p>© ${new Date().getFullYear()} ${APP_NAME}. All rights reserved.</p>
         </div>
       </div>
@@ -251,12 +391,14 @@ serve(async (req) => {
   }
 
   try {
-    const { type, email, token, redirectUrl }: AuthEmailRequest = await req.json();
+    const { type, email, token, redirectUrl, userName }: AuthEmailRequest = await req.json();
 
     console.log(`Sending ${type} email to ${email}`);
 
     let subject: string;
     let html: string;
+    let fromName: string = APP_NAME;
+    let replyTo: string | undefined;
 
     switch (type) {
       case "magic_link":
@@ -269,6 +411,12 @@ serve(async (req) => {
       case "welcome":
         subject = `【${APP_NAME}】ご登録ありがとうございます 🎉`;
         html = generateWelcomeEmail(email);
+        break;
+      case "login_success":
+        fromName = `${AI_AGENT_NAME} | ${APP_NAME}`;
+        subject = `【${APP_NAME}】${AI_AGENT_NAME}です！ログインありがとうございます 🤖`;
+        html = generateLoginSuccessEmail(email, userName);
+        replyTo = SUPPORT_EMAIL; // 返信先を設定
         break;
       case "password_reset":
         if (!token || !redirectUrl) {
@@ -284,10 +432,11 @@ serve(async (req) => {
     // Send email via Resend
     // Note: In production, you should use a verified domain
     const emailResponse = await resend.emails.send({
-      from: `${APP_NAME} <onboarding@resend.dev>`,
+      from: `${fromName} <onboarding@resend.dev>`,
       to: [email],
       subject,
       html,
+      reply_to: replyTo,
     });
 
     console.log("Email sent successfully:", emailResponse);
