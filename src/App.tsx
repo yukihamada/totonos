@@ -253,6 +253,7 @@ function AppRoutes() {
       <Route path="/settings/menu" element={<ProtectedRoute><SettingsMenu /></ProtectedRoute>} />
       <Route path="/settings/ai" element={<ProtectedRoute><AISettings /></ProtectedRoute>} />
       <Route path="/settings/company" element={<ProtectedRoute><CompanySettings /></ProtectedRoute>} />
+      <Route path="/settings/line" element={<ProtectedRoute><LineSettings /></ProtectedRoute>} />
       <Route path="/developer" element={<ProtectedRoute><DeveloperSettings /></ProtectedRoute>} />
       <Route path="/api-docs" element={<ProtectedRoute><ApiDocs /></ProtectedRoute>} />
       <Route path="/mcp-settings" element={<ProtectedRoute><McpSettings /></ProtectedRoute>} />

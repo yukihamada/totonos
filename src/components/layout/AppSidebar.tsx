@@ -57,6 +57,7 @@ import {
   Code,
   Plug,
   MessageCircle,
+  MessageSquare,
   // Phase 4 icons
   CircleDollarSign,
   FolderKanban,
@@ -149,6 +150,7 @@ const iconMap: Record<string, LucideIcon> = {
   'social-insurance': ShieldCheck,
   'approval-workflow': GitBranch,
   'sso-settings': KeyRound,
+  'line-settings': MessageSquare,
   // Credit system
   credits: Coins,
   'credit-logs': History,
@@ -238,6 +240,7 @@ const urlMap: Record<string, string> = {
   pricing: '/pricing',
   referrals: '/referrals',
   // Developer & Settings
+  'line-settings': '/settings/line',
   'settings-menu': '/settings/menu',
   developer: '/developer',
   'api-docs': '/api-docs',
