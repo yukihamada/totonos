@@ -7,27 +7,27 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// クレジットパック設定
+// クレジットパック設定（月額サブスクリプション）
 const CREDIT_PACKS = {
   pack_100: {
-    priceId: "price_1SptNTDqLakc8Nxko1lwK2GG",
+    priceId: "price_1SptQ3DqLakc8NxkMsicIIoO",
     credits: 100,
-    price: 500,
+    price: 50000, // ¥500.00
   },
   pack_500: {
-    priceId: "price_1SptNVDqLakc8NxkDLCYiJIf",
+    priceId: "price_1SptQ5DqLakc8NxkmfJR5Xwj",
     credits: 500,
-    price: 2000,
+    price: 200000, // ¥2,000.00
   },
   pack_1000: {
-    priceId: "price_1SptNWDqLakc8NxktBlp3qce",
+    priceId: "price_1SptQ7DqLakc8NxkgCnNBuD1",
     credits: 1000,
-    price: 3500,
+    price: 350000, // ¥3,500.00
   },
   pack_5000: {
-    priceId: "price_1SptNXDqLakc8Nxk2ssYXs25",
+    priceId: "price_1SptQ8DqLakc8NxkIdRWUeZJ",
     credits: 5000,
-    price: 15000,
+    price: 1500000, // ¥15,000.00
   },
 } as const;
 
@@ -43,7 +43,7 @@ serve(async (req) => {
 
   try {
     const { packId } = await req.json();
-    console.log("Creating checkout for pack:", packId);
+    console.log("Creating subscription checkout for pack:", packId);
 
     // パック検証
     const pack = CREDIT_PACKS[packId as keyof typeof CREDIT_PACKS];
@@ -76,7 +76,7 @@ serve(async (req) => {
       console.log("Existing customer found:", customerId);
     }
 
-    // チェックアウトセッション作成
+    // チェックアウトセッション作成（サブスクリプションモード）
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
@@ -86,7 +86,7 @@ serve(async (req) => {
           quantity: 1,
         },
       ],
-      mode: "payment",
+      mode: "subscription",
       success_url: `${req.headers.get("origin")}/credits?success=true&pack=${packId}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get("origin")}/credits?canceled=true`,
       metadata: {
@@ -94,9 +94,16 @@ serve(async (req) => {
         pack_id: packId,
         credits: pack.credits.toString(),
       },
+      subscription_data: {
+        metadata: {
+          user_id: user.id,
+          pack_id: packId,
+          credits: pack.credits.toString(),
+        },
+      },
     });
 
-    console.log("Checkout session created:", session.id);
+    console.log("Subscription checkout session created:", session.id);
 
     return new Response(JSON.stringify({ url: session.url, sessionId: session.id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

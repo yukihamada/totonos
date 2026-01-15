@@ -38,84 +38,30 @@ serve(async (req) => {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         console.log("Checkout session completed:", session.id);
+        console.log("Session mode:", session.mode);
         console.log("Session metadata:", JSON.stringify(session.metadata));
 
-        // クレジット購入の処理
-        if (session.metadata?.pack_id && session.metadata?.credits) {
+        // サブスクリプションの初回支払い完了時にクレジットを付与
+        if (session.mode === "subscription" && session.metadata?.pack_id && session.metadata?.credits) {
           const credits = parseInt(session.metadata.credits, 10);
           const userId = session.metadata.user_id;
           const packId = session.metadata.pack_id;
 
-          console.log(`Processing credit purchase: ${credits} credits for user ${userId}`);
-
-          // ユーザーの会社を取得
-          const { data: membership } = await supabaseClient
-            .from("company_members")
-            .select("company_id")
-            .eq("user_id", userId)
-            .eq("is_active", true)
-            .single();
-
-          if (membership?.company_id) {
-            // company_creditsテーブルのcharged_creditsを増加
-            const { data: currentCredits } = await supabaseClient
-              .from("company_credits")
-              .select("charged_credits")
-              .eq("company_id", membership.company_id)
-              .single();
-
-            if (currentCredits) {
-              const newChargedCredits = (currentCredits.charged_credits || 0) + credits;
-              
-              const { error: updateError } = await supabaseClient
-                .from("company_credits")
-                .update({ 
-                  charged_credits: newChargedCredits,
-                  updated_at: new Date().toISOString()
-                })
-                .eq("company_id", membership.company_id);
-
-              if (updateError) {
-                console.error("Error updating company_credits:", updateError);
-              } else {
-                console.log(`Updated company_credits: +${credits} credits, new total: ${newChargedCredits}`);
-              }
-
-              // 残高計算（月額 + 購入クレジット - 使用済み）
-              const { data: creditData } = await supabaseClient
-                .from("company_credits")
-                .select("monthly_credits, charged_credits, used_this_month")
-                .eq("company_id", membership.company_id)
-                .single();
-
-              const balanceAfter = creditData 
-                ? (creditData.monthly_credits || 0) + (creditData.charged_credits || 0) - (creditData.used_this_month || 0)
-                : credits;
-
-              // トランザクションログ記録
-              await supabaseClient.from("credit_transactions").insert({
-                company_id: membership.company_id,
-                user_id: userId,
-                transaction_type: "charge",
-                amount: credits,
-                balance_after: balanceAfter,
-                description: `${credits}クレジット購入（¥${session.amount_total?.toLocaleString()}）`,
-                action: "credit_purchase",
-                metadata: {
-                  session_id: session.id,
-                  pack_id: packId,
-                  payment_amount: session.amount_total,
-                },
-              });
-
-              console.log(`Credit transaction logged for company ${membership.company_id}`);
-            }
-          } else {
-            console.log("No active company membership found for user:", userId);
-          }
+          console.log(`Processing subscription credit: ${credits} credits for user ${userId}`);
+          await addCreditsToUser(supabaseClient, userId, credits, packId, session.id, session.amount_total);
         }
 
-        // サブスクリプションの処理（既存のロジック）
+        // 単発購入の処理
+        if (session.mode === "payment" && session.metadata?.pack_id && session.metadata?.credits) {
+          const credits = parseInt(session.metadata.credits, 10);
+          const userId = session.metadata.user_id;
+          const packId = session.metadata.pack_id;
+
+          console.log(`Processing one-time credit purchase: ${credits} credits for user ${userId}`);
+          await addCreditsToUser(supabaseClient, userId, credits, packId, session.id, session.amount_total);
+        }
+
+        // 組織サブスクリプションの処理（既存のロジック）
         const organizationId = session.metadata?.organization_id;
         const subscriptionId = session.subscription as string;
 
@@ -142,6 +88,28 @@ serve(async (req) => {
             .eq("id", organizationId);
 
           console.log(`Organization ${organizationId} upgraded to ${plan}`);
+        }
+        break;
+      }
+
+      case "invoice.paid": {
+        // サブスクリプションの更新時（2回目以降の支払い）
+        const invoice = event.data.object as Stripe.Invoice;
+        console.log("Invoice paid:", invoice.id);
+
+        // 初回請求書はcheckout.session.completedで処理済みなのでスキップ
+        if (invoice.billing_reason === "subscription_cycle") {
+          const subscriptionId = invoice.subscription as string;
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          
+          const credits = parseInt(subscription.metadata?.credits || "0", 10);
+          const userId = subscription.metadata?.user_id;
+          const packId = subscription.metadata?.pack_id;
+
+          if (userId && credits > 0) {
+            console.log(`Processing recurring subscription: ${credits} credits for user ${userId}`);
+            await addCreditsToUser(supabaseClient, userId, credits, packId || "", invoice.id, invoice.amount_paid);
+          }
         }
         break;
       }
@@ -228,3 +196,74 @@ serve(async (req) => {
     });
   }
 });
+
+// クレジット付与のヘルパー関数
+// deno-lint-ignore no-explicit-any
+async function addCreditsToUser(
+  supabaseClient: any,
+  userId: string,
+  credits: number,
+  packId: string,
+  sessionId: string,
+  amountPaid: number | null
+) {
+  // ユーザーの会社を取得
+  const { data: membership } = await supabaseClient
+    .from("company_members")
+    .select("company_id")
+    .eq("user_id", userId)
+    .eq("is_active", true)
+    .single();
+
+  if (!membership?.company_id) {
+    console.log("No active company membership found for user:", userId);
+    return;
+  }
+
+  // company_creditsテーブルのcharged_creditsを増加
+  const { data: currentCredits } = await supabaseClient
+    .from("company_credits")
+    .select("charged_credits, monthly_credits, used_this_month")
+    .eq("company_id", membership.company_id)
+    .single();
+
+  if (currentCredits) {
+    const newChargedCredits = (currentCredits.charged_credits || 0) + credits;
+    
+    const { error: updateError } = await supabaseClient
+      .from("company_credits")
+      .update({ 
+        charged_credits: newChargedCredits,
+        updated_at: new Date().toISOString()
+      })
+      .eq("company_id", membership.company_id);
+
+    if (updateError) {
+      console.error("Error updating company_credits:", updateError);
+      return;
+    }
+
+    console.log(`Updated company_credits: +${credits} credits, new total: ${newChargedCredits}`);
+
+    // 残高計算
+    const balanceAfter = (currentCredits.monthly_credits || 0) + newChargedCredits - (currentCredits.used_this_month || 0);
+
+    // トランザクションログ記録
+    await supabaseClient.from("credit_transactions").insert({
+      company_id: membership.company_id,
+      user_id: userId,
+      transaction_type: "charge",
+      amount: credits,
+      balance_after: balanceAfter,
+      description: `${credits}クレジット購入（¥${((amountPaid || 0) / 100).toLocaleString()}）`,
+      action: "credit_purchase",
+      metadata: {
+        session_id: sessionId,
+        pack_id: packId,
+        payment_amount: amountPaid,
+      },
+    });
+
+    console.log(`Credit transaction logged for company ${membership.company_id}`);
+  }
+}
