@@ -43,14 +43,16 @@ export function useApiKeys() {
     }
 
     try {
+      // Use the safe view that excludes key_hash for security
+      // Note: api_keys_safe is a view not in generated types, so we use type assertion
       const { data, error } = await supabase
-        .from('api_keys')
+        .from('api_keys_safe' as any)
         .select('id, name, key_prefix, created_at, last_used_at, request_count')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setApiKeys(data || []);
+      setApiKeys((data as unknown as ApiKey[]) || []);
     } catch (error) {
       console.error('Error fetching API keys:', error);
       toast.error('API Keyの取得に失敗しました');

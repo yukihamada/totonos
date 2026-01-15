@@ -2953,6 +2953,42 @@ export type Database = {
       }
     }
     Views: {
+      api_keys_safe: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          key_prefix: string | null
+          last_used_at: string | null
+          name: string | null
+          request_count: number | null
+          scopes: string[] | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          key_prefix?: string | null
+          last_used_at?: string | null
+          name?: string | null
+          request_count?: number | null
+          scopes?: string[] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          key_prefix?: string | null
+          last_used_at?: string | null
+          name?: string | null
+          request_count?: number | null
+          scopes?: string[] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       employees_safe: {
         Row: {
           bank_account_number: string | null
