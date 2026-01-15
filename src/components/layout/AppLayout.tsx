@@ -1,4 +1,4 @@
-import { ReactNode, useState, useEffect } from "react";
+import { ReactNode, useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
@@ -14,6 +14,8 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { CompanySetupDialog } from "@/components/CompanySetupDialog";
 import { useCurrentCompany, useUpdateCompany, useEnsureDefaultCompany } from "@/hooks/useCompany";
 import { useAuth } from "@/hooks/useAuth";
+import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
+import { GlobalSearch, GlobalSearchRef } from "@/components/GlobalSearch";
 
 const SIDEBAR_STATE_KEY = "sidebar-open-state";
 
@@ -27,6 +29,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { isDemoMode, exitDemoMode } = useDemo();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const searchRef = useRef<GlobalSearchRef>(null);
 
   const { data: currentCompany, isLoading: companyLoading } = useCurrentCompany();
   const updateCompany = useUpdateCompany();
@@ -49,18 +52,6 @@ export function AppLayout({ children }: AppLayoutProps) {
       setShowSetupDialog(true);
     }
   }, [needsCompanySetup]);
-
-  // Keyboard shortcut: Cmd+K or Ctrl+K to open chat
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        setChatOpen(prev => !prev);
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
 
   const handleExitDemo = () => {
     exitDemoMode();
@@ -90,6 +81,12 @@ export function AppLayout({ children }: AppLayoutProps) {
   return (
     <SidebarProvider defaultOpen={sidebarDefaultOpen} onOpenChange={handleSidebarOpenChange}>
       <div className="min-h-screen flex w-full flex-col">
+        {/* Keyboard Shortcuts */}
+        <KeyboardShortcuts
+          onOpenChat={() => setChatOpen(true)}
+          onOpenSearch={() => searchRef.current?.open()}
+        />
+        
         {/* Demo Mode Banner */}
         {isDemoMode && (
           <div className="bg-amber-500 text-amber-950 px-4 py-2 text-center text-sm flex items-center justify-center gap-2 flex-wrap">
@@ -126,6 +123,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             <header className="h-14 border-b border-border flex items-center justify-between px-4">
               <SidebarTrigger className="md:flex" />
               <div className="flex items-center gap-2">
+                <GlobalSearch ref={searchRef} />
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button 
@@ -138,7 +136,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>AIアシスタント <kbd className="ml-1 text-xs bg-muted px-1 rounded">⌘K</kbd></p>
+                    <p>AIアシスタント</p>
                   </TooltipContent>
                 </Tooltip>
                 <NotificationBell />
