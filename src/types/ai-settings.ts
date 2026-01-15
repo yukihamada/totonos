@@ -11,10 +11,15 @@ export interface AIModelOption {
 
 export const LOVABLE_MODELS: AIModelOption[] = [
   { id: 'google/gemini-3-flash-preview', name: 'Gemini 3 Flash Preview', description: '高速・推奨', recommended: true },
+  { id: 'google/gemini-3-pro-preview', name: 'Gemini 3 Pro Preview', description: '次世代高精度' },
   { id: 'google/gemini-2.5-flash', name: 'Gemini 2.5 Flash', description: 'バランス型' },
-  { id: 'google/gemini-2.5-pro', name: 'Gemini 2.5 Pro', description: '高精度' },
+  { id: 'google/gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite', description: '最速・低コスト' },
+  { id: 'google/gemini-2.5-pro', name: 'Gemini 2.5 Pro', description: '高精度マルチモーダル' },
+  { id: 'google/gemini-3-pro-image-preview', name: 'Gemini 3 Pro Image', description: '画像生成' },
   { id: 'openai/gpt-5', name: 'GPT-5', description: '最高精度' },
   { id: 'openai/gpt-5-mini', name: 'GPT-5 Mini', description: 'コスト効率' },
+  { id: 'openai/gpt-5-nano', name: 'GPT-5 Nano', description: '高速・軽量' },
+  { id: 'openai/gpt-5.2', name: 'GPT-5.2', description: '最新・推論強化' },
 ];
 
 export const OPENAI_MODELS: AIModelOption[] = [

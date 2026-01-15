@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -37,6 +37,7 @@ import {
   Smartphone,
   Wrench,
   Bot,
+  Sparkles,
 } from "lucide-react";
 import { useDemo } from "@/contexts/DemoContext";
 import { FeedbackButton } from "@/components/FeedbackButton";
@@ -263,6 +264,102 @@ const renderCell = (value: boolean | string | "partial") => {
   return <span className="text-sm">{value}</span>;
 };
 
+// Typing animation texts
+const typingTexts = [
+  "「株式会社ABCへ15万円の請求書を作成」",
+  "「今月の売上を教えて」",
+  "「山田商事との契約書を作成して送付」",
+  "「経費登録 3000円 タクシー代」",
+  "「新しいリードを登録 田中太郎」",
+  "「来週の商談予定を確認」",
+];
+
+function HeroSection({ handleDemoClick }: { handleDemoClick: () => void }) {
+  const [displayText, setDisplayText] = useState("");
+  const [textIndex, setTextIndex] = useState(0);
+  const [charIndex, setCharIndex] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    const currentText = typingTexts[textIndex];
+    
+    const timeout = setTimeout(() => {
+      if (!isDeleting) {
+        if (charIndex < currentText.length) {
+          setDisplayText(currentText.substring(0, charIndex + 1));
+          setCharIndex(charIndex + 1);
+        } else {
+          setTimeout(() => setIsDeleting(true), 2000);
+        }
+      } else {
+        if (charIndex > 0) {
+          setDisplayText(currentText.substring(0, charIndex - 1));
+          setCharIndex(charIndex - 1);
+        } else {
+          setIsDeleting(false);
+          setTextIndex((textIndex + 1) % typingTexts.length);
+        }
+      }
+    }, isDeleting ? 30 : 80);
+
+    return () => clearTimeout(timeout);
+  }, [charIndex, isDeleting, textIndex]);
+
+  return (
+    <section className="border-b-2 border-foreground py-24">
+      <div className="container mx-auto px-4 text-center">
+        <div className="inline-block mb-4 px-4 py-1 border-2 border-foreground bg-muted text-sm font-medium">
+          🚀 完全無料の会社運営OS
+        </div>
+        <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6">
+          10個のSaaSを
+          <br />
+          <span className="underline decoration-4 underline-offset-8">1つに統合</span>
+        </h1>
+        
+        {/* Typing Animation */}
+        <div className="h-16 flex items-center justify-center mb-6">
+          <div className="bg-muted/50 border-2 border-foreground/20 rounded-lg px-6 py-3 min-w-[300px] md:min-w-[500px]">
+            <div className="flex items-center gap-2">
+              <Bot className="h-5 w-5 text-primary" />
+              <span className="text-lg font-mono">
+                {displayText}
+                <span className="animate-pulse">|</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* AI Agent Feature */}
+        <div className="max-w-xl mx-auto mb-8 p-4 border-2 border-primary bg-primary/5 rounded-lg">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            <span className="font-bold">AIエージェントで全操作可能</span>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            メール・LINE・アプリ内チャットからAIに話しかけるだけで、
+            請求書作成から経費登録まで、全ての業務を自然言語で操作できます。
+          </p>
+        </div>
+
+        <div className="flex justify-center gap-4 flex-wrap">
+          <Link to="/auth">
+            <Button size="lg" className="text-lg px-8">
+              無料で始める
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          </Link>
+        </div>
+        <div className="mt-8 flex justify-center gap-6 text-sm text-muted-foreground">
+          <span>✓ クレジットカード不要</span>
+          <span>✓ 機能制限なし</span>
+          <span>✓ 永久無料</span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function Landing() {
   const [activeTab, setActiveTab] = useState<CategoryKey>("invoice");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -347,37 +444,8 @@ export default function Landing() {
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="border-b-2 border-foreground py-24">
-        <div className="container mx-auto px-4 text-center">
-          <div className="inline-block mb-4 px-4 py-1 border-2 border-foreground bg-muted text-sm font-medium">
-            🚀 完全無料の会社運営OS
-          </div>
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6">
-            10個のSaaSを
-            <br />
-            <span className="underline decoration-4 underline-offset-8">1つに統合</span>
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-            請求書・会計・人事・CRM・契約書・Wiki...
-            <br />
-            月額10万円以上かかる機能が、すべて無料で使えます。
-          </p>
-          <div className="flex justify-center gap-4 flex-wrap">
-            <Link to="/auth">
-              <Button size="lg" className="text-lg px-8">
-                無料で始める
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
-          </div>
-          <div className="mt-8 flex justify-center gap-6 text-sm text-muted-foreground">
-            <span>✓ クレジットカード不要</span>
-            <span>✓ 機能制限なし</span>
-            <span>✓ 永久無料</span>
-          </div>
-        </div>
-      </section>
+      {/* Hero with Typing Animation */}
+      <HeroSection handleDemoClick={handleDemoClick} />
 
 
       {/* Features */}
