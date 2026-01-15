@@ -131,6 +131,36 @@ export type Database = {
           },
         ]
       }
+      api_key_audit_log: {
+        Row: {
+          action: string
+          created_at: string | null
+          id: string
+          ip_address: string | null
+          key_hash: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          key_hash: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          key_hash?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       api_keys: {
         Row: {
           created_at: string | null
@@ -222,6 +252,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_records_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -1814,6 +1851,13 @@ export type Database = {
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "it_assets_assigned_to_employee_id_fkey"
+            columns: ["assigned_to_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       journal_entries: {
@@ -2068,6 +2112,13 @@ export type Database = {
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "paid_leave_balances_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       payments: {
@@ -2175,6 +2226,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_records_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
             referencedColumns: ["id"]
           },
           {
@@ -2547,6 +2605,13 @@ export type Database = {
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "tasks_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       tax_settings: {
@@ -2877,11 +2942,107 @@ export type Database = {
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "year_end_adjustments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
     Views: {
-      [_ in never]: never
+      employees_safe: {
+        Row: {
+          bank_account_number: string | null
+          bank_account_type: string | null
+          bank_branch: string | null
+          bank_name: string | null
+          base_salary: number | null
+          birth_date: string | null
+          company_id: string | null
+          created_at: string | null
+          department: string | null
+          email: string | null
+          employee_number: string | null
+          employment_type: Database["public"]["Enums"]["employment_type"] | null
+          hire_date: string | null
+          id: string | null
+          name: string | null
+          name_kana: string | null
+          phone: string | null
+          position: string | null
+          resignation_date: string | null
+          social_insurance_number: string | null
+          status: Database["public"]["Enums"]["employee_status"] | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          bank_account_number?: never
+          bank_account_type?: never
+          bank_branch?: never
+          bank_name?: never
+          base_salary?: never
+          birth_date?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          department?: string | null
+          email?: string | null
+          employee_number?: string | null
+          employment_type?:
+            | Database["public"]["Enums"]["employment_type"]
+            | null
+          hire_date?: string | null
+          id?: string | null
+          name?: string | null
+          name_kana?: string | null
+          phone?: string | null
+          position?: string | null
+          resignation_date?: string | null
+          social_insurance_number?: never
+          status?: Database["public"]["Enums"]["employee_status"] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          bank_account_number?: never
+          bank_account_type?: never
+          bank_branch?: never
+          bank_name?: never
+          base_salary?: never
+          birth_date?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          department?: string | null
+          email?: string | null
+          employee_number?: string | null
+          employment_type?:
+            | Database["public"]["Enums"]["employment_type"]
+            | null
+          hire_date?: string | null
+          id?: string | null
+          name?: string | null
+          name_kana?: string | null
+          phone?: string | null
+          position?: string | null
+          resignation_date?: string | null
+          social_insurance_number?: never
+          status?: Database["public"]["Enums"]["employee_status"] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       generate_asset_code: {
@@ -2897,6 +3058,10 @@ export type Database = {
         Returns: {
           user_id: string
         }[]
+      }
+      has_hr_payroll_permission: {
+        Args: { p_company_id?: string }
+        Returns: boolean
       }
       has_permission: {
         Args: {
