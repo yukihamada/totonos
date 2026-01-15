@@ -37,7 +37,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
       {/* Content */}
       <div
         className={cn(
-          "flex flex-col gap-2 max-w-[80%]",
+          "flex flex-col gap-2 max-w-[80%] min-w-0",
           isUser && "items-end"
         )}
       >
@@ -45,34 +45,38 @@ export function ChatMessage({ message }: ChatMessageProps) {
         {message.content && (
           <div
             className={cn(
-              "rounded-lg px-3 py-2 text-sm",
+              "rounded-lg px-3 py-2 text-sm min-h-[2rem]",
               isUser
                 ? "bg-primary text-primary-foreground"
                 : "bg-muted",
               message.isStreaming && "animate-pulse"
             )}
+            style={{ wordBreak: "break-word" }}
           >
             {isUser ? (
-              <p className="whitespace-pre-wrap">{message.content}</p>
+              <p className="whitespace-pre-wrap break-words">{message.content}</p>
             ) : (
-              <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-pre:my-2">
+              <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-pre:my-2 break-words overflow-hidden">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
                     pre: ({ children }) => (
-                      <pre className="bg-muted-foreground/20 p-2 rounded overflow-x-auto">
+                      <pre className="bg-muted-foreground/20 p-2 rounded overflow-x-auto whitespace-pre-wrap break-words">
                         {children}
                       </pre>
                     ),
                     code: ({ children }) => (
-                      <code className="bg-muted-foreground/20 px-1 py-0.5 rounded">
+                      <code className="bg-muted-foreground/20 px-1 py-0.5 rounded break-all">
                         {children}
                       </code>
                     ),
                     a: ({ href, children }) => (
-                      <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                      <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline break-all">
                         {children}
                       </a>
+                    ),
+                    p: ({ children }) => (
+                      <p className="break-words">{children}</p>
                     ),
                   }}
                 >
