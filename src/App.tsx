@@ -104,6 +104,7 @@ import Onboarding from "./pages/Onboarding";
 import OrganizationSettings from "./pages/OrganizationSettings";
 import EmployeePortal from "./pages/EmployeePortal";
 import Showcase from "./pages/Showcase";
+import Invite from "./pages/Invite";
 // Chat
 import { ChatWidget } from "./components/chat/ChatWidget";
 // Phase 4: Expense Management
@@ -265,6 +266,8 @@ function AppRoutes() {
       <Route path="/portal" element={<EmployeePortal />} />
       {/* Showcase (public) */}
       <Route path="/showcase" element={<Showcase />} />
+      {/* Invitation */}
+      <Route path="/invite" element={<Invite />} />
       {/* Phase 4: Expense Management */}
       <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
       <Route path="/expenses/new" element={<ProtectedRoute><ExpenseNew /></ProtectedRoute>} />

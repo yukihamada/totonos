@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Building2, Plus, Users, Settings, CreditCard, Mail } from "lucide-react";
 import { CompanyEmailSettings } from "@/components/settings/CompanyEmailSettings";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -69,6 +69,13 @@ export default function CompanySettings() {
   const [newCompanyName, setNewCompanyName] = useState("");
   const [newCompanyDisplayName, setNewCompanyDisplayName] = useState("");
 
+  // Company edit form
+  const [editCompanyName, setEditCompanyName] = useState("");
+  const [editDisplayName, setEditDisplayName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editAddress, setEditAddress] = useState("");
+
   // Invite form
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<MemberRole>("member");
@@ -87,6 +94,35 @@ export default function CompanySettings() {
   const updateMemberPermissions = useUpdateMemberPermissions();
   const removeMember = useRemoveMember();
   const cancelInvitation = useCancelInvitation();
+
+  // Update edit form when currentCompany changes
+  useEffect(() => {
+    if (currentCompany) {
+      setEditCompanyName(currentCompany.name || "");
+      setEditDisplayName(currentCompany.display_name || "");
+      setEditEmail(currentCompany.email || "");
+      setEditPhone(currentCompany.phone || "");
+      setEditAddress(currentCompany.address || "");
+    }
+  }, [currentCompany]);
+
+  const handleUpdateCompany = async () => {
+    if (!currentCompany) return;
+    
+    if (!editCompanyName.trim()) {
+      toast.error("会社名を入力してください");
+      return;
+    }
+
+    await updateCompany.mutateAsync({
+      id: currentCompany.id,
+      name: editCompanyName.trim(),
+      display_name: editDisplayName.trim() || null,
+      email: editEmail.trim() || null,
+      phone: editPhone.trim() || null,
+      address: editAddress.trim() || null,
+    });
+  };
 
   const handleCreateCompany = async () => {
     if (!newCompanyName.trim()) {
@@ -283,35 +319,51 @@ export default function CompanySettings() {
                   <div className="grid gap-4 md:grid-cols-2">
                     <div>
                       <Label>会社名</Label>
-                      <Input defaultValue={currentCompany.name} readOnly />
+                      <Input 
+                        value={editCompanyName} 
+                        onChange={(e) => setEditCompanyName(e.target.value)}
+                        placeholder="株式会社サンプル"
+                      />
                     </div>
                     <div>
                       <Label>表示名</Label>
-                      <Input defaultValue={currentCompany.display_name || ""} />
+                      <Input 
+                        value={editDisplayName} 
+                        onChange={(e) => setEditDisplayName(e.target.value)}
+                        placeholder="サンプル社"
+                      />
                     </div>
                     <div>
                       <Label>メールアドレス</Label>
                       <Input
-                        defaultValue={currentCompany.email || ""}
+                        value={editEmail}
+                        onChange={(e) => setEditEmail(e.target.value)}
                         placeholder="info@example.com"
                       />
                     </div>
                     <div>
                       <Label>電話番号</Label>
                       <Input
-                        defaultValue={currentCompany.phone || ""}
+                        value={editPhone}
+                        onChange={(e) => setEditPhone(e.target.value)}
                         placeholder="03-1234-5678"
                       />
                     </div>
                     <div className="md:col-span-2">
                       <Label>住所</Label>
                       <Input
-                        defaultValue={currentCompany.address || ""}
+                        value={editAddress}
+                        onChange={(e) => setEditAddress(e.target.value)}
                         placeholder="東京都渋谷区..."
                       />
                     </div>
                   </div>
-                  <Button>保存</Button>
+                  <Button 
+                    onClick={handleUpdateCompany}
+                    disabled={updateCompany.isPending}
+                  >
+                    {updateCompany.isPending ? "保存中..." : "保存"}
+                  </Button>
                 </CardContent>
               </Card>
             </TabsContent>
