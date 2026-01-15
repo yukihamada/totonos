@@ -10,22 +10,22 @@ const corsHeaders = {
 // クレジットパック設定
 const CREDIT_PACKS = {
   pack_100: {
-    priceId: "price_1SpsaCDqLakc8NxkwvpXEe0C",
+    priceId: "price_1SptNTDqLakc8Nxko1lwK2GG",
     credits: 100,
     price: 500,
   },
   pack_500: {
-    priceId: "price_1SpsaEDqLakc8Nxk5viDzudw",
+    priceId: "price_1SptNVDqLakc8NxkDLCYiJIf",
     credits: 500,
     price: 2000,
   },
   pack_1000: {
-    priceId: "price_1SpsaFDqLakc8NxkuHV7Br5K",
+    priceId: "price_1SptNWDqLakc8NxktBlp3qce",
     credits: 1000,
     price: 3500,
   },
   pack_5000: {
-    priceId: "price_1SpsaGDqLakc8NxkIhaT4FEb",
+    priceId: "price_1SptNXDqLakc8Nxk2ssYXs25",
     credits: 5000,
     price: 15000,
   },
