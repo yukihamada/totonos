@@ -3,6 +3,8 @@
 // apiCost: approximate API cost in USD (for internal tracking)
 export const CREDIT_COSTS = {
   ai_chat: { cost: 1, apiCost: 0.002, name: "AIチャット" },
+  ai_chat_image: { cost: 3, apiCost: 0.01, name: "AI画像解析チャット" },
+  ai_chat_pdf: { cost: 5, apiCost: 0.02, name: "AI PDF解析チャット" },
   ai_email_analysis: { cost: 2, apiCost: 0.005, name: "メールAI分析" },
   ai_email_reply: { cost: 3, apiCost: 0.008, name: "AI返信生成" },
   ai_email_command: { cost: 5, apiCost: 0.015, name: "メールAI指示" },

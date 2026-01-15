@@ -2015,9 +2015,11 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          has_attachment: boolean | null
           id: string
           line_user_id: string
           message_id: string | null
+          message_type: string | null
           reply_token: string | null
           role: string
           user_id: string | null
@@ -2025,9 +2027,11 @@ export type Database = {
         Insert: {
           content: string
           created_at?: string
+          has_attachment?: boolean | null
           id?: string
           line_user_id: string
           message_id?: string | null
+          message_type?: string | null
           reply_token?: string | null
           role: string
           user_id?: string | null
@@ -2035,9 +2039,11 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string
+          has_attachment?: boolean | null
           id?: string
           line_user_id?: string
           message_id?: string | null
+          message_type?: string | null
           reply_token?: string | null
           role?: string
           user_id?: string | null

@@ -219,20 +219,54 @@ serve(async (req: Request) => {
     
     // Create a client with service role to verify the user
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
-    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
     
-    if (userError || !user) {
-      console.error("Auth error:", userError?.message);
-      return new Response(
-        JSON.stringify({ error: "認証が無効です。再度ログインしてください。" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // Check if this is a LINE webhook call (using service role key with x-line-user-id header)
+    const lineUserId = req.headers.get("x-line-user-id");
+    const isServiceRoleCall = token === supabaseServiceRoleKey;
+    
+    let userId: string;
+    let supabase;
+    
+    if (isServiceRoleCall && lineUserId) {
+      // LINE webhook call - look up user ID from line_users table
+      const { data: lineUserData } = await supabaseAdmin
+        .from("line_users")
+        .select("user_id")
+        .eq("line_user_id", lineUserId)
+        .maybeSingle();
+      
+      if (!lineUserData?.user_id) {
+        console.error("LINE user not linked:", lineUserId);
+        return new Response(
+          JSON.stringify({ error: "LINEアカウントがリンクされていません" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      userId = lineUserData.user_id;
+      console.log("LINE webhook call for user:", userId);
+      
+      // Use service role client for LINE calls
+      supabase = supabaseAdmin;
+    } else {
+      // Regular user call - verify JWT
+      const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
+      
+      if (userError || !user) {
+        console.error("Auth error:", userError?.message);
+        return new Response(
+          JSON.stringify({ error: "認証が無効です。再度ログインしてください。" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      userId = user.id;
+      
+      // Create client with user's token for RLS
+      supabase = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { authorization: authHeader } },
+      });
     }
-    
-    // Create client with user's token for RLS
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { authorization: authHeader } },
-    });
 
     const { messages, test } = await req.json();
     
@@ -263,9 +297,9 @@ serve(async (req: Request) => {
       }
     }
 
-    // Consume credits for AI chat
-    const companyId = await getCompanyIdForUser(supabaseAdmin, user.id);
-    if (companyId) {
+    // Consume credits for AI chat (skip for LINE as it's already consumed in webhook)
+    const companyId = await getCompanyIdForUser(supabaseAdmin, userId);
+    if (companyId && !lineUserId) {
       const creditResult = await consumeCompanyCredits(supabaseAdmin, companyId, "ai_chat", "AIチャット");
       if (!creditResult.success) {
         return new Response(
@@ -276,7 +310,7 @@ serve(async (req: Request) => {
     }
 
     // Get user's AI settings
-    const aiSettings = await getAISettings(user.id, supabase);
+    const aiSettings = await getAISettings(userId, supabase);
     console.log("Using AI settings:", aiSettings.provider, aiSettings.model);
 
     const systemPrompt = `あなたはTotonosのAIアシスタントです。
@@ -310,7 +344,7 @@ serve(async (req: Request) => {
             const toolResult = await executeToolCall(
               toolCall.name,
               toolCall.input as Record<string, unknown>,
-              user.id,
+              userId,
               supabase
             );
             toolResults.push({
@@ -374,7 +408,7 @@ serve(async (req: Request) => {
                 const toolResult = await executeToolCall(
                   toolCall.name,
                   toolCall.input as Record<string, unknown>,
-                  user.id,
+                  userId,
                   supabase
                 );
                 additionalResults.push({
@@ -443,7 +477,7 @@ serve(async (req: Request) => {
             const toolResult = await executeToolCall(
               toolCall.name,
               toolCall.input as Record<string, unknown>,
-              user.id,
+              userId,
               supabase
             );
             toolResults.push({

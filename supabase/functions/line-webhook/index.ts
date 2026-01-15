@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { consumeCompanyCredits, getCompanyIdForUser, CreditAction } from "../_shared/credits.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,6 +19,8 @@ interface LineEvent {
     type: string;
     id: string;
     text?: string;
+    fileName?: string;
+    fileSize?: number;
   };
 }
 
@@ -43,6 +46,37 @@ async function verifyLineSignature(body: string, signature: string, secret: stri
     console.error("Signature verification error:", error);
     return false;
   }
+}
+
+// Get content from LINE (image, file, etc.)
+async function getLineContent(messageId: string, accessToken: string): Promise<ArrayBuffer | null> {
+  try {
+    const response = await fetch(`https://api-data.line.me/v2/bot/message/${messageId}/content`, {
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      console.error("Failed to get LINE content:", response.status);
+      return null;
+    }
+
+    return response.arrayBuffer();
+  } catch (error) {
+    console.error("Error getting LINE content:", error);
+    return null;
+  }
+}
+
+// Convert ArrayBuffer to base64
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
 }
 
 // Send LINE reply message
@@ -107,11 +141,15 @@ async function getLineProfile(userId: string, accessToken: string) {
   return response.json();
 }
 
-// Call internal chat API for AI processing with tools
-async function callChatAPI(
-  messages: Array<{ role: string; content: string }>,
+// Call internal chat API for AI processing with tools and optional image
+async function callChatAPIWithImage(
+  messages: Array<{ role: string; content: string | unknown[] }>,
   supabaseUrl: string,
-  serviceRoleKey: string
+  serviceRoleKey: string,
+  lineUserId: string,
+  imageBase64?: string,
+  imageType?: string,
+  pdfBase64?: string
 ): Promise<string> {
   // Add LINE-specific system context
   const lineSystemMessage = {
@@ -132,17 +170,70 @@ async function callChatAPI(
 ユーザーからの要望に応じて、適切なツールを使用してデータを作成・取得・更新してください。
 ツールを使用してデータを操作した場合は、その結果をわかりやすく説明してください。
 日本語で丁寧に回答してください。
-LINEの文字数制限があるため、回答は簡潔にまとめてください（2000文字以内）。`
+LINEの文字数制限があるため、回答は簡潔にまとめてください（2000文字以内）。
+
+画像やPDFが送られた場合は、その内容を詳細に分析して説明してください。
+- 請求書や見積書の場合：金額、日付、項目を抽出
+- 名刺の場合：会社名、名前、連絡先を抽出
+- 領収書の場合：日付、店名、金額を抽出
+- その他のドキュメント：主要な情報を要約`
   };
+
+  // Prepare messages with image if provided
+  let apiMessages = [lineSystemMessage, ...messages];
+  
+  if (imageBase64 && imageType) {
+    // Add image to the last user message
+    const lastUserMsgIndex = apiMessages.findIndex((m, i) => 
+      i === apiMessages.length - 1 || 
+      (m.role === "user" && apiMessages[i + 1]?.role !== "user")
+    );
+    
+    if (lastUserMsgIndex >= 0 && apiMessages[lastUserMsgIndex].role === "user") {
+      const userContent = apiMessages[lastUserMsgIndex].content;
+      apiMessages[lastUserMsgIndex] = {
+        role: "user",
+        content: [
+          {
+            type: "image_url",
+            image_url: {
+              url: `data:${imageType};base64,${imageBase64}`,
+            },
+          },
+          {
+            type: "text",
+            text: typeof userContent === "string" ? userContent : "この画像を分析してください。",
+          },
+        ],
+      };
+    }
+  } else if (pdfBase64) {
+    // For PDF, add instruction to analyze
+    const lastUserMsgIndex = apiMessages.findIndex((m, i) => 
+      i === apiMessages.length - 1 || 
+      (m.role === "user" && apiMessages[i + 1]?.role !== "user")
+    );
+    
+    if (lastUserMsgIndex >= 0 && apiMessages[lastUserMsgIndex].role === "user") {
+      const userContent = apiMessages[lastUserMsgIndex].content;
+      apiMessages[lastUserMsgIndex] = {
+        role: "user",
+        content: typeof userContent === "string" 
+          ? `[PDFファイルを受信しました]\n${userContent}\n\nPDFの内容を分析して主要な情報を抽出してください。` 
+          : "[PDFファイルを受信しました]\nこのPDFを分析してください。",
+      };
+    }
+  }
 
   const response = await fetch(`${supabaseUrl}/functions/v1/chat`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${serviceRoleKey}`,
+      "x-line-user-id": lineUserId,
     },
     body: JSON.stringify({ 
-      messages: [lineSystemMessage, ...messages]
+      messages: apiMessages
     }),
   });
 
@@ -190,6 +281,22 @@ function splitMessage(text: string, maxLength: number): string[] {
   return chunks;
 }
 
+// Determine content type from message type
+function getContentTypeFromMessageType(messageType: string, fileName?: string): string {
+  if (messageType === "image") {
+    return "image/jpeg"; // LINE images are typically JPEG
+  }
+  if (messageType === "file" && fileName) {
+    const ext = fileName.toLowerCase().split(".").pop();
+    if (ext === "pdf") return "application/pdf";
+    if (ext === "png") return "image/png";
+    if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
+    if (ext === "gif") return "image/gif";
+    if (ext === "webp") return "image/webp";
+  }
+  return "application/octet-stream";
+}
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -231,8 +338,19 @@ serve(async (req: Request) => {
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
     for (const event of body.events) {
-      if (event.type !== "message" || !event.message || event.message.type !== "text") {
-        console.log("Skipping non-text event:", event.type);
+      if (event.type !== "message" || !event.message) {
+        console.log("Skipping non-message event:", event.type);
+        continue;
+      }
+
+      const messageType = event.message.type;
+      const isTextMessage = messageType === "text";
+      const isImageMessage = messageType === "image";
+      const isFileMessage = messageType === "file";
+      
+      // Skip unsupported message types
+      if (!isTextMessage && !isImageMessage && !isFileMessage) {
+        console.log("Skipping unsupported message type:", messageType);
         continue;
       }
 
@@ -241,9 +359,6 @@ serve(async (req: Request) => {
         console.log("No userId in event");
         continue;
       }
-
-      const userMessage = event.message.text;
-      console.log(`Message from ${lineUserId}: ${userMessage}`);
 
       // Get or create LINE user record
       let { data: lineUser } = await supabaseAdmin
@@ -290,6 +405,145 @@ serve(async (req: Request) => {
         continue;
       }
 
+      // Get company ID for credit consumption
+      const companyId = await getCompanyIdForUser(supabaseAdmin, systemUserId);
+
+      // Handle image and file messages
+      let imageBase64: string | undefined;
+      let imageType: string | undefined;
+      let pdfBase64: string | undefined;
+      let userMessage = "";
+
+      if (isTextMessage) {
+        userMessage = event.message.text || "";
+      } else if (isImageMessage) {
+        // Download image from LINE
+        const imageContent = await getLineContent(event.message.id, LINE_CHANNEL_ACCESS_TOKEN);
+        if (imageContent) {
+          imageBase64 = arrayBufferToBase64(imageContent);
+          imageType = "image/jpeg";
+          userMessage = "この画像を分析してください。";
+          console.log(`Received image from ${lineUserId}, size: ${imageContent.byteLength} bytes`);
+          
+          // Consume credits for image analysis
+          if (companyId) {
+            const creditResult = await consumeCompanyCredits(
+              supabaseAdmin, 
+              companyId, 
+              "ai_chat_image" as CreditAction, 
+              "LINE画像解析"
+            );
+            if (!creditResult.success) {
+              await replyMessage(
+                event.replyToken!,
+                [{
+                  type: "text",
+                  text: `クレジットが不足しています。画像解析には${3}クレジットが必要です。`,
+                }],
+                LINE_CHANNEL_ACCESS_TOKEN
+              );
+              continue;
+            }
+          }
+        } else {
+          await replyMessage(
+            event.replyToken!,
+            [{
+              type: "text",
+              text: "画像の取得に失敗しました。もう一度お試しください。",
+            }],
+            LINE_CHANNEL_ACCESS_TOKEN
+          );
+          continue;
+        }
+      } else if (isFileMessage) {
+        const fileName = event.message.fileName || "";
+        const contentType = getContentTypeFromMessageType("file", fileName);
+        const isPdf = contentType === "application/pdf";
+        const isImage = contentType.startsWith("image/");
+
+        if (!isPdf && !isImage) {
+          await replyMessage(
+            event.replyToken!,
+            [{
+              type: "text",
+              text: "対応していないファイル形式です。画像（JPG, PNG）またはPDFファイルを送信してください。",
+            }],
+            LINE_CHANNEL_ACCESS_TOKEN
+          );
+          continue;
+        }
+
+        // Download file from LINE
+        const fileContent = await getLineContent(event.message.id, LINE_CHANNEL_ACCESS_TOKEN);
+        if (fileContent) {
+          if (isPdf) {
+            pdfBase64 = arrayBufferToBase64(fileContent);
+            userMessage = `ファイル「${fileName}」を受信しました。内容を分析してください。`;
+            console.log(`Received PDF from ${lineUserId}, size: ${fileContent.byteLength} bytes`);
+            
+            // Consume credits for PDF analysis
+            if (companyId) {
+              const creditResult = await consumeCompanyCredits(
+                supabaseAdmin, 
+                companyId, 
+                "ai_chat_pdf" as CreditAction, 
+                "LINE PDF解析"
+              );
+              if (!creditResult.success) {
+                await replyMessage(
+                  event.replyToken!,
+                  [{
+                    type: "text",
+                    text: `クレジットが不足しています。PDF解析には${5}クレジットが必要です。`,
+                  }],
+                  LINE_CHANNEL_ACCESS_TOKEN
+                );
+                continue;
+              }
+            }
+          } else if (isImage) {
+            imageBase64 = arrayBufferToBase64(fileContent);
+            imageType = contentType;
+            userMessage = `ファイル「${fileName}」を受信しました。内容を分析してください。`;
+            console.log(`Received image file from ${lineUserId}, size: ${fileContent.byteLength} bytes`);
+            
+            // Consume credits for image analysis
+            if (companyId) {
+              const creditResult = await consumeCompanyCredits(
+                supabaseAdmin, 
+                companyId, 
+                "ai_chat_image" as CreditAction, 
+                "LINE画像解析"
+              );
+              if (!creditResult.success) {
+                await replyMessage(
+                  event.replyToken!,
+                  [{
+                    type: "text",
+                    text: `クレジットが不足しています。画像解析には${3}クレジットが必要です。`,
+                  }],
+                  LINE_CHANNEL_ACCESS_TOKEN
+                );
+                continue;
+              }
+            }
+          }
+        } else {
+          await replyMessage(
+            event.replyToken!,
+            [{
+              type: "text",
+              text: "ファイルの取得に失敗しました。もう一度お試しください。",
+            }],
+            LINE_CHANNEL_ACCESS_TOKEN
+          );
+          continue;
+        }
+      }
+
+      console.log(`Message from ${lineUserId}: ${userMessage} (type: ${messageType})`);
+
       // Save user message to history
       await supabaseAdmin.from("line_chat_history").insert({
         line_user_id: lineUserId,
@@ -298,6 +552,8 @@ serve(async (req: Request) => {
         content: userMessage,
         reply_token: event.replyToken,
         message_id: event.message.id,
+        message_type: messageType,
+        has_attachment: !!imageBase64 || !!pdfBase64,
       });
 
       // Get recent chat history (last 10 messages)
@@ -316,8 +572,16 @@ serve(async (req: Request) => {
         }));
 
       try {
-        // Process with AI via chat API
-        const aiResponse = await callChatAPI(messages, supabaseUrl, supabaseServiceRoleKey);
+        // Process with AI via chat API (with image/PDF if provided)
+        const aiResponse = await callChatAPIWithImage(
+          messages, 
+          supabaseUrl, 
+          supabaseServiceRoleKey,
+          lineUserId,
+          imageBase64,
+          imageType,
+          pdfBase64
+        );
 
         // Split long responses (LINE has 5000 char limit per message)
         const responseChunks = splitMessage(aiResponse, 4500);
