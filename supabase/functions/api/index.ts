@@ -101,17 +101,57 @@ serve(async (req: Request) => {
       );
     }
 
+    const validatedUserId = userId as string;
+
+    // Parse URL to get resource for rate limiting
+    const url = new URL(req.url);
+    const { resource, id, subResource, version } = parsePath(url);
+    const method = req.method;
+
+    // レート制限チェック（1分あたり60リクエスト、1時間あたり500リクエスト）
+    const { data: rateLimitResult, error: rateLimitError } = await serviceClient
+      .rpc("check_rate_limit", { 
+        p_user_id: validatedUserId, 
+        p_endpoint: resource || "api",
+        p_limit_per_minute: 60,
+        p_limit_per_hour: 500
+      });
+
+    if (rateLimitError) {
+      console.error("Rate limit check failed:", rateLimitError);
+    } else if (rateLimitResult && !rateLimitResult.allowed) {
+      console.log(`Rate limit exceeded for user ${validatedUserId}: ${rateLimitResult.reason}`);
+      return new Response(
+        JSON.stringify({ 
+          error: "Rate limit exceeded",
+          reason: rateLimitResult.reason,
+          limit: rateLimitResult.limit,
+          current: rateLimitResult.current,
+          reset_at: rateLimitResult.reset_at
+        }),
+        { 
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
+            "Content-Type": "application/json",
+            "X-RateLimit-Limit": String(rateLimitResult.limit),
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Reset": rateLimitResult.reset_at
+          } 
+        }
+      );
+    }
+
     // Update API key usage statistics
     await serviceClient.rpc("update_api_key_usage", { p_key_hash: keyHash });
 
     // Use service role client but explicitly enforce user_id filtering
     // This ensures RLS-like behavior without needing JWT impersonation
     const supabase = serviceClient;
-    const validatedUserId = userId as string;
 
-    const url = new URL(req.url);
-    const { resource, id, subResource, version } = parsePath(url);
-    const method = req.method;
+    // Get client info for audit logging
+    const clientIp = req.headers.get("x-forwarded-for") || req.headers.get("cf-connecting-ip") || "unknown";
+    const userAgent = req.headers.get("user-agent") || "unknown";
 
     const limit = parseInt(url.searchParams.get("limit") || "50");
     const offset = parseInt(url.searchParams.get("offset") || "0");
@@ -129,12 +169,16 @@ serve(async (req: Request) => {
         break;
       case "leads":
         result = await handleLeads(supabase, method, id, { limit, offset, status }, req, validatedUserId);
+        // 機密データへのアクセスを監査ログに記録
+        await logDataAccess(supabase, validatedUserId, "leads", method, id, result, clientIp, userAgent);
         break;
       case "deals":
         result = await handleDeals(supabase, method, id, { limit, offset, status }, req, validatedUserId);
         break;
       case "clients":
         result = await handleClients(supabase, method, id, { limit, offset, search }, req, validatedUserId);
+        // 機密データへのアクセスを監査ログに記録
+        await logDataAccess(supabase, validatedUserId, "clients", method, id, result, clientIp, userAgent);
         break;
       case "employees":
         result = await handleEmployees(supabase, method, id, { limit, offset, status }, req, validatedUserId);
@@ -197,9 +241,16 @@ serve(async (req: Request) => {
         );
     }
 
+    // レート制限ヘッダーを追加
+    const rateLimitHeaders: Record<string, string> = {};
+    if (rateLimitResult) {
+      rateLimitHeaders["X-RateLimit-Remaining-Minute"] = String(rateLimitResult.minute_remaining || 0);
+      rateLimitHeaders["X-RateLimit-Remaining-Hour"] = String(rateLimitResult.hour_remaining || 0);
+    }
+
     return new Response(
       JSON.stringify(result),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders, ...rateLimitHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("API error:", error);
@@ -209,6 +260,53 @@ serve(async (req: Request) => {
     );
   }
 });
+
+// 監査ログ記録ヘルパー関数
+async function logDataAccess(
+  supabase: SupabaseClient,
+  userId: string,
+  tableName: string,
+  method: string,
+  recordId: string | undefined,
+  result: unknown,
+  ipAddress: string,
+  userAgent: string
+): Promise<void> {
+  try {
+    // HTTPメソッドをSQL操作に変換
+    const operationMap: Record<string, string> = {
+      "GET": "SELECT",
+      "POST": "INSERT",
+      "PUT": "UPDATE",
+      "DELETE": "DELETE"
+    };
+    const operation = operationMap[method] || "SELECT";
+    
+    // レコード数を計算
+    let recordCount = 1;
+    if (result && typeof result === "object" && "data" in result) {
+      const data = (result as { data?: unknown[] }).data;
+      if (Array.isArray(data)) {
+        recordCount = data.length;
+      }
+    }
+    
+    // 監査ログを記録
+    await supabase.rpc("log_data_access", {
+      p_user_id: userId,
+      p_table_name: tableName,
+      p_operation: operation,
+      p_record_id: recordId || null,
+      p_record_count: recordCount,
+      p_query_details: { method, recordId },
+      p_ip_address: ipAddress,
+      p_user_agent: userAgent
+    });
+  } catch (error) {
+    // ログ記録の失敗はAPIレスポンスに影響させない
+    console.error("Failed to log data access:", error);
+  }
+}
 
 // Create a JWT token for the user to enforce RLS
 async function createUserToken(userId: string, serviceKey: string, supabaseUrl: string): Promise<string> {

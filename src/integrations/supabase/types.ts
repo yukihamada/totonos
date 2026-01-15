@@ -200,6 +200,36 @@ export type Database = {
         }
         Relationships: []
       }
+      api_rate_limits: {
+        Row: {
+          created_at: string
+          endpoint: string
+          id: string
+          request_count: number
+          updated_at: string
+          user_id: string
+          window_start: string
+        }
+        Insert: {
+          created_at?: string
+          endpoint: string
+          id?: string
+          request_count?: number
+          updated_at?: string
+          user_id: string
+          window_start?: string
+        }
+        Update: {
+          created_at?: string
+          endpoint?: string
+          id?: string
+          request_count?: number
+          updated_at?: string
+          user_id?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       attendance_records: {
         Row: {
           break_end: string | null
@@ -858,6 +888,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      data_access_audit_log: {
+        Row: {
+          created_at: string
+          id: string
+          ip_address: string | null
+          operation: string
+          query_details: Json | null
+          record_count: number | null
+          record_id: string | null
+          table_name: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          operation: string
+          query_details?: Json | null
+          record_count?: number | null
+          record_id?: string | null
+          table_name: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          operation?: string
+          query_details?: Json | null
+          record_count?: number | null
+          record_id?: string | null
+          table_name?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       deals: {
         Row: {
@@ -3156,6 +3225,16 @@ export type Database = {
       }
     }
     Functions: {
+      check_rate_limit: {
+        Args: {
+          p_endpoint: string
+          p_limit_per_hour?: number
+          p_limit_per_minute?: number
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      cleanup_old_rate_limits: { Args: never; Returns: number }
       generate_asset_code: {
         Args: {
           p_asset_type: Database["public"]["Enums"]["asset_type"]
@@ -3189,6 +3268,19 @@ export type Database = {
       is_company_member: {
         Args: { p_company_id: string; p_user_id: string }
         Returns: boolean
+      }
+      log_data_access: {
+        Args: {
+          p_ip_address?: string
+          p_operation: string
+          p_query_details?: Json
+          p_record_count?: number
+          p_record_id?: string
+          p_table_name: string
+          p_user_agent?: string
+          p_user_id: string
+        }
+        Returns: string
       }
       update_api_key_usage: { Args: { p_key_hash: string }; Returns: undefined }
       validate_api_key: { Args: { p_key_hash: string }; Returns: string }
