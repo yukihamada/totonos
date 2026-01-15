@@ -176,9 +176,9 @@ export async function executeInvoiceTool(
 
     case "invoice_create": {
       const items = input.items as Array<{ description: string; quantity: number; unit_price: number }>;
-      const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
-      const tax = Math.floor(subtotal * 0.1);
-      const total = subtotal + tax;
+      const amount = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
+      const taxAmount = Math.floor(amount * 0.1);
+      const totalAmount = amount + taxAmount;
 
       const { data: invoice, error } = await supabase
         .from("invoices")
@@ -190,9 +190,9 @@ export async function executeInvoiceTool(
           description: input.description || null,
           issue_date: new Date().toISOString().split("T")[0],
           due_date: input.due_date,
-          subtotal,
-          tax_amount: tax,
-          total_amount: total,
+          amount,
+          tax_amount: taxAmount,
+          total_amount: totalAmount,
           status: "draft",
         })
         .select()
@@ -219,7 +219,7 @@ export async function executeInvoiceTool(
 
       return {
         invoice,
-        message: `請求書 ${invoice.invoice_number} を作成しました（合計: ¥${total.toLocaleString()}）`,
+        message: `請求書 ${invoice.invoice_number} を作成しました（合計: ¥${totalAmount.toLocaleString()}）`,
       };
     }
 
