@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,16 +25,61 @@ import {
   ArrowRight,
   Check,
   Info,
+  Loader2,
 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { Link } from 'react-router-dom';
-import { useCredits, PLANS, CREDIT_COSTS, CHARGE_PACKS, type PlanType } from '@/hooks/useCredits';
+import { Link, useSearchParams } from 'react-router-dom';
+import { useCredits, PLANS, CREDIT_COSTS, CHARGE_PACKS } from '@/hooks/useCredits';
+import { usePurchaseCredits, useVerifyCreditPurchase } from '@/hooks/useCreditPurchase';
 
 export default function Credits() {
-  const { credits, totalRemaining, isLoading, charge, getLogs } = useCredits();
+  const { credits, totalRemaining, isLoading, charge, getLogs, refetch } = useCredits();
   const [chargeDialogOpen, setChargeDialogOpen] = useState(false);
   const [selectedPack, setSelectedPack] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  const purchaseCredits = usePurchaseCredits();
+  const verifyCreditPurchase = useVerifyCreditPurchase();
+
+  // 決済成功後の処理
+  useEffect(() => {
+    const success = searchParams.get('success');
+    const sessionId = searchParams.get('session_id');
+    const packId = searchParams.get('pack');
+    
+    if (success === 'true' && sessionId) {
+      // 決済を検証
+      verifyCreditPurchase.mutate({ sessionId }, {
+        onSuccess: (data) => {
+          if (data.paid && data.credits) {
+            // ローカルストレージも更新
+            charge(packId || '');
+            toast.success(`${data.credits}クレジットを購入しました！`);
+            refetch();
+          }
+          // URLパラメータをクリア
+          setSearchParams({});
+        },
+        onError: () => {
+          toast.error('決済の確認に失敗しました');
+          setSearchParams({});
+        }
+      });
+    } else if (searchParams.get('canceled') === 'true') {
+      toast.info('決済がキャンセルされました');
+      setSearchParams({});
+    }
+  }, [searchParams, verifyCreditPurchase, charge, refetch, setSearchParams]);
+
+  const handleCharge = async () => {
+    if (!selectedPack) return;
+    
+    // Stripe決済を開始
+    purchaseCredits.mutate({ packId: selectedPack });
+    setChargeDialogOpen(false);
+    setSelectedPack(null);
+  };
 
   if (isLoading || !credits) {
     return (
@@ -52,19 +97,6 @@ export default function Credits() {
     : 0;
   const daysUntilReset = differenceInDays(credits.currentPeriodEnd, new Date());
   const recentLogs = getLogs().slice(0, 5);
-
-  const handleCharge = async () => {
-    if (!selectedPack) return;
-
-    const success = await charge(selectedPack);
-    if (success) {
-      toast.success('クレジットをチャージしました');
-      setChargeDialogOpen(false);
-      setSelectedPack(null);
-    } else {
-      toast.error('チャージに失敗しました');
-    }
-  };
 
   const getUsageColor = () => {
     if (usagePercent >= 90) return 'text-red-500';
@@ -340,8 +372,18 @@ export default function Credits() {
               <Button variant="outline" onClick={() => setChargeDialogOpen(false)}>
                 キャンセル
               </Button>
-              <Button onClick={handleCharge} disabled={!selectedPack}>
-                購入する
+              <Button 
+                onClick={handleCharge} 
+                disabled={!selectedPack || purchaseCredits.isPending}
+              >
+                {purchaseCredits.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    処理中...
+                  </>
+                ) : (
+                  '購入する'
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
