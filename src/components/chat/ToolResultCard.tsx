@@ -89,14 +89,67 @@ function formatResultSummary(result: unknown): string {
 
 function getPrimaryLink(toolName: string, result: unknown): { href: string; label: string } | null {
   const obj = typeof result === "object" && result !== null ? (result as Record<string, unknown>) : null;
-  const id = obj && typeof obj.id === "string" ? obj.id : null;
-
-  if (toolName === "invoice_create" && id) {
-    return { href: "/invoices", label: "請求書一覧を開く" };
+  
+  // Get ID from various possible locations in the result
+  let id: string | null = null;
+  if (obj) {
+    if (typeof obj.id === "string") id = obj.id;
+    else if (obj.invoice && typeof (obj.invoice as Record<string, unknown>).id === "string") {
+      id = (obj.invoice as Record<string, unknown>).id as string;
+    } else if (obj.estimate && typeof (obj.estimate as Record<string, unknown>).id === "string") {
+      id = (obj.estimate as Record<string, unknown>).id as string;
+    } else if (obj.contract && typeof (obj.contract as Record<string, unknown>).id === "string") {
+      id = (obj.contract as Record<string, unknown>).id as string;
+    } else if (obj.client && typeof (obj.client as Record<string, unknown>).id === "string") {
+      id = (obj.client as Record<string, unknown>).id as string;
+    } else if (obj.lead && typeof (obj.lead as Record<string, unknown>).id === "string") {
+      id = (obj.lead as Record<string, unknown>).id as string;
+    } else if (obj.deal && typeof (obj.deal as Record<string, unknown>).id === "string") {
+      id = (obj.deal as Record<string, unknown>).id as string;
+    }
   }
 
+  // Invoice tools
+  if (toolName === "invoice_create" && id) {
+    return { href: `/invoices/${id}`, label: "請求書を開く" };
+  }
+  if (toolName === "invoice_create_payment_link" && obj?.payment_url) {
+    return { href: obj.payment_url as string, label: "決済ページを開く" };
+  }
+
+  // Estimate tools
+  if (toolName === "estimate_create" && id) {
+    return { href: `/estimates/${id}`, label: "見積書を開く" };
+  }
+
+  // Contract tools
+  if (toolName === "contract_create" && id) {
+    return { href: `/contracts/${id}`, label: "契約書を開く" };
+  }
+
+  // Client tools
   if (toolName === "client_create" && id) {
     return { href: "/clients", label: "取引先一覧を開く" };
+  }
+
+  // Lead tools
+  if (toolName === "lead_create" && id) {
+    return { href: "/leads", label: "リード一覧を開く" };
+  }
+
+  // Deal tools
+  if (toolName === "deal_create" && id) {
+    return { href: "/deals", label: "案件一覧を開く" };
+  }
+
+  // Wiki tools
+  if (toolName === "wiki_create" && id) {
+    return { href: `/wiki?id=${id}`, label: "Wikiページを開く" };
+  }
+
+  // Employee tools
+  if (toolName === "employee_create" && id) {
+    return { href: "/employees", label: "従業員一覧を開く" };
   }
 
   return null;
@@ -186,12 +239,21 @@ export function ToolResultCard({ result }: ToolResultCardProps) {
           {(primaryLink || result.isError) && (
             <div className="flex flex-wrap gap-2 mt-2">
               {primaryLink && (
-                <Button variant="secondary" size="sm" asChild>
-                  <Link to={primaryLink.href}>
-                    <ExternalLink className="h-3 w-3 mr-1" />
-                    {primaryLink.label}
-                  </Link>
-                </Button>
+                primaryLink.href.startsWith('http') ? (
+                  <Button variant="secondary" size="sm" asChild>
+                    <a href={primaryLink.href} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-3 w-3 mr-1" />
+                      {primaryLink.label}
+                    </a>
+                  </Button>
+                ) : (
+                  <Button variant="secondary" size="sm" asChild>
+                    <Link to={primaryLink.href}>
+                      <ExternalLink className="h-3 w-3 mr-1" />
+                      {primaryLink.label}
+                    </Link>
+                  </Button>
+                )
               )}
 
               {result.isError && (

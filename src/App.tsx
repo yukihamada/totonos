@@ -51,7 +51,11 @@ import Wiki from "./pages/Wiki";
 import ITAssets from "./pages/ITAssets";
 // Invoices & Documents
 import Invoices from "./pages/Invoices";
+import InvoiceDetail from "./pages/InvoiceDetail";
+import InvoiceEdit from "./pages/InvoiceEdit";
 import Estimates from "./pages/Estimates";
+import EstimateDetail from "./pages/EstimateDetail";
+import EstimateEdit from "./pages/EstimateEdit";
 import PurchaseOrders from "./pages/PurchaseOrders";
 // Finance
 import Clients from "./pages/Clients";
@@ -184,7 +188,11 @@ function AppRoutes() {
       <Route path="/getting-started" element={<ProtectedRoute><GettingStarted /></ProtectedRoute>} />
       {/* Documents */}
       <Route path="/invoices" element={<ProtectedRoute><Invoices /></ProtectedRoute>} />
+      <Route path="/invoices/:id" element={<ProtectedRoute><InvoiceDetail /></ProtectedRoute>} />
+      <Route path="/invoices/:id/edit" element={<ProtectedRoute><InvoiceEdit /></ProtectedRoute>} />
       <Route path="/estimates" element={<ProtectedRoute><Estimates /></ProtectedRoute>} />
+      <Route path="/estimates/:id" element={<ProtectedRoute><EstimateDetail /></ProtectedRoute>} />
+      <Route path="/estimates/:id/edit" element={<ProtectedRoute><EstimateEdit /></ProtectedRoute>} />
       <Route path="/purchase-orders" element={<ProtectedRoute><PurchaseOrders /></ProtectedRoute>} />
       <Route path="/contracts" element={<ProtectedRoute><Contracts /></ProtectedRoute>} />
       <Route path="/contracts/new" element={<ProtectedRoute><ContractNew /></ProtectedRoute>} />
