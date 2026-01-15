@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { MessageCircle, Link2, Unlink, QrCode, Copy, CheckCircle2, ExternalLink } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { QRCodeSVG } from "qrcode.react";
 
 interface LineUser {
   id: string;
@@ -334,11 +335,11 @@ export default function LineSettings() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex justify-center p-4 bg-white rounded-lg">
-                    {/* LINE Official Account QR Code - using Google Charts API as reliable fallback */}
-                    <img 
-                      src={`https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(LINE_ADD_FRIEND_URL)}&choe=UTF-8`}
-                      alt="LINE QRコード"
-                      className="w-48 h-48"
+                    <QRCodeSVG 
+                      value={LINE_ADD_FRIEND_URL}
+                      size={192}
+                      level="M"
+                      includeMargin={true}
                     />
                   </div>
                   <p className="text-center text-sm text-muted-foreground mt-4">
