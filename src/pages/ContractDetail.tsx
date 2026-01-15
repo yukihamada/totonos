@@ -6,22 +6,26 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useContract, useContractItems, useUpdateContract } from "@/hooks/useContracts";
+import { useDocumentPDF } from "@/hooks/useDocumentPDF";
+import { DocumentPreviewDialog } from "@/components/documents/DocumentPreviewDialog";
 import { getContractStatusColor, getContractStatusLabel } from "@/types/contract";
 import { formatCurrency } from "@/types/database";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import { ArrowLeft, Pencil, Send, FileCheck, Shield, Clock, User, Building, CheckCircle } from "lucide-react";
+import { ArrowLeft, Pencil, Send, FileCheck, Shield, Clock, User, Building, CheckCircle, Eye, Download } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ContractSendSignature } from "@/components/ContractSendSignature";
 
 export default function ContractDetail() {
   const [signatureDialogOpen, setSignatureDialogOpen] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: contract, isLoading } = useContract(id!);
   const { data: items } = useContractItems(id!);
   const updateContract = useUpdateContract();
+  const { downloadContractPDF } = useDocumentPDF();
 
   const handleSendForSignature = async () => {
     if (!contract?.client?.email) {
@@ -87,6 +91,14 @@ export default function ContractDetail() {
             </div>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowPreview(true)}>
+              <Eye className="h-4 w-4 mr-2" />
+              プレビュー
+            </Button>
+            <Button variant="outline" onClick={() => downloadContractPDF(contract)}>
+              <Download className="h-4 w-4 mr-2" />
+              PDF
+            </Button>
             {contract.status === "draft" && (
               <>
                 <Button variant="outline" asChild>
@@ -230,6 +242,29 @@ export default function ContractDetail() {
           </div>
         </div>
       </div>
+
+      <DocumentPreviewDialog
+        open={showPreview}
+        onOpenChange={setShowPreview}
+        document={{
+          type: 'contract',
+          number: contract.contract_number,
+          title: contract.title,
+          issueDate: contract.issue_date,
+          validUntil: contract.valid_until || undefined,
+          clientName: contract.client?.name,
+          clientAddress: undefined,
+          items: undefined,
+          amount: contract.amount,
+          taxAmount: contract.tax_amount || 0,
+          totalAmount: contract.total_amount,
+          content: contract.content || undefined,
+        }}
+        onDownloadPDF={() => {
+          downloadContractPDF(contract);
+          setShowPreview(false);
+        }}
+      />
     </AppLayout>
   );
 }

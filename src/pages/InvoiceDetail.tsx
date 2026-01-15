@@ -8,7 +8,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useInvoice, useUpdateInvoiceStatus, useDeleteInvoice } from "@/hooks/useInvoices";
 import { useCreatePaymentSession } from "@/hooks/useStripePayment";
-import { ArrowLeft, Pencil, Send, CheckCircle, Clock, AlertCircle, FileText, X, Trash2, CreditCard } from "lucide-react";
+import { useDocumentPDF } from "@/hooks/useDocumentPDF";
+import { DocumentPreviewDialog } from "@/components/documents/DocumentPreviewDialog";
+import { ArrowLeft, Pencil, Send, CheckCircle, Clock, AlertCircle, FileText, X, Trash2, CreditCard, Eye, Download } from "lucide-react";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import {
@@ -38,7 +40,9 @@ export default function InvoiceDetail() {
   const updateStatus = useUpdateInvoiceStatus();
   const deleteInvoice = useDeleteInvoice();
   const createPaymentSession = useCreatePaymentSession();
+  const { downloadInvoicePDF } = useDocumentPDF();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   const handleDelete = async () => {
     await deleteInvoice.mutateAsync(id!);
@@ -105,6 +109,14 @@ export default function InvoiceDetail() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setShowPreview(true)}>
+              <Eye className="mr-2 h-4 w-4" />
+              プレビュー
+            </Button>
+            <Button variant="outline" onClick={() => downloadInvoicePDF(invoice)}>
+              <Download className="mr-2 h-4 w-4" />
+              PDF
+            </Button>
             <Button variant="outline" asChild>
               <Link to={`/invoices/${id}/edit`}>
                 <Pencil className="mr-2 h-4 w-4" />
@@ -289,6 +301,29 @@ export default function InvoiceDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <DocumentPreviewDialog
+        open={showPreview}
+        onOpenChange={setShowPreview}
+        document={{
+          type: 'invoice',
+          number: invoice.invoice_number,
+          title: invoice.title,
+          issueDate: invoice.issue_date,
+          dueDate: invoice.due_date,
+          clientName: invoice.client?.name,
+          clientAddress: invoice.client?.address || undefined,
+          items: invoice.items,
+          amount: invoice.amount,
+          taxAmount: invoice.tax_amount || 0,
+          totalAmount: invoice.total_amount,
+          description: invoice.description || undefined,
+        }}
+        onDownloadPDF={() => {
+          downloadInvoicePDF(invoice);
+          setShowPreview(false);
+        }}
+      />
     </AppLayout>
   );
 }
