@@ -2323,8 +2323,13 @@ export type Database = {
           id: string
           image_url: string | null
           items: Json | null
+          legal_hash: string | null
+          legal_timestamp: string | null
+          legal_verified: boolean | null
+          notification_sent_at: string | null
           raw_text: string | null
           receipt_date: string | null
+          retention_until: string | null
           source: string
           source_email_id: string | null
           status: string | null
@@ -2343,8 +2348,13 @@ export type Database = {
           id?: string
           image_url?: string | null
           items?: Json | null
+          legal_hash?: string | null
+          legal_timestamp?: string | null
+          legal_verified?: boolean | null
+          notification_sent_at?: string | null
           raw_text?: string | null
           receipt_date?: string | null
+          retention_until?: string | null
           source: string
           source_email_id?: string | null
           status?: string | null
@@ -2363,8 +2373,13 @@ export type Database = {
           id?: string
           image_url?: string | null
           items?: Json | null
+          legal_hash?: string | null
+          legal_timestamp?: string | null
+          legal_verified?: boolean | null
+          notification_sent_at?: string | null
           raw_text?: string | null
           receipt_date?: string | null
+          retention_until?: string | null
           source?: string
           source_email_id?: string | null
           status?: string | null

@@ -227,6 +227,84 @@ async function triggerAIAnalysis(
   }
 }
 
+// 画像添付ファイルをOCR処理
+async function processReceiptAttachment(
+  supabase: any,
+  attachment: { filename: string; type: string; content?: string },
+  companyId: string | null,
+  emailId: string,
+  assignedTo: string | null
+): Promise<void> {
+  if (!attachment.content) {
+    console.log("No content in attachment, skipping OCR");
+    return;
+  }
+
+  console.log(`Processing receipt attachment: ${attachment.filename}`);
+
+  try {
+    // Call OCR function
+    const { data, error } = await supabase.functions.invoke("ocr-receipt", {
+      body: {
+        imageBase64: `data:${attachment.type};base64,${attachment.content}`,
+        source: "email",
+        sourceEmailId: emailId,
+        companyId: companyId,
+        saveToDb: true,
+        applyLegalTimestamp: true, // 電子帳簿保存法対応
+      },
+    });
+
+    if (error) {
+      console.error("OCR processing failed:", error);
+      return;
+    }
+
+    console.log(`Receipt OCR completed: ${data?.receipt?.id}`);
+
+    // 通知を作成
+    if (assignedTo && data?.receipt) {
+      const receipt = data.receipt;
+      const vendor = receipt.vendor || "不明な店舗";
+      const total = receipt.total_amount 
+        ? `¥${Number(receipt.total_amount).toLocaleString()}` 
+        : "金額不明";
+
+      await supabase.from("notifications").insert({
+        user_id: assignedTo,
+        company_id: companyId,
+        type: "info",
+        title: "📧 メール経由の領収書を保存しました",
+        message: `${vendor} - ${total}\n電子帳簿保存法に準拠して保存されました。`,
+        category: "receipt",
+        link: `/receipt-capture`,
+        metadata: {
+          receipt_id: receipt.id,
+          email_id: emailId,
+          vendor: vendor,
+          total: receipt.total_amount,
+          legal_verified: true,
+        },
+      });
+
+      console.log(`Notification sent to user: ${assignedTo}`);
+    }
+  } catch (err) {
+    console.error("Failed to process receipt:", err);
+  }
+}
+
+// 会社の管理者を取得
+async function getCompanyAdmins(supabase: any, companyId: string): Promise<string[]> {
+  const { data } = await supabase
+    .from("company_members")
+    .select("user_id")
+    .eq("company_id", companyId)
+    .in("role", ["owner", "admin"]);
+
+  return (data || []).map((m: { user_id: string }) => m.user_id);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -379,6 +457,14 @@ serve(async (req) => {
     let autoCreatedEntityId: string | null = null;
     let assignedTo: string | null = emailAddressConfig?.assigned_to || null;
 
+    // 担当者が未設定の場合、会社の管理者を取得
+    if (!assignedTo && companyId) {
+      const admins = await getCompanyAdmins(supabase, companyId);
+      if (admins.length > 0) {
+        assignedTo = admins[0];
+      }
+    }
+
     if (companyId) {
       // 自動エンティティ作成
       if (emailAddressConfig?.auto_create_entity) {
@@ -455,6 +541,28 @@ serve(async (req) => {
 
     console.log(`Email saved: ${savedEmail.id} from ${fromEmail} to ${toEmail}`);
 
+    // 画像添付ファイルをOCR処理（非同期）
+    const imageAttachments = (emailData.attachments || []).filter(
+      att => att.type?.startsWith("image/") || 
+             /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(att.filename)
+    );
+
+    if (imageAttachments.length > 0) {
+      console.log(`Found ${imageAttachments.length} image attachments, processing as receipts`);
+      
+      // 並列でOCR処理
+      for (const att of imageAttachments) {
+        // 非同期で処理（await しない）
+        processReceiptAttachment(
+          supabase, 
+          att, 
+          companyId, 
+          savedEmail.id, 
+          assignedTo
+        );
+      }
+    }
+
     // AI分析をトリガー（非同期）
     if (emailAddressConfig?.ai_processing_enabled !== false) {
       triggerAIAnalysis(
@@ -469,7 +577,8 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         id: savedEmail.id,
-        autoCreated: autoCreatedEntityType ? { type: autoCreatedEntityType, id: autoCreatedEntityId } : null
+        autoCreated: autoCreatedEntityType ? { type: autoCreatedEntityType, id: autoCreatedEntityId } : null,
+        receiptProcessing: imageAttachments.length > 0 ? { count: imageAttachments.length } : null
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

@@ -45,7 +45,28 @@ export function useReceipts() {
         .order("created_at", { ascending: false });
       
       if (error) throw error;
-      return data as Receipt[];
+      
+      // Map database response to Receipt type
+      return (data || []).map((row): Receipt => ({
+        id: row.id,
+        user_id: row.user_id,
+        company_id: row.company_id,
+        source: row.source as Receipt["source"],
+        source_email_id: row.source_email_id,
+        image_url: row.image_url,
+        vendor: row.vendor,
+        receipt_date: row.receipt_date,
+        total_amount: row.total_amount,
+        tax_amount: row.tax_amount,
+        items: Array.isArray(row.items) ? row.items as Receipt["items"] : [],
+        category: row.category,
+        raw_text: row.raw_text,
+        confidence: row.confidence,
+        status: row.status as Receipt["status"],
+        expense_claim_id: row.expense_claim_id,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+      }));
     },
   });
 }

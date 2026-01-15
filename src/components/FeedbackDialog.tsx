@@ -110,20 +110,23 @@ export function FeedbackDialog({ open, onOpenChange }: FeedbackDialogProps) {
               className="grid grid-cols-2 gap-2"
             >
               {feedbackTypes.map((ft) => (
-                <div key={ft.value}>
+                <Label
+                  key={ft.value}
+                  htmlFor={`feedback-type-${ft.value}`}
+                  className={`flex items-center gap-2 px-4 py-3 border-2 rounded-lg cursor-pointer transition-all ${
+                    type === ft.value
+                      ? "border-primary bg-primary/10 text-primary shadow-sm"
+                      : "border-border hover:border-primary/50 hover:bg-muted"
+                  }`}
+                >
                   <RadioGroupItem
                     value={ft.value}
-                    id={ft.value}
-                    className="peer sr-only"
+                    id={`feedback-type-${ft.value}`}
+                    className="sr-only"
                   />
-                  <Label
-                    htmlFor={ft.value}
-                    className="flex items-center gap-2 px-3 py-2 border-2 rounded-md cursor-pointer peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 hover:bg-muted transition-colors"
-                  >
-                    <span>{ft.emoji}</span>
-                    <span className="text-sm font-medium">{ft.label}</span>
-                  </Label>
-                </div>
+                  <span className="text-lg">{ft.emoji}</span>
+                  <span className="text-sm font-medium">{ft.label}</span>
+                </Label>
               ))}
             </RadioGroup>
           </div>
