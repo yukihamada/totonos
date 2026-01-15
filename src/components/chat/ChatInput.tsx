@@ -27,8 +27,8 @@ export function ChatInput({ onSend, isLoading, disabled }: ChatInputProps) {
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     // IME入力中（日本語変換中など）はEnterで送信しない
-    // e.isComposingとe.nativeEvent.isComposingの両方をチェックしてブラウザ間の互換性を確保
-    if (e.key === "Enter" && !e.shiftKey && !e.isComposing && !e.nativeEvent.isComposing) {
+    // nativeEvent.isComposingをチェックしてブラウザ間の互換性を確保
+    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
       handleSend();
     }
