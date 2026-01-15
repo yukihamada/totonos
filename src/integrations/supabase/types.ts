@@ -3133,6 +3133,62 @@ export type Database = {
         }
         Relationships: []
       }
+      contract_signatures_safe: {
+        Row: {
+          blockchain_tx_hash: string | null
+          blockchain_verified_at: string | null
+          contract_id: string | null
+          created_at: string | null
+          id: string | null
+          signatory_email_masked: string | null
+          signatory_name: string | null
+          signatory_type: Database["public"]["Enums"]["signatory_type"] | null
+          signature_method:
+            | Database["public"]["Enums"]["signature_method"]
+            | null
+          signed_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          blockchain_tx_hash?: string | null
+          blockchain_verified_at?: string | null
+          contract_id?: string | null
+          created_at?: string | null
+          id?: string | null
+          signatory_email_masked?: never
+          signatory_name?: string | null
+          signatory_type?: Database["public"]["Enums"]["signatory_type"] | null
+          signature_method?:
+            | Database["public"]["Enums"]["signature_method"]
+            | null
+          signed_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          blockchain_tx_hash?: string | null
+          blockchain_verified_at?: string | null
+          contract_id?: string | null
+          created_at?: string | null
+          id?: string | null
+          signatory_email_masked?: never
+          signatory_name?: string | null
+          signatory_type?: Database["public"]["Enums"]["signatory_type"] | null
+          signature_method?:
+            | Database["public"]["Enums"]["signature_method"]
+            | null
+          signed_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_signatures_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees_safe: {
         Row: {
           company_id: string | null
@@ -3204,6 +3260,7 @@ export type Database = {
       }
     }
     Functions: {
+      anonymize_old_signature_ips: { Args: never; Returns: undefined }
       check_rate_limit: {
         Args: {
           p_endpoint: string
@@ -3213,6 +3270,7 @@ export type Database = {
         }
         Returns: Json
       }
+      cleanup_expired_otp_codes: { Args: never; Returns: undefined }
       cleanup_old_rate_limits: { Args: never; Returns: number }
       generate_asset_code: {
         Args: {
@@ -3267,6 +3325,14 @@ export type Database = {
       }
       update_api_key_usage: { Args: { p_key_hash: string }; Returns: undefined }
       validate_api_key: { Args: { p_key_hash: string }; Returns: string }
+      verify_signature_securely: {
+        Args: { p_signature_id: string }
+        Returns: {
+          is_valid: boolean
+          signatory_name: string
+          signed_at: string
+        }[]
+      }
     }
     Enums: {
       account_type: "asset" | "liability" | "equity" | "revenue" | "expense"
