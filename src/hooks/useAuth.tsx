@@ -15,10 +15,16 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Send authentication email via Resend edge function
-const sendAuthEmail = async (type: 'magic_link' | 'welcome' | 'password_reset', email: string, token?: string, redirectUrl?: string) => {
+const sendAuthEmail = async (
+  type: 'magic_link' | 'welcome' | 'password_reset' | 'login_success', 
+  email: string, 
+  token?: string, 
+  redirectUrl?: string,
+  userName?: string
+) => {
   try {
     const { data, error } = await supabase.functions.invoke('send-auth-email', {
-      body: { type, email, token, redirectUrl }
+      body: { type, email, token, redirectUrl, userName }
     });
     
     if (error) {
@@ -47,14 +53,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         setLoading(false);
         
-        // Send welcome email on first sign up (deferred to avoid deadlock)
+        // Send login success email on sign in (not for new users - they get welcome email)
         if (event === 'SIGNED_IN' && session?.user) {
           const isNewUser = session.user.created_at && 
             (new Date().getTime() - new Date(session.user.created_at).getTime()) < 60000; // within 1 minute
           
-          if (isNewUser) {
+          if (!isNewUser) {
+            // Existing user logged in - send login success email from AI agent
             setTimeout(() => {
-              sendAuthEmail('welcome', session.user.email || '');
+              sendAuthEmail('login_success', session.user.email || '', undefined, undefined, session.user.user_metadata?.name);
             }, 0);
           }
         }
