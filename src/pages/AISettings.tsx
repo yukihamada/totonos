@@ -95,7 +95,7 @@ export default function AISettings() {
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="lovable" className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4" />
-                  Lovable AI
+                  標準AI
                 </TabsTrigger>
                 <TabsTrigger value="openai" className="flex items-center gap-2">
                   <Zap className="h-4 w-4" />
@@ -115,8 +115,8 @@ export default function AISettings() {
                       <span className="font-medium">APIキー不要</span>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Lovable AIは追加の設定なしですぐに使用できます。
-                      Google GeminiやOpenAI GPT-5など、最新のモデルにアクセスできます。
+                      追加の設定なしですぐに使用できます。
+                      Gemini、GPT-5など最新モデルにアクセスできます。
                     </p>
                   </div>
 
@@ -291,7 +291,7 @@ export default function AISettings() {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">プロバイダー</span>
                 <span className="font-medium">
-                  {currentProvider === 'lovable' && 'Lovable AI'}
+                  {currentProvider === 'lovable' && '標準AI'}
                   {currentProvider === 'openai' && 'OpenAI'}
                   {currentProvider === 'anthropic' && 'Anthropic'}
                 </span>

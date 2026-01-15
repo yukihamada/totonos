@@ -21,8 +21,12 @@ import {
   Smartphone,
   Settings,
   X,
+  Receipt,
+  Building2,
+  Copy,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 interface TutorialStep {
   id: string;
@@ -71,6 +75,11 @@ export default function GettingStarted() {
     setDismissed(false);
   };
 
+  const copyEmailAddress = () => {
+    navigator.clipboard.writeText("minato@totos.jp");
+    toast.success("メールアドレスをコピーしました");
+  };
+
   if (dismissed) {
     return (
       <AppLayout>
@@ -97,21 +106,21 @@ export default function GettingStarted() {
   }
 
   const emailExamples = [
+    { command: "株式会社ABCへ10万円の請求書を作成して", result: "クライアント情報から請求書を自動生成" },
+    { command: "山田商事との業務委託契約書を作成", result: "テンプレートから契約書を生成" },
     { command: "今月の売上を教えて", result: "当月の請求書・入金データを集計してレポート" },
-    { command: "山田商事への請求書を作成して", result: "クライアント情報から請求書を自動生成" },
     { command: "来週の予定を確認", result: "活動・商談のスケジュールをまとめて返信" },
-    { command: "未入金の請求書一覧", result: "支払期限と金額を一覧でお知らせ" },
   ];
 
   const lineExamples = [
-    { command: "請求書確認", result: "最新の請求書ステータスを表示" },
+    { command: "新しいリードを登録 田中太郎 株式会社XYZ", result: "リードを即座に登録" },
     { command: "今日の売上", result: "本日の売上サマリーを返信" },
-    { command: "契約書を送付して", result: "指定の契約書を相手先にメール送信" },
     { command: "経費を登録 3000円 タクシー代", result: "経費申請を自動登録" },
+    { command: "契約書を送付して", result: "指定の契約書を相手先にメール送信" },
   ];
 
   const chatExamples = [
-    { command: "新しいリードを登録して", result: "対話形式でリード情報を入力・登録" },
+    { command: "株式会社BUTTIを登録して、15万円の清掃代の請求書を作成", result: "会社登録→請求書作成を一括で実行" },
     { command: "今期の売上予測を見せて", result: "パイプラインから売上予測を表示" },
     { command: "田中さんとの商談履歴", result: "関連する活動・メモを時系列で表示" },
     { command: "Wikiに議事録を追加", result: "会議メモをナレッジベースに保存" },
@@ -161,6 +170,36 @@ export default function GettingStarted() {
           </CardContent>
         </Card>
 
+        {/* Tips Card */}
+        <Card className="border-2 border-primary/50 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Sparkles className="h-5 w-5 text-primary" />
+              便利な使い方のヒント
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-start gap-3">
+              <Building2 className="h-5 w-5 text-primary mt-0.5" />
+              <div>
+                <p className="font-medium">会社（クライアント）を先に登録</p>
+                <p className="text-sm text-muted-foreground">
+                  請求書や契約書を作成する前に、取引先の会社を登録しておくとスムーズに作成できます。
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <Receipt className="h-5 w-5 text-primary mt-0.5" />
+              <div>
+                <p className="font-medium">領収書の画像を添付で自動経費登録</p>
+                <p className="text-sm text-muted-foreground">
+                  メールに領収書の画像を添付して送ると、AIがOCRで読み取って自動で経費として登録します。
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Email Section */}
         <Card className="border-2">
           <CardHeader>
@@ -174,7 +213,7 @@ export default function GettingStarted() {
                   <Badge variant="secondary">おすすめ</Badge>
                 </div>
                 <CardDescription className="mt-1">
-                  ミナトからのメールに返信するだけで、様々な業務を実行できます
+                  以下のメールアドレスに送信するだけで、様々な業務を実行できます
                 </CardDescription>
               </div>
               <Checkbox 
@@ -187,11 +226,19 @@ export default function GettingStarted() {
             <div className="bg-muted/50 rounded-lg p-4 space-y-3">
               <div className="flex items-center gap-2 text-sm font-medium">
                 <Send className="h-4 w-4" />
-                ログイン後、ミナトから挨拶メールが届きます
+                専用メールアドレスに送信
+              </div>
+              <div className="flex items-center gap-2">
+                <code className="px-3 py-2 bg-background border rounded text-sm font-mono">
+                  minato@totos.jp
+                </code>
+                <Button variant="ghost" size="sm" onClick={copyEmailAddress}>
+                  <Copy className="h-4 w-4" />
+                </Button>
               </div>
               <div className="flex items-center gap-2 text-sm font-medium">
                 <Reply className="h-4 w-4" />
-                そのメールに返信するだけでAIが処理を実行
+                自然言語で指示するだけでAIが処理を実行
               </div>
             </div>
 
@@ -359,7 +406,7 @@ export default function GettingStarted() {
                   経理・会計
                 </div>
                 <ul className="text-sm text-muted-foreground space-y-1 ml-6">
-                  <li>• 経費登録</li>
+                  <li>• 経費登録（領収書添付で自動）</li>
                   <li>• 仕訳作成</li>
                   <li>• 売上レポート</li>
                 </ul>

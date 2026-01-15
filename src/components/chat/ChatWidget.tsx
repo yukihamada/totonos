@@ -70,7 +70,7 @@ export function ChatWidget({ open: controlledOpen, onOpenChange }: ChatWidgetPro
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
         <SheetContent
           side="right"
-          className="w-full sm:w-[400px] p-0 flex flex-col"
+          className="w-full sm:w-[400px] p-0 flex flex-col [&>button]:hidden"
         >
           <ChatPanel
             messages={messages}
