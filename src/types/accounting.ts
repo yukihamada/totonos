@@ -1,10 +1,13 @@
 // Accounting types for Totonos
 
 export type AccountType = 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
-export type JournalSourceType = 'manual' | 'invoice' | 'payment' | 'expense' | 'depreciation' | 'purchase_order';
+export type JournalSourceType = 'manual' | 'invoice' | 'payment' | 'expense' | 'depreciation' | 'purchase_order' | 'bank_import' | 'payroll' | 'tax';
 export type AssetCategory = 'building' | 'vehicle' | 'equipment' | 'software' | 'furniture' | 'other';
 export type DepreciationMethod = 'straight_line' | 'declining_balance';
 export type ExpenseStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'paid';
+export type TaxType = 'taxable' | 'exempt' | 'zero_rated' | 'reverse_charge';
+export type BankTransactionStatus = 'unmatched' | 'matched' | 'reconciled' | 'ignored';
+export type CurrencyCode = 'JPY' | 'USD' | 'EUR' | 'GBP' | 'CNY' | 'KRW';
 
 export interface FiscalPeriod {
   id: string;
@@ -251,3 +254,197 @@ export const defaultAccounts: Omit<Account, 'id' | 'user_id' | 'created_at' | 'u
   { account_code: '7600', account_name: '雑費', account_type: 'expense', parent_account_id: null, is_system: true, is_active: true },
   { account_code: '8000', account_name: '法人税等', account_type: 'expense', parent_account_id: null, is_system: true, is_active: true },
 ];
+
+// ===== 新機能用の型定義 =====
+
+// 消費税計算
+export interface TaxCalculation {
+  id: string;
+  user_id: string;
+  fiscal_period_id: string;
+  calculation_date: string;
+  sales_taxable: number;
+  sales_tax_collected: number;
+  purchases_taxable: number;
+  purchases_tax_paid: number;
+  tax_payable: number;
+  tax_refundable: number;
+  net_tax_liability: number;
+  created_at: string;
+}
+
+// 銀行取引
+export interface BankTransaction {
+  id: string;
+  user_id: string;
+  bank_account_id: string;
+  transaction_date: string;
+  description: string;
+  amount: number;
+  balance_after: number;
+  reference_number: string | null;
+  status: BankTransactionStatus;
+  matched_journal_entry_id: string | null;
+  imported_at: string;
+  created_at: string;
+}
+
+// 銀行口座
+export interface BankAccount {
+  id: string;
+  user_id: string;
+  bank_name: string;
+  branch_name: string | null;
+  account_number: string;
+  account_type: 'ordinary' | 'checking' | 'savings';
+  linked_account_id: string | null;
+  current_balance: number;
+  last_synced_at: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+// 仕訳テンプレート
+export interface JournalTemplate {
+  id: string;
+  user_id: string;
+  template_name: string;
+  description: string | null;
+  is_recurring: boolean;
+  recurrence_pattern: string | null;
+  next_run_date: string | null;
+  lines: JournalTemplateLine[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface JournalTemplateLine {
+  id: string;
+  template_id: string;
+  account_id: string;
+  debit_amount: number;
+  credit_amount: number;
+  description: string | null;
+  account?: Account;
+}
+
+// コストセンター（部門）
+export interface CostCenter {
+  id: string;
+  user_id: string;
+  code: string;
+  name: string;
+  parent_id: string | null;
+  manager_name: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+// 買掛金
+export interface AccountsPayable {
+  id: string;
+  user_id: string;
+  vendor_id: string | null;
+  vendor_name: string;
+  invoice_number: string;
+  invoice_date: string;
+  due_date: string;
+  amount: number;
+  paid_amount: number;
+  balance: number;
+  status: 'open' | 'partial' | 'paid' | 'overdue';
+  journal_entry_id: string | null;
+  created_at: string;
+}
+
+// 予算
+export interface Budget {
+  id: string;
+  user_id: string;
+  fiscal_period_id: string;
+  account_id: string;
+  cost_center_id: string | null;
+  budget_amount: number;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  account?: Account;
+  cost_center?: CostCenter;
+}
+
+// 為替レート
+export interface ExchangeRate {
+  id: string;
+  user_id: string;
+  from_currency: CurrencyCode;
+  to_currency: CurrencyCode;
+  rate: number;
+  effective_date: string;
+  created_at: string;
+}
+
+// キャッシュフロー計算書用
+export interface CashFlowItem {
+  category: 'operating' | 'investing' | 'financing';
+  subcategory: string;
+  description: string;
+  amount: number;
+}
+
+export interface CashFlowStatement {
+  period_start: string;
+  period_end: string;
+  operating_activities: CashFlowItem[];
+  investing_activities: CashFlowItem[];
+  financing_activities: CashFlowItem[];
+  net_operating: number;
+  net_investing: number;
+  net_financing: number;
+  net_change: number;
+  beginning_cash: number;
+  ending_cash: number;
+}
+
+// 決算処理
+export interface PeriodCloseProcess {
+  id: string;
+  user_id: string;
+  fiscal_period_id: string;
+  step: 'draft' | 'adjustments' | 'tax_calculation' | 'closing_entries' | 'completed';
+  adjusting_entries_count: number;
+  closing_entries_count: number;
+  net_income: number;
+  started_at: string;
+  completed_at: string | null;
+  created_at: string;
+}
+
+// ユーティリティ関数追加
+export function getTaxTypeLabel(type: TaxType): string {
+  switch (type) {
+    case 'taxable': return '課税';
+    case 'exempt': return '非課税';
+    case 'zero_rated': return '免税';
+    case 'reverse_charge': return 'リバースチャージ';
+  }
+}
+
+export function getBankTransactionStatusLabel(status: BankTransactionStatus): string {
+  switch (status) {
+    case 'unmatched': return '未照合';
+    case 'matched': return '照合済';
+    case 'reconciled': return '消込済';
+    case 'ignored': return '対象外';
+  }
+}
+
+export function getCurrencySymbol(code: CurrencyCode): string {
+  switch (code) {
+    case 'JPY': return '¥';
+    case 'USD': return '$';
+    case 'EUR': return '€';
+    case 'GBP': return '£';
+    case 'CNY': return '¥';
+    case 'KRW': return '₩';
+  }
+}

@@ -28,6 +28,12 @@ import AccountingExpenses from "./pages/AccountingExpenses";
 import AccountingSettings from "./pages/AccountingSettings";
 import AccountingBudget from "./pages/AccountingBudget";
 import AccountingReceivables from "./pages/AccountingReceivables";
+import AccountingTax from "./pages/AccountingTax";
+import AccountingPayables from "./pages/AccountingPayables";
+import AccountingCashFlow from "./pages/AccountingCashFlow";
+import AccountingPeriodClose from "./pages/AccountingPeriodClose";
+import AccountingTemplates from "./pages/AccountingTemplates";
+import AccountingCostCenters from "./pages/AccountingCostCenters";
 // CRM
 import Leads from "./pages/Leads";
 import Deals from "./pages/Deals";
@@ -75,6 +81,7 @@ import LeadScoring from "./pages/LeadScoring";
 import EBookkeeping from "./pages/EBookkeeping";
 import MyNumberManagement from "./pages/MyNumberManagement";
 import EmailIntegration from "./pages/EmailIntegration";
+import SlackIntegration from "./pages/SlackIntegration";
 // Phase 2 Features (Differentiation)
 import WikiHierarchy from "./pages/WikiHierarchy";
 import SalesForecast from "./pages/SalesForecast";
@@ -195,6 +202,12 @@ function AppRoutes() {
       <Route path="/accounting/settings" element={<ProtectedRoute><AccountingSettings /></ProtectedRoute>} />
       <Route path="/accounting/budget" element={<ProtectedRoute><AccountingBudget /></ProtectedRoute>} />
       <Route path="/accounting/receivables" element={<ProtectedRoute><AccountingReceivables /></ProtectedRoute>} />
+      <Route path="/accounting/tax" element={<ProtectedRoute><AccountingTax /></ProtectedRoute>} />
+      <Route path="/accounting/payables" element={<ProtectedRoute><AccountingPayables /></ProtectedRoute>} />
+      <Route path="/accounting/cashflow" element={<ProtectedRoute><AccountingCashFlow /></ProtectedRoute>} />
+      <Route path="/accounting/period-close" element={<ProtectedRoute><AccountingPeriodClose /></ProtectedRoute>} />
+      <Route path="/accounting/templates" element={<ProtectedRoute><AccountingTemplates /></ProtectedRoute>} />
+      <Route path="/accounting/cost-centers" element={<ProtectedRoute><AccountingCostCenters /></ProtectedRoute>} />
       {/* CRM */}
       <Route path="/leads" element={<ProtectedRoute><Leads /></ProtectedRoute>} />
       <Route path="/deals" element={<ProtectedRoute><Deals /></ProtectedRoute>} />
@@ -239,6 +252,7 @@ function AppRoutes() {
       <Route path="/e-bookkeeping" element={<ProtectedRoute><EBookkeeping /></ProtectedRoute>} />
       <Route path="/my-number" element={<ProtectedRoute><MyNumberManagement /></ProtectedRoute>} />
       <Route path="/email-integration" element={<ProtectedRoute><EmailIntegration /></ProtectedRoute>} />
+      <Route path="/slack-integration" element={<ProtectedRoute><SlackIntegration /></ProtectedRoute>} />
       {/* Phase 2 Features (Differentiation) */}
       <Route path="/wiki-hierarchy" element={<ProtectedRoute><WikiHierarchy /></ProtectedRoute>} />
       <Route path="/sales-forecast" element={<ProtectedRoute><SalesForecast /></ProtectedRoute>} />

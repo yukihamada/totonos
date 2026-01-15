@@ -2,6 +2,10 @@ import { useState, useEffect, createContext, useContext, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+// E2E Test Key - only works in development
+const E2E_TEST_KEY = import.meta.env.VITE_E2E_TEST_KEY;
+const IS_PRODUCTION = import.meta.env.PROD;
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -16,9 +20,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Send authentication email via Resend edge function
 const sendAuthEmail = async (
-  type: 'magic_link' | 'welcome' | 'password_reset' | 'login_success', 
-  email: string, 
-  token?: string, 
+  type: 'magic_link' | 'welcome' | 'password_reset' | 'login_success',
+  email: string,
+  token?: string,
   redirectUrl?: string,
   userName?: string
 ) => {
@@ -26,12 +30,12 @@ const sendAuthEmail = async (
     const { data, error } = await supabase.functions.invoke('send-auth-email', {
       body: { type, email, token, redirectUrl, userName }
     });
-    
+
     if (error) {
       console.error('Failed to send auth email:', error);
       return false;
     }
-    
+
     console.log('Auth email sent successfully:', data);
     return true;
   } catch (err) {
@@ -40,12 +44,60 @@ const sendAuthEmail = async (
   }
 };
 
+// Create a mock user for E2E testing
+function createE2ETestUser(email: string): User {
+  return {
+    id: 'e2e-test-user-id',
+    email: email,
+    app_metadata: {},
+    user_metadata: {
+      display_name: 'E2E Test User',
+      company_name: 'Test Company',
+    },
+    aud: 'authenticated',
+    created_at: new Date().toISOString(),
+  } as User;
+}
+
+function createE2ETestSession(user: User): Session {
+  return {
+    access_token: 'e2e-test-access-token',
+    refresh_token: 'e2e-test-refresh-token',
+    expires_in: 3600,
+    expires_at: Math.floor(Date.now() / 1000) + 3600,
+    token_type: 'bearer',
+    user,
+  } as Session;
+}
+
+// Check if email contains the E2E test key
+function isE2ETestEmail(email: string): boolean {
+  if (IS_PRODUCTION || !E2E_TEST_KEY) return false;
+  // Format: anything+e2e-{SECRET_KEY}@anyhost.com
+  const pattern = new RegExp(`\\+e2e-${E2E_TEST_KEY}@`);
+  return pattern.test(email);
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Check for E2E test session first (use localStorage for Playwright compatibility)
+    const e2eSession = localStorage.getItem('e2e_test_session');
+    if (e2eSession && !IS_PRODUCTION) {
+      try {
+        const { user: testUser, session: testSession } = JSON.parse(e2eSession);
+        setUser(testUser);
+        setSession(testSession);
+        setLoading(false);
+        return;
+      } catch {
+        localStorage.removeItem('e2e_test_session');
+      }
+    }
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -79,6 +131,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInWithMagicLink = async (email: string) => {
+    // E2E Test: Auto-login when email contains test key
+    if (isE2ETestEmail(email)) {
+      const testUser = createE2ETestUser(email);
+      const testSession = createE2ETestSession(testUser);
+      setUser(testUser);
+      setSession(testSession);
+      // Store in localStorage for Playwright storageState persistence
+      localStorage.setItem('e2e_test_session', JSON.stringify({ user: testUser, session: testSession }));
+      return { error: null };
+    }
+
     const redirectUrl = `${window.location.origin}/dashboard`;
     const { error } = await supabase.auth.signInWithOtp({
       email,
@@ -128,6 +191,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    // Clear E2E test session if exists
+    localStorage.removeItem('e2e_test_session');
+    setUser(null);
+    setSession(null);
     await supabase.auth.signOut();
   };
 

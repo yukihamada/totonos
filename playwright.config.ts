@@ -1,4 +1,27 @@
 import { defineConfig, devices } from '@playwright/test';
+import { readFileSync, existsSync } from 'fs';
+import { dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// Load .env file for E2E tests
+const envPath = resolve(__dirname, '.env');
+if (existsSync(envPath)) {
+  const envContent = readFileSync(envPath, 'utf-8');
+  envContent.split('\n').forEach(line => {
+    const match = line.match(/^([^=]+)=(.*)$/);
+    if (match && !process.env[match[1]]) {
+      let value = match[2].trim();
+      // Remove quotes if present
+      if ((value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+      process.env[match[1]] = value;
+    }
+  });
+}
 
 /**
  * Totonos E2E Test Configuration
@@ -30,22 +53,43 @@ export default defineConfig({
     // Base URL to use in actions like `await page.goto('/')`
     baseURL: 'http://localhost:8080',
 
-    // Collect trace when retrying the failed test
-    trace: 'on-first-retry',
+    // Collect trace for all tests
+    trace: 'on',
 
-    // Screenshot on failure
-    screenshot: 'only-on-failure',
+    // Screenshot for all tests
+    screenshot: 'on',
 
-    // Video on failure
-    video: 'on-first-retry',
+    // Video for all tests
+    video: 'on',
   },
 
   // Configure projects for major browsers
   projects: [
+    // Setup project - authenticates and saves state
+    {
+      name: 'setup',
+      testMatch: /auth\.setup\.ts/,
+    },
+
+    // Unauthenticated tests (public pages)
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      testIgnore: /.*\.authenticated\.spec\.ts/,
     },
+
+    // Authenticated tests (protected pages)
+    {
+      name: 'chromium-authenticated',
+      use: {
+        ...devices['Desktop Chrome'],
+        // Use saved auth state
+        storageState: 'e2e/.auth/user.json',
+      },
+      testMatch: /.*\.authenticated\.spec\.ts/,
+      dependencies: ['setup'],
+    },
+
     // Uncomment to test on more browsers
     // {
     //   name: 'firefox',

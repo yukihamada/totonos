@@ -7,6 +7,7 @@ import { UnpaidInvoicesAlert } from "@/components/dashboard/UnpaidInvoicesAlert"
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { TrustPassportMini } from "@/components/dashboard/TrustPassportMini";
 import { OnboardingGuide } from "@/components/dashboard/OnboardingGuide";
+import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { Wallet, FileText, Target, TrendingUp, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/types/database";
@@ -109,7 +110,7 @@ export default function Dashboard() {
             overdueCount={stats?.overdueCount || 0}
           />
           <TrustPassportMini score={782} rank="A" previousScore={759} />
-          <RecentActivity activities={formattedActivities} />
+          <ActivityFeed limit={5} />
         </div>
 
         {/* Quick Stats */}

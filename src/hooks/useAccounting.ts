@@ -526,7 +526,7 @@ export function useTrialBalance(startDate: string, endDate: string) {
 
 export function useGeneralLedger(accountId: string, startDate: string, endDate: string) {
   const { user } = useAuth();
-  
+
   return useQuery({
     queryKey: ['general-ledger', accountId, startDate, endDate],
     queryFn: async () => {
@@ -546,9 +546,9 @@ export function useGeneralLedger(accountId: string, startDate: string, endDate: 
         .gte('journal_entries.entry_date', startDate)
         .lte('journal_entries.entry_date', endDate)
         .order('journal_entries(entry_date)', { ascending: true });
-      
+
       if (error) throw error;
-      
+
       let runningBalance = 0;
       return data.map((line: any) => {
         runningBalance += (Number(line.debit_amount) || 0) - (Number(line.credit_amount) || 0);
@@ -561,5 +561,1249 @@ export function useGeneralLedger(accountId: string, startDate: string, endDate: 
       });
     },
     enabled: !!user && !!accountId && !!startDate && !!endDate,
+  });
+}
+
+// ===== 消費税計算 =====
+export function useTaxCalculations(fiscalPeriodId?: string) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['tax-calculations', user?.id, fiscalPeriodId],
+    queryFn: async () => {
+      let query = supabase
+        .from('tax_calculations')
+        .select('*, fiscal_periods(*)')
+        .order('calculation_date', { ascending: false });
+
+      if (fiscalPeriodId) {
+        query = query.eq('fiscal_period_id', fiscalPeriodId);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+}
+
+export function useCalculateTax() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ fiscalPeriodId, startDate, endDate }: {
+      fiscalPeriodId: string;
+      startDate: string;
+      endDate: string;
+    }) => {
+      if (!user) throw new Error('Not authenticated');
+
+      // Get journal entries for the period
+      const { data: entries, error: entriesError } = await supabase
+        .from('journal_entries')
+        .select(`
+          *,
+          journal_entry_lines (
+            *,
+            accounts:account_id (*)
+          )
+        `)
+        .gte('entry_date', startDate)
+        .lte('entry_date', endDate);
+
+      if (entriesError) throw entriesError;
+
+      // Calculate tax amounts
+      let salesTaxable = 0;
+      let salesTaxCollected = 0;
+      let purchasesTaxable = 0;
+      let purchasesTaxPaid = 0;
+
+      entries?.forEach((entry: any) => {
+        entry.journal_entry_lines?.forEach((line: any) => {
+          const account = line.accounts;
+          if (account?.account_type === 'revenue') {
+            salesTaxable += Number(line.credit_amount) || 0;
+          } else if (account?.account_type === 'expense') {
+            purchasesTaxable += Number(line.debit_amount) || 0;
+          }
+        });
+      });
+
+      // Default 10% consumption tax
+      salesTaxCollected = Math.round(salesTaxable * 0.1);
+      purchasesTaxPaid = Math.round(purchasesTaxable * 0.1);
+
+      const taxPayable = salesTaxCollected;
+      const taxRefundable = purchasesTaxPaid;
+      const netTaxLiability = taxPayable - taxRefundable;
+
+      const { data, error } = await supabase
+        .from('tax_calculations')
+        .insert({
+          user_id: user.id,
+          fiscal_period_id: fiscalPeriodId,
+          calculation_date: new Date().toISOString().split('T')[0],
+          sales_taxable: salesTaxable,
+          sales_tax_collected: salesTaxCollected,
+          purchases_taxable: purchasesTaxable,
+          purchases_tax_paid: purchasesTaxPaid,
+          tax_payable: taxPayable,
+          tax_refundable: taxRefundable,
+          net_tax_liability: netTaxLiability,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tax-calculations'] });
+    },
+  });
+}
+
+// ===== 銀行口座 =====
+export function useBankAccounts() {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['bank-accounts', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('bank_accounts')
+        .select('*, accounts:linked_account_id(*)')
+        .order('bank_name');
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+}
+
+export function useCreateBankAccount() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (account: {
+      bank_name: string;
+      branch_name?: string;
+      account_number: string;
+      account_type?: 'ordinary' | 'checking' | 'savings';
+      linked_account_id?: string;
+    }) => {
+      if (!user) throw new Error('Not authenticated');
+
+      const { data, error } = await supabase
+        .from('bank_accounts')
+        .insert({
+          ...account,
+          user_id: user.id,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bank-accounts'] });
+    },
+  });
+}
+
+// ===== 銀行取引明細 =====
+export function useBankTransactions(bankAccountId?: string) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['bank-transactions', user?.id, bankAccountId],
+    queryFn: async () => {
+      let query = supabase
+        .from('bank_transactions')
+        .select('*, bank_accounts(*), journal_entries:matched_journal_entry_id(*)')
+        .order('transaction_date', { ascending: false });
+
+      if (bankAccountId) {
+        query = query.eq('bank_account_id', bankAccountId);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+}
+
+export function useImportBankTransactions() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ bankAccountId, transactions }: {
+      bankAccountId: string;
+      transactions: {
+        transaction_date: string;
+        description: string;
+        amount: number;
+        balance_after: number;
+        reference_number?: string;
+      }[];
+    }) => {
+      if (!user) throw new Error('Not authenticated');
+
+      const { data, error } = await supabase
+        .from('bank_transactions')
+        .insert(
+          transactions.map(t => ({
+            ...t,
+            user_id: user.id,
+            bank_account_id: bankAccountId,
+          }))
+        )
+        .select();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bank-transactions'] });
+    },
+  });
+}
+
+export function useMatchBankTransaction() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ transactionId, journalEntryId }: {
+      transactionId: string;
+      journalEntryId: string;
+    }) => {
+      const { data, error } = await supabase
+        .from('bank_transactions')
+        .update({
+          matched_journal_entry_id: journalEntryId,
+          status: 'matched',
+        })
+        .eq('id', transactionId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bank-transactions'] });
+    },
+  });
+}
+
+// ===== 仕訳テンプレート =====
+export function useJournalTemplates() {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['journal-templates', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('journal_templates')
+        .select(`
+          *,
+          journal_template_lines (
+            *,
+            accounts:account_id (*)
+          )
+        `)
+        .order('template_name');
+
+      if (error) throw error;
+      return data.map((template: any) => ({
+        ...template,
+        lines: template.journal_template_lines?.map((line: any) => ({
+          ...line,
+          account: line.accounts,
+        })),
+      }));
+    },
+    enabled: !!user,
+  });
+}
+
+export function useCreateJournalTemplate() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: {
+      template_name: string;
+      description?: string;
+      is_recurring?: boolean;
+      recurrence_pattern?: string;
+      lines: {
+        account_id: string;
+        debit_amount: number;
+        credit_amount: number;
+        description?: string;
+      }[];
+    }) => {
+      if (!user) throw new Error('Not authenticated');
+
+      const { data: template, error: templateError } = await supabase
+        .from('journal_templates')
+        .insert({
+          user_id: user.id,
+          template_name: input.template_name,
+          description: input.description,
+          is_recurring: input.is_recurring,
+          recurrence_pattern: input.recurrence_pattern,
+        })
+        .select()
+        .single();
+
+      if (templateError) throw templateError;
+
+      const { error: linesError } = await supabase
+        .from('journal_template_lines')
+        .insert(
+          input.lines.map(line => ({
+            template_id: template.id,
+            account_id: line.account_id,
+            debit_amount: line.debit_amount,
+            credit_amount: line.credit_amount,
+            description: line.description,
+          }))
+        );
+
+      if (linesError) throw linesError;
+
+      return template;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['journal-templates'] });
+    },
+  });
+}
+
+export function useApplyJournalTemplate() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ templateId, entryDate, description }: {
+      templateId: string;
+      entryDate: string;
+      description?: string;
+    }) => {
+      if (!user) throw new Error('Not authenticated');
+
+      // Get template
+      const { data: template, error: templateError } = await supabase
+        .from('journal_templates')
+        .select('*, journal_template_lines(*)')
+        .eq('id', templateId)
+        .single();
+
+      if (templateError) throw templateError;
+
+      // Create journal entry
+      const { data: entry, error: entryError } = await supabase
+        .from('journal_entries')
+        .insert({
+          user_id: user.id,
+          entry_number: '',
+          entry_date: entryDate,
+          description: description || template.description,
+          source_type: 'manual',
+        })
+        .select()
+        .single();
+
+      if (entryError) throw entryError;
+
+      // Create lines
+      const { error: linesError } = await supabase
+        .from('journal_entry_lines')
+        .insert(
+          template.journal_template_lines.map((line: any) => ({
+            journal_entry_id: entry.id,
+            account_id: line.account_id,
+            debit_amount: line.debit_amount,
+            credit_amount: line.credit_amount,
+            description: line.description,
+          }))
+        );
+
+      if (linesError) throw linesError;
+
+      return entry;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
+    },
+  });
+}
+
+// ===== コストセンター（部門） =====
+export function useCostCenters() {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['cost-centers', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('cost_centers')
+        .select('*')
+        .order('code');
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+}
+
+export function useCreateCostCenter() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (center: {
+      code: string;
+      name: string;
+      parent_id?: string;
+      manager_name?: string;
+    }) => {
+      if (!user) throw new Error('Not authenticated');
+
+      const { data, error } = await supabase
+        .from('cost_centers')
+        .insert({
+          ...center,
+          user_id: user.id,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cost-centers'] });
+    },
+  });
+}
+
+// ===== 買掛金 =====
+export function useAccountsPayable() {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['accounts-payable', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('accounts_payable')
+        .select('*')
+        .order('due_date');
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+}
+
+export function useAccountsPayableAging() {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['accounts-payable-aging', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('accounts_payable')
+        .select('*')
+        .in('status', ['open', 'partial', 'overdue'])
+        .order('due_date');
+
+      if (error) throw error;
+
+      const today = new Date();
+      const aging = {
+        current: 0,
+        days1to30: 0,
+        days31to60: 0,
+        days61to90: 0,
+        over90: 0,
+        total: 0,
+        items: [] as any[],
+      };
+
+      data?.forEach((item: any) => {
+        const dueDate = new Date(item.due_date);
+        const daysOverdue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+        const balance = Number(item.balance);
+
+        aging.total += balance;
+        aging.items.push({ ...item, daysOverdue });
+
+        if (daysOverdue <= 0) {
+          aging.current += balance;
+        } else if (daysOverdue <= 30) {
+          aging.days1to30 += balance;
+        } else if (daysOverdue <= 60) {
+          aging.days31to60 += balance;
+        } else if (daysOverdue <= 90) {
+          aging.days61to90 += balance;
+        } else {
+          aging.over90 += balance;
+        }
+      });
+
+      return aging;
+    },
+    enabled: !!user,
+  });
+}
+
+export function useCreateAccountsPayable() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payable: {
+      vendor_id?: string;
+      vendor_name: string;
+      invoice_number: string;
+      invoice_date: string;
+      due_date: string;
+      amount: number;
+    }) => {
+      if (!user) throw new Error('Not authenticated');
+
+      const { data, error } = await supabase
+        .from('accounts_payable')
+        .insert({
+          ...payable,
+          user_id: user.id,
+          balance: payable.amount,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['accounts-payable'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts-payable-aging'] });
+    },
+  });
+}
+
+// ===== 予算 =====
+export function useBudgets(fiscalPeriodId?: string) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['budgets', user?.id, fiscalPeriodId],
+    queryFn: async () => {
+      let query = supabase
+        .from('budgets')
+        .select('*, accounts:account_id(*), cost_centers:cost_center_id(*)')
+        .order('account_id');
+
+      if (fiscalPeriodId) {
+        query = query.eq('fiscal_period_id', fiscalPeriodId);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+}
+
+export function useBudgetVsActual(fiscalPeriodId: string, startDate: string, endDate: string) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['budget-vs-actual', fiscalPeriodId, startDate, endDate],
+    queryFn: async () => {
+      // Get budgets
+      const { data: budgets, error: budgetsError } = await supabase
+        .from('budgets')
+        .select('*, accounts:account_id(*)')
+        .eq('fiscal_period_id', fiscalPeriodId);
+
+      if (budgetsError) throw budgetsError;
+
+      // Get actual amounts from journal entries
+      const { data: entries, error: entriesError } = await supabase
+        .from('journal_entries')
+        .select(`
+          journal_entry_lines (
+            account_id,
+            debit_amount,
+            credit_amount
+          )
+        `)
+        .gte('entry_date', startDate)
+        .lte('entry_date', endDate);
+
+      if (entriesError) throw entriesError;
+
+      // Calculate actuals by account
+      const actuals: Record<string, number> = {};
+      entries?.forEach((entry: any) => {
+        entry.journal_entry_lines?.forEach((line: any) => {
+          if (!actuals[line.account_id]) {
+            actuals[line.account_id] = 0;
+          }
+          actuals[line.account_id] += (Number(line.debit_amount) || 0) - (Number(line.credit_amount) || 0);
+        });
+      });
+
+      // Combine budget and actual
+      return budgets?.map((budget: any) => ({
+        ...budget,
+        actual: Math.abs(actuals[budget.account_id] || 0),
+        variance: budget.budget_amount - Math.abs(actuals[budget.account_id] || 0),
+        variancePercent: budget.budget_amount > 0
+          ? ((budget.budget_amount - Math.abs(actuals[budget.account_id] || 0)) / budget.budget_amount) * 100
+          : 0,
+      }));
+    },
+    enabled: !!user && !!fiscalPeriodId && !!startDate && !!endDate,
+  });
+}
+
+export function useCreateBudget() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (budget: {
+      fiscal_period_id: string;
+      account_id: string;
+      cost_center_id?: string;
+      budget_amount: number;
+      notes?: string;
+    }) => {
+      if (!user) throw new Error('Not authenticated');
+
+      const { data, error } = await supabase
+        .from('budgets')
+        .insert({
+          ...budget,
+          user_id: user.id,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['budgets'] });
+    },
+  });
+}
+
+// ===== 為替レート =====
+export function useExchangeRates() {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['exchange-rates', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('exchange_rates')
+        .select('*')
+        .order('effective_date', { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+}
+
+export function useCreateExchangeRate() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (rate: {
+      from_currency: string;
+      to_currency: string;
+      rate: number;
+      effective_date: string;
+    }) => {
+      if (!user) throw new Error('Not authenticated');
+
+      const { data, error } = await supabase
+        .from('exchange_rates')
+        .insert({
+          ...rate,
+          user_id: user.id,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['exchange-rates'] });
+    },
+  });
+}
+
+// ===== 決算処理 =====
+export function usePeriodCloseProcess(fiscalPeriodId?: string) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['period-close', user?.id, fiscalPeriodId],
+    queryFn: async () => {
+      let query = supabase
+        .from('period_close_processes')
+        .select('*, fiscal_periods(*)')
+        .order('started_at', { ascending: false });
+
+      if (fiscalPeriodId) {
+        query = query.eq('fiscal_period_id', fiscalPeriodId);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return fiscalPeriodId ? data?.[0] : data;
+    },
+    enabled: !!user,
+  });
+}
+
+export function useStartPeriodClose() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (fiscalPeriodId: string) => {
+      if (!user) throw new Error('Not authenticated');
+
+      const { data, error } = await supabase
+        .from('period_close_processes')
+        .insert({
+          user_id: user.id,
+          fiscal_period_id: fiscalPeriodId,
+          step: 'draft',
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['period-close'] });
+    },
+  });
+}
+
+export function useAdvancePeriodClose() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ processId, nextStep }: {
+      processId: string;
+      nextStep: 'adjustments' | 'tax_calculation' | 'closing_entries' | 'completed';
+    }) => {
+      const updateData: any = { step: nextStep };
+
+      if (nextStep === 'completed') {
+        updateData.completed_at = new Date().toISOString();
+      }
+
+      const { data, error } = await supabase
+        .from('period_close_processes')
+        .update(updateData)
+        .eq('id', processId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['period-close'] });
+    },
+  });
+}
+
+export function useCloseFiscalPeriod() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (fiscalPeriodId: string) => {
+      const { data, error } = await supabase
+        .from('fiscal_periods')
+        .update({
+          is_closed: true,
+          closed_at: new Date().toISOString(),
+        })
+        .eq('id', fiscalPeriodId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fiscal-periods'] });
+      queryClient.invalidateQueries({ queryKey: ['period-close'] });
+    },
+  });
+}
+
+// ===== 減価償却自動実行 =====
+export function useRunDepreciation() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ fiscalPeriodId, depreciationDate }: {
+      fiscalPeriodId: string;
+      depreciationDate: string;
+    }) => {
+      if (!user) throw new Error('Not authenticated');
+
+      // Get active fixed assets
+      const { data: assets, error: assetsError } = await supabase
+        .from('fixed_assets')
+        .select('*')
+        .eq('is_active', true)
+        .is('disposal_date', null);
+
+      if (assetsError) throw assetsError;
+
+      const results: any[] = [];
+
+      for (const asset of assets || []) {
+        // Calculate depreciation amount
+        let depreciationAmount = 0;
+        const acquisitionCost = Number(asset.acquisition_cost);
+        const salvageValue = Number(asset.salvage_value) || 0;
+        const usefulLife = asset.useful_life_years;
+        const currentBookValue = Number(asset.current_book_value);
+
+        if (asset.depreciation_method === 'straight_line') {
+          // 定額法
+          depreciationAmount = (acquisitionCost - salvageValue) / usefulLife / 12;
+        } else {
+          // 定率法 (200% declining balance)
+          const rate = (2 / usefulLife);
+          depreciationAmount = currentBookValue * rate / 12;
+        }
+
+        depreciationAmount = Math.min(depreciationAmount, currentBookValue - salvageValue);
+
+        if (depreciationAmount <= 0) continue;
+
+        // Get last accumulated depreciation
+        const { data: lastSchedule } = await supabase
+          .from('depreciation_schedules')
+          .select('accumulated_depreciation')
+          .eq('fixed_asset_id', asset.id)
+          .order('depreciation_date', { ascending: false })
+          .limit(1)
+          .single();
+
+        const previousAccumulated = Number(lastSchedule?.accumulated_depreciation) || 0;
+        const newAccumulated = previousAccumulated + depreciationAmount;
+        const newBookValue = acquisitionCost - newAccumulated;
+
+        // Create depreciation schedule
+        const { data: schedule, error: scheduleError } = await supabase
+          .from('depreciation_schedules')
+          .insert({
+            fixed_asset_id: asset.id,
+            fiscal_period_id: fiscalPeriodId,
+            depreciation_date: depreciationDate,
+            depreciation_amount: depreciationAmount,
+            accumulated_depreciation: newAccumulated,
+            book_value_after: newBookValue,
+          })
+          .select()
+          .single();
+
+        if (scheduleError) throw scheduleError;
+
+        // Update fixed asset book value
+        await supabase
+          .from('fixed_assets')
+          .update({ current_book_value: newBookValue })
+          .eq('id', asset.id);
+
+        results.push({ asset, schedule, depreciationAmount });
+      }
+
+      return results;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fixed-assets'] });
+      queryClient.invalidateQueries({ queryKey: ['depreciation-schedules'] });
+    },
+  });
+}
+
+export function useDepreciationSchedules(assetId?: string) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['depreciation-schedules', user?.id, assetId],
+    queryFn: async () => {
+      let query = supabase
+        .from('depreciation_schedules')
+        .select('*, fixed_assets(*), fiscal_periods(*)')
+        .order('depreciation_date', { ascending: false });
+
+      if (assetId) {
+        query = query.eq('fixed_asset_id', assetId);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+}
+
+// ===== キャッシュフロー計算書 =====
+export function useCashFlowStatement(startDate: string, endDate: string) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['cash-flow-statement', user?.id, startDate, endDate],
+    queryFn: async () => {
+      // Get journal entries for the period
+      const { data: entries, error } = await supabase
+        .from('journal_entries')
+        .select(`
+          *,
+          journal_entry_lines (
+            *,
+            accounts:account_id (*)
+          )
+        `)
+        .gte('entry_date', startDate)
+        .lte('entry_date', endDate);
+
+      if (error) throw error;
+
+      // Classify cash flows
+      const operating: any[] = [];
+      const investing: any[] = [];
+      const financing: any[] = [];
+
+      let netOperating = 0;
+      let netInvesting = 0;
+      let netFinancing = 0;
+
+      // Cash account codes
+      const cashAccountCodes = ['1000', '1100'];
+
+      entries?.forEach((entry: any) => {
+        entry.journal_entry_lines?.forEach((line: any) => {
+          const account = line.accounts;
+          if (!account) return;
+
+          const cashChange = (Number(line.debit_amount) || 0) - (Number(line.credit_amount) || 0);
+
+          // Only track cash movements
+          if (!cashAccountCodes.includes(account.account_code)) return;
+
+          // Classify by source type
+          const item = {
+            category: 'operating' as const,
+            subcategory: entry.source_type || 'その他',
+            description: entry.description || account.account_name,
+            amount: cashChange,
+          };
+
+          switch (entry.source_type) {
+            case 'invoice':
+            case 'payment':
+            case 'expense':
+              item.category = 'operating';
+              operating.push(item);
+              netOperating += cashChange;
+              break;
+            case 'depreciation':
+              item.category = 'investing';
+              investing.push(item);
+              netInvesting += cashChange;
+              break;
+            default:
+              // Check account type for classification
+              if (account.account_code >= '1700' && account.account_code < '2000') {
+                // Fixed assets
+                item.category = 'investing';
+                investing.push(item);
+                netInvesting += cashChange;
+              } else if (account.account_code >= '2700' && account.account_code < '3000') {
+                // Borrowings
+                item.category = 'financing';
+                financing.push(item);
+                netFinancing += cashChange;
+              } else if (account.account_code >= '3000' && account.account_code < '4000') {
+                // Equity
+                item.category = 'financing';
+                financing.push(item);
+                netFinancing += cashChange;
+              } else {
+                operating.push(item);
+                netOperating += cashChange;
+              }
+          }
+        });
+      });
+
+      // Get beginning cash balance
+      const { data: beginningData } = await supabase
+        .from('journal_entries')
+        .select(`
+          journal_entry_lines (
+            debit_amount,
+            credit_amount,
+            accounts:account_id (account_code)
+          )
+        `)
+        .lt('entry_date', startDate);
+
+      let beginningCash = 0;
+      beginningData?.forEach((entry: any) => {
+        entry.journal_entry_lines?.forEach((line: any) => {
+          if (cashAccountCodes.includes(line.accounts?.account_code)) {
+            beginningCash += (Number(line.debit_amount) || 0) - (Number(line.credit_amount) || 0);
+          }
+        });
+      });
+
+      const netChange = netOperating + netInvesting + netFinancing;
+      const endingCash = beginningCash + netChange;
+
+      return {
+        period_start: startDate,
+        period_end: endDate,
+        operating_activities: operating,
+        investing_activities: investing,
+        financing_activities: financing,
+        net_operating: netOperating,
+        net_investing: netInvesting,
+        net_financing: netFinancing,
+        net_change: netChange,
+        beginning_cash: beginningCash,
+        ending_cash: endingCash,
+      };
+    },
+    enabled: !!user && !!startDate && !!endDate,
+  });
+}
+
+// ===== 自動仕訳 =====
+export function useCreateJournalFromInvoice() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (invoiceId: string) => {
+      if (!user) throw new Error('Not authenticated');
+
+      // Get invoice
+      const { data: invoice, error: invoiceError } = await supabase
+        .from('invoices')
+        .select('*')
+        .eq('id', invoiceId)
+        .single();
+
+      if (invoiceError) throw invoiceError;
+
+      // Get accounts
+      const { data: accounts } = await supabase
+        .from('accounts')
+        .select('*')
+        .in('account_code', ['1200', '4000', '2910']); // 売掛金, 売上高, 未払消費税
+
+      const receivablesAccount = accounts?.find(a => a.account_code === '1200');
+      const revenueAccount = accounts?.find(a => a.account_code === '4000');
+      const taxAccount = accounts?.find(a => a.account_code === '2910');
+
+      if (!receivablesAccount || !revenueAccount) {
+        throw new Error('必要な勘定科目が見つかりません');
+      }
+
+      const amount = Number(invoice.amount);
+      const taxAmount = Number(invoice.tax_amount) || 0;
+      const totalAmount = Number(invoice.total_amount);
+
+      // Create journal entry
+      const { data: entry, error: entryError } = await supabase
+        .from('journal_entries')
+        .insert({
+          user_id: user.id,
+          entry_number: '',
+          entry_date: invoice.issue_date,
+          description: `請求書 ${invoice.invoice_number}: ${invoice.title}`,
+          source_type: 'invoice',
+          source_id: invoiceId,
+        })
+        .select()
+        .single();
+
+      if (entryError) throw entryError;
+
+      // Create lines: Debit 売掛金, Credit 売上高 + 消費税
+      const lines = [
+        {
+          journal_entry_id: entry.id,
+          account_id: receivablesAccount.id,
+          debit_amount: totalAmount,
+          credit_amount: 0,
+          description: '売掛金',
+        },
+        {
+          journal_entry_id: entry.id,
+          account_id: revenueAccount.id,
+          debit_amount: 0,
+          credit_amount: amount,
+          description: '売上高',
+        },
+      ];
+
+      if (taxAmount > 0 && taxAccount) {
+        lines.push({
+          journal_entry_id: entry.id,
+          account_id: taxAccount.id,
+          debit_amount: 0,
+          credit_amount: taxAmount,
+          description: '消費税',
+        });
+      }
+
+      const { error: linesError } = await supabase
+        .from('journal_entry_lines')
+        .insert(lines);
+
+      if (linesError) throw linesError;
+
+      return entry;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
+    },
+  });
+}
+
+export function useCreateJournalFromPayment() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ payableId, paymentDate, amount }: {
+      payableId: string;
+      paymentDate: string;
+      amount: number;
+    }) => {
+      if (!user) throw new Error('Not authenticated');
+
+      // Get accounts payable
+      const { data: payable, error: payableError } = await supabase
+        .from('accounts_payable')
+        .select('*')
+        .eq('id', payableId)
+        .single();
+
+      if (payableError) throw payableError;
+
+      // Get accounts
+      const { data: accounts } = await supabase
+        .from('accounts')
+        .select('*')
+        .in('account_code', ['1100', '2000']); // 普通預金, 買掛金
+
+      const cashAccount = accounts?.find(a => a.account_code === '1100');
+      const payablesAccount = accounts?.find(a => a.account_code === '2000');
+
+      if (!cashAccount || !payablesAccount) {
+        throw new Error('必要な勘定科目が見つかりません');
+      }
+
+      // Create journal entry
+      const { data: entry, error: entryError } = await supabase
+        .from('journal_entries')
+        .insert({
+          user_id: user.id,
+          entry_number: '',
+          entry_date: paymentDate,
+          description: `支払: ${payable.vendor_name} - ${payable.invoice_number}`,
+          source_type: 'payment',
+          source_id: payableId,
+        })
+        .select()
+        .single();
+
+      if (entryError) throw entryError;
+
+      // Create lines: Debit 買掛金, Credit 普通預金
+      const { error: linesError } = await supabase
+        .from('journal_entry_lines')
+        .insert([
+          {
+            journal_entry_id: entry.id,
+            account_id: payablesAccount.id,
+            debit_amount: amount,
+            credit_amount: 0,
+            description: '買掛金支払',
+          },
+          {
+            journal_entry_id: entry.id,
+            account_id: cashAccount.id,
+            debit_amount: 0,
+            credit_amount: amount,
+            description: '普通預金',
+          },
+        ]);
+
+      if (linesError) throw linesError;
+
+      // Update accounts payable
+      const newPaidAmount = Number(payable.paid_amount) + amount;
+      const newBalance = Number(payable.amount) - newPaidAmount;
+      const newStatus = newBalance <= 0 ? 'paid' : 'partial';
+
+      await supabase
+        .from('accounts_payable')
+        .update({
+          paid_amount: newPaidAmount,
+          balance: newBalance,
+          status: newStatus,
+          journal_entry_id: entry.id,
+        })
+        .eq('id', payableId);
+
+      return entry;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts-payable'] });
+    },
   });
 }

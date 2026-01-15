@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from "react";
 import { ChatMessage, ToolCall, ToolResult } from "@/types/chat";
 import { streamChatMessage } from "@/lib/chat-api";
 import { toast } from "sonner";
+import { useCredits } from "@/hooks/useCredits";
 
 function generateId(): string {
   return Math.random().toString(36).substring(2, 15);
@@ -11,6 +12,7 @@ export function useChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const { canUse, consume } = useCredits();
 
   const addMessage = useCallback((message: Omit<ChatMessage, "id" | "timestamp">) => {
     const newMessage: ChatMessage = {
@@ -29,6 +31,23 @@ export function useChat() {
   const sendMessage = useCallback(
     async (content: string) => {
       if (!content.trim()) return;
+
+      // クレジットチェック
+      if (!canUse('ai_chat')) {
+        toast.error("クレジット不足", {
+          description: "AIチャットを利用するにはクレジットが必要です。クレジットを購入してください。",
+        });
+        return;
+      }
+
+      // クレジット消費
+      const consumed = await consume('ai_chat', 'AIチャット');
+      if (!consumed) {
+        toast.error("クレジット消費エラー", {
+          description: "クレジットの消費に失敗しました。",
+        });
+        return;
+      }
 
       // Cancel any ongoing request
       if (abortControllerRef.current) {
@@ -115,7 +134,7 @@ export function useChat() {
         abortControllerRef.current = null;
       }
     },
-    [messages, addMessage, updateMessage]
+    [messages, addMessage, updateMessage, canUse, consume]
   );
 
   const clearMessages = useCallback(() => {

@@ -10,7 +10,7 @@ import { ImportProgress } from "@/components/import/ImportProgress";
 import { useDataImport } from "@/hooks/useDataImport";
 import { useAuth } from "@/hooks/useAuth";
 import type { SourceService, TargetModule, MappingConfig, ImportJob } from "@/types/import";
-import { ArrowLeft, ArrowRight, Upload, History } from "lucide-react";
+import { ArrowLeft, ArrowRight, Upload, History, Download, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
@@ -154,6 +154,50 @@ export default function DataImport() {
     return steps.indexOf(step) + 1;
   };
 
+  // テンプレートダウンロード
+  const downloadTemplate = () => {
+    if (!selectedModule) return;
+
+    const templates: Record<string, { headers: string[]; example: string[] }> = {
+      contacts: {
+        headers: ['名前', 'メール', '電話番号', '会社名', '役職', '住所'],
+        example: ['山田太郎', 'yamada@example.com', '03-1234-5678', '株式会社サンプル', '部長', '東京都渋谷区...'],
+      },
+      deals: {
+        headers: ['案件名', '金額', 'ステータス', '担当者', '期日', '確度'],
+        example: ['新規導入案件', '1000000', '提案中', '鈴木一郎', '2024-03-31', '50'],
+      },
+      invoices: {
+        headers: ['請求書番号', '取引先', '発行日', '期日', '金額', '税額', 'ステータス'],
+        example: ['INV-001', '株式会社サンプル', '2024-01-01', '2024-01-31', '100000', '10000', '未払い'],
+      },
+      employees: {
+        headers: ['社員番号', '氏名', 'メール', '部署', '役職', '入社日', '給与'],
+        example: ['EMP001', '田中花子', 'tanaka@company.com', '営業部', '課長', '2020-04-01', '350000'],
+      },
+      journal_entries: {
+        headers: ['日付', '摘要', '借方科目', '借方金額', '貸方科目', '貸方金額'],
+        example: ['2024-01-15', '商品売上', '売掛金', '110000', '売上高', '100000'],
+      },
+    };
+
+    const template = templates[selectedModule];
+    if (!template) return;
+
+    const csvContent = [
+      template.headers.join(','),
+      template.example.join(','),
+    ].join('\n');
+
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${selectedModule}_template.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
       completed: 'default',
@@ -283,17 +327,28 @@ export default function DataImport() {
 
                 {step === 'upload' && (
                   <div className="space-y-4">
-                    <div>
-                      <h3 className="text-lg font-medium mb-2">ファイルをアップロード</h3>
-                      <p className="text-sm text-muted-foreground">
-                        インポートするCSVまたはExcelファイルを選択してください
-                      </p>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="text-lg font-medium mb-2">ファイルをアップロード</h3>
+                        <p className="text-sm text-muted-foreground">
+                          インポートするCSVまたはExcelファイルを選択してください
+                        </p>
+                      </div>
+                      {selectedModule && (
+                        <Button variant="outline" size="sm" onClick={downloadTemplate}>
+                          <Download className="h-4 w-4 mr-2" />
+                          テンプレート
+                        </Button>
+                      )}
                     </div>
                     <FileUploader onFileSelect={handleFileSelect} />
                     {parsedData && (
-                      <p className="text-sm text-muted-foreground">
-                        {parsedData.rows.length}件のデータを検出しました
-                      </p>
+                      <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                        <FileText className="h-5 w-5 text-green-600" />
+                        <p className="text-sm text-green-800 dark:text-green-200">
+                          {parsedData.rows.length}件のデータを検出しました（{parsedData.headers.length}列）
+                        </p>
+                      </div>
                     )}
                   </div>
                 )}

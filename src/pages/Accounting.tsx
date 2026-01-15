@@ -4,17 +4,23 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  BookOpen, 
-  FileSpreadsheet, 
-  PieChart, 
-  Building2, 
-  Receipt, 
+import {
+  BookOpen,
+  FileSpreadsheet,
+  PieChart,
+  Building2,
+  Receipt,
   Settings,
   Plus,
   TrendingUp,
   TrendingDown,
-  ArrowRight
+  ArrowRight,
+  Calculator,
+  Wallet,
+  CreditCard,
+  Lock,
+  FileText,
+  Users
 } from 'lucide-react';
 import { useAccounts, useJournalEntries, useExpenseClaims, useFixedAssets, useInitializeAccounts } from '@/hooks/useAccounting';
 import { formatCurrency } from '@/types/database';
@@ -80,6 +86,42 @@ export default function Accounting() {
       href: '/accounting/expenses',
       count: pendingExpenses.length,
       badge: pendingExpenses.length > 0 ? '承認待ち' : undefined,
+    },
+    {
+      title: '消費税計算',
+      description: '消費税の計算・申告準備',
+      icon: Calculator,
+      href: '/accounting/tax',
+    },
+    {
+      title: '買掛金管理',
+      description: 'エイジング分析・支払管理',
+      icon: CreditCard,
+      href: '/accounting/payables',
+    },
+    {
+      title: 'キャッシュフロー',
+      description: 'CF計算書・資金繰り',
+      icon: Wallet,
+      href: '/accounting/cashflow',
+    },
+    {
+      title: '決算処理',
+      description: '期末締め・繰越処理',
+      icon: Lock,
+      href: '/accounting/period-close',
+    },
+    {
+      title: '仕訳テンプレート',
+      description: 'よく使う仕訳パターン',
+      icon: FileText,
+      href: '/accounting/templates',
+    },
+    {
+      title: '部門管理',
+      description: 'コストセンター設定',
+      icon: Users,
+      href: '/accounting/cost-centers',
     },
     {
       title: '会計設定',
