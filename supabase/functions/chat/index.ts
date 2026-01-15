@@ -315,26 +315,27 @@ serve(async (req: Request) => {
 
     const systemPrompt = `あなたはTotonosのAIアシスタント「ミナト」です。
 
-【重要なルール - 必ず守ってください】
-1. タスク管理: 複雑な依頼を受けた場合は、まずタスクリストを作成し、1つずつ順番に実行してください。
-   例: 「請求書を作成して送付」→ ①クライアント確認 ②請求書作成 ③送付確認
+【最重要ルール - 複数タスクの処理】
+ユーザーが1つのメッセージで複数の操作を依頼した場合（例:「会社登録して契約書作って」）:
+1. 全てのタスクを特定し、順番に実行してください
+2. 1つのツールを実行したら、次のタスクに進んでください（途中で止まらない）
+3. 全てのタスクが完了するまで続けてください
+4. 前のタスクの結果（例: 作成した会社のID）を次のタスクで活用してください
 
-2. 削除操作は必ず確認: データを削除する前に必ず確認を取ってください。
-   「○○を削除しますか？確認のため「はい」と返信してください」と聞いてから実行。
+例: 「株式会社ABCを登録して、清掃費用15万円の契約書を作成」
+→ ①client_create（会社登録）→ ②contract_create（契約書作成、client_idに①の結果を使用）
 
-3. 禁止操作（以下は絶対に実行しないでください）:
+【重要なルール】
+1. 削除操作は必ず確認: データを削除する前に必ず確認を取ってください。
+
+2. 禁止操作（以下は絶対に実行しないでください）:
    - 「全てのデータを削除」「全件削除」「リセット」
    - 100件以上のデータを一括で削除・更新する操作
-   - データベース全体に影響する操作
-   - 「全部消して」「すべて削除」などの曖昧な大量削除指示
    これらの依頼には「セキュリティ上の理由でその操作は実行できません」と丁寧にお断りしてください。
 
-4. 安全第一: 不明確な指示の場合は、必ず確認を取ってから実行してください。
-
-5. 表現ルール（重要）:
-   - 「システムの不具合」などの曖昧な言い方は禁止。原因が「入力不足」ならそう明言し、DB/権限などの失敗ならエラー内容を短く提示してください。
-   - 「〜を実行中…」など進捗を文章で書かないでください（画面側で進捗が表示されます）。
-   - ツールの実行結果を受け取る前に「登録しました」「作成しました」と断定しないでください。
+3. 表現ルール:
+   - ツールの実行結果を受け取る前に「登録しました」「作成しました」と断定しないでください
+   - 進捗を文章で書かないでください（画面側で進捗が表示されます）
 
 【対応可能な機能】
 - 契約書の作成・管理・電子署名
@@ -347,11 +348,6 @@ serve(async (req: Request) => {
 - メール送受信
 - プロジェクト・タスク管理
 - 発注書管理
-
-【便利な使い方のヒント】
-- 会社（クライアント）を先に登録すると、請求書・契約書の作成がスムーズです
-- 領収書をメールに添付すると自動で経費登録できます
-- メールアドレス minato@totos.jp からも同様に操作できます
 
 日本語で丁寧に回答してください。`;
 
@@ -379,55 +375,66 @@ serve(async (req: Request) => {
             // Route to appropriate AI provider
             if (aiSettings.provider === "lovable") {
               // First call with tools
-              const first = await callLovableAI(messages, aiSettings.model, systemPrompt, allTools);
+              let currentResult = await callLovableAI(messages, aiSettings.model, systemPrompt, allTools);
 
               // Initial content (confirmation/questions) if present
-              if (first.content) {
+              if (currentResult.content) {
                 send({
                   type: "content_block_delta",
-                  delta: { type: "text_delta", text: first.content },
+                  delta: { type: "text_delta", text: currentResult.content },
                 });
               }
 
-              // Tool calls
-              for (const tc of first.toolCalls) {
-                send({ type: "tool_use", toolCall: tc });
-              }
+              // Process tool calls in a loop (max 5 rounds for multi-step tasks)
+              let allToolResults: typeof toolResults = [];
+              let currentMessages = [...messages];
+              let rounds = 0;
+              const MAX_ROUNDS = 5;
 
-              // Execute tools and stream results
-              const streamedToolResults: typeof toolResults = [];
-              for (const toolCall of first.toolCalls) {
-                try {
-                  const toolResult = await executeToolCall(
-                    toolCall.name,
-                    toolCall.input as Record<string, unknown>,
-                    userId,
-                    supabase
-                  );
-                  const tr = { toolCallId: toolCall.id, toolName: toolCall.name, result: toolResult };
-                  streamedToolResults.push(tr);
-                  send({ type: "tool_result", toolResult: tr });
-                } catch (error) {
-                  const tr = {
-                    toolCallId: toolCall.id,
-                    toolName: toolCall.name,
-                    result: { error: error instanceof Error ? error.message : "Unknown error" },
-                    isError: true,
-                  };
-                  streamedToolResults.push(tr);
-                  send({ type: "tool_result", toolResult: tr });
+              while (currentResult.toolCalls.length > 0 && rounds < MAX_ROUNDS) {
+                rounds++;
+                console.log(`Processing tool calls (round ${rounds}):`, currentResult.toolCalls.map((tc: { name: string }) => tc.name));
+
+                // Send tool calls to client
+                for (const tc of currentResult.toolCalls) {
+                  send({ type: "tool_use", toolCall: tc });
                 }
-              }
 
-              // Final response (use tool results as context)
-              if (first.toolCalls.length > 0) {
+                // Execute tools and stream results
+                const roundToolResults: typeof toolResults = [];
+                for (const toolCall of currentResult.toolCalls) {
+                  try {
+                    const toolResult = await executeToolCall(
+                      toolCall.name,
+                      toolCall.input as Record<string, unknown>,
+                      userId,
+                      supabase
+                    );
+                    const tr = { toolCallId: toolCall.id, toolName: toolCall.name, result: toolResult };
+                    roundToolResults.push(tr);
+                    send({ type: "tool_result", toolResult: tr });
+                  } catch (error) {
+                    const tr = {
+                      toolCallId: toolCall.id,
+                      toolName: toolCall.name,
+                      result: { error: error instanceof Error ? error.message : "Unknown error" },
+                      isError: true,
+                    };
+                    roundToolResults.push(tr);
+                    send({ type: "tool_result", toolResult: tr });
+                  }
+                }
+
+                allToolResults.push(...roundToolResults);
+
+                // Build messages with tool results for next AI call
                 type ToolCallType = { id: string; name: string; input: unknown };
                 const messagesWithToolResults = [
-                  ...messages,
+                  ...currentMessages,
                   {
                     role: "assistant",
-                    content: first.content || null,
-                    tool_calls: first.toolCalls.map((tc: ToolCallType) => ({
+                    content: currentResult.content || null,
+                    tool_calls: currentResult.toolCalls.map((tc: ToolCallType) => ({
                       id: tc.id,
                       type: "function",
                       function: {
@@ -436,20 +443,35 @@ serve(async (req: Request) => {
                       },
                     })),
                   },
-                  ...streamedToolResults.map((tr) => ({
+                  ...roundToolResults.map((tr) => ({
                     role: "tool",
                     tool_call_id: tr.toolCallId,
                     content: JSON.stringify(tr.result),
                   })),
                 ];
 
-                const final = await callLovableAI(messagesWithToolResults, aiSettings.model, systemPrompt, allTools);
-                if (final.content) {
+                // Call AI again to continue processing or get final response
+                const nextResult = await callLovableAI(messagesWithToolResults, aiSettings.model, systemPrompt, allTools);
+                
+                // Send any intermediate content
+                if (nextResult.content && nextResult.toolCalls.length > 0) {
                   send({
                     type: "content_block_delta",
-                    delta: { type: "text_delta", text: final.content },
+                    delta: { type: "text_delta", text: nextResult.content },
                   });
                 }
+
+                // Update for next iteration
+                currentMessages = messagesWithToolResults;
+                currentResult = nextResult;
+              }
+
+              // Send final response content
+              if (currentResult.content) {
+                send({
+                  type: "content_block_delta",
+                  delta: { type: "text_delta", text: currentResult.content },
+                });
               }
             } else if (aiSettings.provider === "openai") {
               if (!aiSettings.custom_api_key) {
