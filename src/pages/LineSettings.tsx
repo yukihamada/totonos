@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { MessageCircle, Link2, Unlink, QrCode, Copy, CheckCircle2 } from "lucide-react";
+import { MessageCircle, Link2, Unlink, QrCode, Copy, CheckCircle2, ExternalLink } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface LineUser {
   id: string;
@@ -17,8 +18,12 @@ interface LineUser {
   linked_at: string | null;
 }
 
+const LINE_BOT_ID = "@165ikada";
+const LINE_ADD_FRIEND_URL = "https://line.me/R/ti/p/@165ikada";
+
 export default function LineSettings() {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [lineUser, setLineUser] = useState<LineUser | null>(null);
   const [linkCode, setLinkCode] = useState("");
   const [isLinking, setIsLinking] = useState(false);
@@ -118,8 +123,12 @@ export default function LineSettings() {
   };
 
   const copyBotId = () => {
-    navigator.clipboard.writeText("@totonos");
+    navigator.clipboard.writeText(LINE_BOT_ID);
     toast.success("LINE Bot IDをコピーしました");
+  };
+
+  const openLineAddFriend = () => {
+    window.open(LINE_ADD_FRIEND_URL, "_blank");
   };
 
   if (isLoading) {
@@ -221,16 +230,28 @@ export default function LineSettings() {
                     <div>
                       <h3 className="font-medium">LINE Botを友だち追加</h3>
                       <p className="text-sm text-muted-foreground mb-2">
-                        以下のBot IDを検索して友だち追加してください
+                        {isMobile 
+                          ? "下のボタンをタップして友だち追加してください" 
+                          : "以下のBot IDを検索して友だち追加してください"}
                       </p>
-                      <div className="flex items-center gap-2">
-                        <code className="px-3 py-1 bg-muted rounded text-sm">
-                          @totonos
-                        </code>
-                        <Button variant="ghost" size="sm" onClick={copyBotId}>
-                          <Copy className="h-4 w-4" />
+                      {isMobile ? (
+                        <Button 
+                          onClick={openLineAddFriend}
+                          className="bg-[#00B900] hover:bg-[#00A000] text-white"
+                        >
+                          <ExternalLink className="mr-2 h-4 w-4" />
+                          LINEで友だち追加
                         </Button>
-                      </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <code className="px-3 py-1 bg-muted rounded text-sm">
+                            {LINE_BOT_ID}
+                          </code>
+                          <Button variant="ghost" size="sm" onClick={copyBotId}>
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -273,50 +294,66 @@ export default function LineSettings() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <QrCode className="h-5 w-5" />
-                  QRコードで友だち追加
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex justify-center p-4 bg-white rounded-lg">
-                  {/* LINE Official Account QR Code */}
-                  <div className="w-48 h-48 flex items-center justify-center">
-                    <svg viewBox="0 0 200 200" className="w-full h-full">
-                      {/* Simple QR code placeholder - replace with actual QR code image */}
-                      <rect x="0" y="0" width="200" height="200" fill="white"/>
-                      <rect x="10" y="10" width="50" height="50" fill="black"/>
-                      <rect x="20" y="20" width="30" height="30" fill="white"/>
-                      <rect x="25" y="25" width="20" height="20" fill="black"/>
-                      <rect x="140" y="10" width="50" height="50" fill="black"/>
-                      <rect x="150" y="20" width="30" height="30" fill="white"/>
-                      <rect x="155" y="25" width="20" height="20" fill="black"/>
-                      <rect x="10" y="140" width="50" height="50" fill="black"/>
-                      <rect x="20" y="150" width="30" height="30" fill="white"/>
-                      <rect x="25" y="155" width="20" height="20" fill="black"/>
-                      {/* Center pattern */}
-                      <rect x="70" y="70" width="60" height="60" fill="black"/>
-                      <rect x="80" y="80" width="40" height="40" fill="white"/>
-                      <rect x="90" y="90" width="20" height="20" fill="black"/>
-                      {/* Random data pattern */}
-                      <rect x="70" y="10" width="10" height="10" fill="black"/>
-                      <rect x="90" y="10" width="10" height="10" fill="black"/>
-                      <rect x="110" y="10" width="10" height="10" fill="black"/>
-                      <rect x="70" y="30" width="10" height="10" fill="black"/>
-                      <rect x="100" y="30" width="10" height="10" fill="black"/>
-                      <rect x="120" y="30" width="10" height="10" fill="black"/>
-                      <rect x="80" y="50" width="10" height="10" fill="black"/>
-                      <rect x="110" y="50" width="10" height="10" fill="black"/>
-                    </svg>
+            {/* モバイルではリンクボタン、PCではQRコード */}
+            {isMobile ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageCircle className="h-5 w-5 text-[#00B900]" />
+                    友だち追加
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    下のボタンをタップしてLINE公式アカウントを友だち追加してください。
+                  </p>
+                  <Button 
+                    onClick={openLineAddFriend}
+                    className="w-full bg-[#00B900] hover:bg-[#00A000] text-white"
+                    size="lg"
+                  >
+                    <ExternalLink className="mr-2 h-5 w-5" />
+                    LINEで友だち追加
+                  </Button>
+                  <div className="flex items-center justify-center gap-2 pt-2">
+                    <span className="text-sm text-muted-foreground">Bot ID:</span>
+                    <code className="px-2 py-1 bg-muted rounded text-sm">{LINE_BOT_ID}</code>
+                    <Button variant="ghost" size="sm" onClick={copyBotId}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
                   </div>
-                </div>
-                <p className="text-center text-sm text-muted-foreground mt-4">
-                  スマートフォンでQRコードを読み取って友だち追加
-                </p>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <QrCode className="h-5 w-5" />
+                    QRコードで友だち追加
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex justify-center p-4 bg-white rounded-lg">
+                    {/* LINE Official Account QR Code - 正しいQRコード画像 */}
+                    <img 
+                      src={`https://qr-official.line.me/gs/M_165ikada_GW.png`}
+                      alt="LINE QRコード"
+                      className="w-48 h-48"
+                    />
+                  </div>
+                  <p className="text-center text-sm text-muted-foreground mt-4">
+                    スマートフォンでQRコードを読み取って友だち追加
+                  </p>
+                  <div className="flex items-center justify-center gap-2 mt-3">
+                    <span className="text-sm text-muted-foreground">Bot ID:</span>
+                    <code className="px-2 py-1 bg-muted rounded text-sm">{LINE_BOT_ID}</code>
+                    <Button variant="ghost" size="sm" onClick={copyBotId}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
       </div>
