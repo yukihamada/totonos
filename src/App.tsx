@@ -104,6 +104,7 @@ import Onboarding from "./pages/Onboarding";
 import OrganizationSettings from "./pages/OrganizationSettings";
 import EmployeePortal from "./pages/EmployeePortal";
 import Showcase from "./pages/Showcase";
+import GettingStarted from "./pages/GettingStarted";
 import Invite from "./pages/Invite";
 // Chat
 import { ChatWidget } from "./components/chat/ChatWidget";
@@ -173,6 +174,7 @@ function AppRoutes() {
       <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <Landing />} />
       <Route path="/auth" element={user ? <Navigate to="/dashboard" replace /> : <Auth />} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/getting-started" element={<ProtectedRoute><GettingStarted /></ProtectedRoute>} />
       {/* Documents */}
       <Route path="/invoices" element={<ProtectedRoute><Invoices /></ProtectedRoute>} />
       <Route path="/estimates" element={<ProtectedRoute><Estimates /></ProtectedRoute>} />

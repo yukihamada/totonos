@@ -95,6 +95,7 @@ interface AppSidebarProps {
 // Icon mapping
 const iconMap: Record<string, LucideIcon> = {
   dashboard: LayoutDashboard,
+  'getting-started': Sparkles,
   leads: UserPlus,
   deals: Target,
   pipeline: Kanban,
@@ -179,6 +180,7 @@ const iconMap: Record<string, LucideIcon> = {
 // URL mapping
 const urlMap: Record<string, string> = {
   dashboard: '/dashboard',
+  'getting-started': '/getting-started',
   leads: '/leads',
   deals: '/deals',
   pipeline: '/pipeline',
