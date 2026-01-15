@@ -6,8 +6,7 @@ import { PipelineOverview } from "@/components/dashboard/PipelineOverview";
 import { UnpaidInvoicesAlert } from "@/components/dashboard/UnpaidInvoicesAlert";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { TrustPassportMini } from "@/components/dashboard/TrustPassportMini";
-import { QuickStartGuide } from "@/components/dashboard/QuickStartGuide";
-import { AIAgentExamples } from "@/components/dashboard/AIAgentExamples";
+import { OnboardingGuide } from "@/components/dashboard/OnboardingGuide";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { Wallet, FileText, Target, TrendingUp, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/types/database";
@@ -59,11 +58,8 @@ export default function Dashboard() {
       <div className="space-y-6">
         <h1 className="text-3xl font-bold">ダッシュボード</h1>
 
-        {/* Quick Start Guide for new users */}
-        <QuickStartGuide onChatOpen={handleChatOpen} />
-
-        {/* AI Agent Examples */}
-        <AIAgentExamples onChatOpen={handleChatOpen} />
+        {/* Onboarding Guide - shows until all steps are completed */}
+        <OnboardingGuide onChatOpen={handleChatOpen} />
 
         {/* KPI Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
