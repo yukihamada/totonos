@@ -21,6 +21,18 @@ export function ChatWidget({ open: controlledOpen, onOpenChange }: ChatWidgetPro
   const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setIsOpen = onOpenChange || setInternalOpen;
 
+  // Listen for global open-chat event
+  useEffect(() => {
+    const handleOpenChat = () => {
+      setIsOpen(true);
+    };
+    
+    window.addEventListener('open-chat', handleOpenChat);
+    return () => {
+      window.removeEventListener('open-chat', handleOpenChat);
+    };
+  }, [setIsOpen]);
+
   const handleToggle = useCallback(() => {
     setIsOpen(!isOpen);
   }, [isOpen, setIsOpen]);

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
@@ -5,11 +6,13 @@ import { PipelineOverview } from "@/components/dashboard/PipelineOverview";
 import { UnpaidInvoicesAlert } from "@/components/dashboard/UnpaidInvoicesAlert";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { TrustPassportMini } from "@/components/dashboard/TrustPassportMini";
+import { QuickStartGuide } from "@/components/dashboard/QuickStartGuide";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { Wallet, FileText, Target, TrendingUp, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/types/database";
 
 export default function Dashboard() {
+  const [chatOpen, setChatOpen] = useState(false);
   const { data: stats, isLoading, error } = useDashboardStats();
 
   if (isLoading) {
@@ -44,10 +47,19 @@ export default function Dashboard() {
     date: activity.date,
   })) || [];
 
+  // Function to open chat - will be passed to ChatWidget via global event
+  const handleChatOpen = () => {
+    // Dispatch custom event to open chat
+    window.dispatchEvent(new CustomEvent('open-chat'));
+  };
+
   return (
     <AppLayout>
       <div className="space-y-6">
         <h1 className="text-3xl font-bold">ダッシュボード</h1>
+
+        {/* Quick Start Guide for new users */}
+        <QuickStartGuide onChatOpen={handleChatOpen} />
 
         {/* KPI Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
