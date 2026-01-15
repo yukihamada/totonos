@@ -288,6 +288,13 @@ export type Database = {
             foreignKeyName: "attendance_records_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "employees_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_records_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "employees_safe"
             referencedColumns: ["id"]
           },
@@ -1122,6 +1129,70 @@ export type Database = {
           },
         ]
       }
+      employee_sensitive_data: {
+        Row: {
+          bank_account_number: string | null
+          bank_account_type: string | null
+          bank_branch: string | null
+          bank_name: string | null
+          base_salary: number | null
+          birth_date: string | null
+          created_at: string
+          employee_id: string
+          id: string
+          social_insurance_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          bank_account_number?: string | null
+          bank_account_type?: string | null
+          bank_branch?: string | null
+          bank_name?: string | null
+          base_salary?: number | null
+          birth_date?: string | null
+          created_at?: string
+          employee_id: string
+          id?: string
+          social_insurance_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bank_account_number?: string | null
+          bank_account_type?: string | null
+          bank_branch?: string | null
+          bank_name?: string | null
+          base_salary?: number | null
+          birth_date?: string | null
+          created_at?: string
+          employee_id?: string
+          id?: string
+          social_insurance_number?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_sensitive_data_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_sensitive_data_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "employees_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_sensitive_data_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           bank_account_number: string | null
@@ -1924,6 +1995,13 @@ export type Database = {
             foreignKeyName: "it_assets_assigned_to_employee_id_fkey"
             columns: ["assigned_to_employee_id"]
             isOneToOne: false
+            referencedRelation: "employees_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "it_assets_assigned_to_employee_id_fkey"
+            columns: ["assigned_to_employee_id"]
+            isOneToOne: false
             referencedRelation: "employees_safe"
             referencedColumns: ["id"]
           },
@@ -2260,6 +2338,13 @@ export type Database = {
             foreignKeyName: "paid_leave_balances_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "employees_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paid_leave_balances_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "employees_safe"
             referencedColumns: ["id"]
           },
@@ -2370,6 +2455,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_records_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_public"
             referencedColumns: ["id"]
           },
           {
@@ -2797,6 +2889,13 @@ export type Database = {
             foreignKeyName: "tasks_assignee_id_fkey"
             columns: ["assignee_id"]
             isOneToOne: false
+            referencedRelation: "employees_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
             referencedRelation: "employees_safe"
             referencedColumns: ["id"]
           },
@@ -3169,6 +3268,13 @@ export type Database = {
             foreignKeyName: "year_end_adjustments_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "employees_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "year_end_adjustments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "employees_safe"
             referencedColumns: ["id"]
           },
@@ -3268,7 +3374,7 @@ export type Database = {
           },
         ]
       }
-      employees_safe: {
+      employees_public: {
         Row: {
           company_id: string | null
           created_at: string | null
@@ -3321,6 +3427,69 @@ export type Database = {
           name?: string | null
           name_kana?: string | null
           phone?: string | null
+          position?: string | null
+          resignation_date?: string | null
+          status?: Database["public"]["Enums"]["employee_status"] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employees_safe: {
+        Row: {
+          company_id: string | null
+          created_at: string | null
+          department: string | null
+          employee_number: string | null
+          employment_type: Database["public"]["Enums"]["employment_type"] | null
+          hire_date: string | null
+          id: string | null
+          name: string | null
+          name_kana: string | null
+          position: string | null
+          resignation_date: string | null
+          status: Database["public"]["Enums"]["employee_status"] | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string | null
+          department?: string | null
+          employee_number?: string | null
+          employment_type?:
+            | Database["public"]["Enums"]["employment_type"]
+            | null
+          hire_date?: string | null
+          id?: string | null
+          name?: string | null
+          name_kana?: string | null
+          position?: string | null
+          resignation_date?: string | null
+          status?: Database["public"]["Enums"]["employee_status"] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string | null
+          department?: string | null
+          employee_number?: string | null
+          employment_type?:
+            | Database["public"]["Enums"]["employment_type"]
+            | null
+          hire_date?: string | null
+          id?: string | null
+          name?: string | null
+          name_kana?: string | null
           position?: string | null
           resignation_date?: string | null
           status?: Database["public"]["Enums"]["employee_status"] | null
