@@ -1,8 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// Note: This function calls the main chat endpoint internally for tool execution
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -25,12 +23,6 @@ interface LineEvent {
 
 interface LineWebhookBody {
   events: LineEvent[];
-}
-
-interface ToolCall {
-  id: string;
-  name: string;
-  input: unknown;
 }
 
 // Verify LINE signature using HMAC-SHA256 with Web Crypto API
@@ -115,43 +107,16 @@ async function getLineProfile(userId: string, accessToken: string) {
   return response.json();
 }
 
-// Convert tools to OpenAI format
-function convertToolsToOpenAIFormat(tools: unknown[]) {
-  return (tools as Array<{ name: string; description: string; input_schema: unknown }>).map((tool) => ({
-    type: "function" as const,
-    function: {
-      name: tool.name,
-      description: tool.description,
-      parameters: tool.input_schema,
-    },
-  }));
-}
-
 // Call internal chat API for AI processing with tools
 async function callChatAPI(
   messages: Array<{ role: string; content: string }>,
   supabaseUrl: string,
   serviceRoleKey: string
 ): Promise<string> {
-  const response = await fetch(`${supabaseUrl}/functions/v1/chat`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${serviceRoleKey}`,
-    },
-    body: JSON.stringify({ messages }),
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    console.error("Chat API error:", response.status, text);
-    throw new Error("Chat API error");
-  }
-
-  const data = await response.json();
-  return data.content || "申し訳ありません。応答を生成できませんでした。";
-}
-  const systemPrompt = `あなたはTotonosのAIアシスタントです。LINEを通じてユーザーと会話しています。
+  // Add LINE-specific system context
+  const lineSystemMessage = {
+    role: "system",
+    content: `あなたはTotonosのAIアシスタントです。LINEを通じてユーザーと会話しています。
 このシステムでは以下の機能を操作できます：
 - 契約書の作成・管理
 - CRM（リード管理、案件管理、活動記録）
@@ -167,111 +132,28 @@ async function callChatAPI(
 ユーザーからの要望に応じて、適切なツールを使用してデータを作成・取得・更新してください。
 ツールを使用してデータを操作した場合は、その結果をわかりやすく説明してください。
 日本語で丁寧に回答してください。
-LINEの文字数制限があるため、回答は簡潔にまとめてください（2000文字以内）。`;
+LINEの文字数制限があるため、回答は簡潔にまとめてください（2000文字以内）。`
+  };
 
-  let result = await callLovableAI(messages, systemPrompt, allTools);
-  const toolResults: Array<{ toolCallId: string; toolName: string; result: unknown; isError?: boolean }> = [];
+  const response = await fetch(`${supabaseUrl}/functions/v1/chat`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${serviceRoleKey}`,
+    },
+    body: JSON.stringify({ 
+      messages: [lineSystemMessage, ...messages]
+    }),
+  });
 
-  // Process tool calls
-  if (result.toolCalls.length > 0) {
-    console.log("Processing tool calls:", result.toolCalls.map((tc: ToolCall) => tc.name));
-    
-    for (const toolCall of result.toolCalls) {
-      try {
-        const toolResult = await executeToolCall(
-          toolCall.name,
-          toolCall.input as Record<string, unknown>,
-          userId,
-          supabaseAdmin
-        );
-        toolResults.push({
-          toolCallId: toolCall.id,
-          toolName: toolCall.name,
-          result: toolResult,
-        });
-        console.log(`Tool ${toolCall.name} executed successfully`);
-      } catch (error) {
-        console.error(`Tool ${toolCall.name} error:`, error);
-        toolResults.push({
-          toolCallId: toolCall.id,
-          toolName: toolCall.name,
-          result: { error: error instanceof Error ? error.message : "Unknown error" },
-          isError: true,
-        });
-      }
-    }
-
-    // Send tool results back to AI
-    if (toolResults.length > 0) {
-      const messagesWithToolResults: Array<{ role: string; content: string }> = [
-        ...messages,
-        {
-          role: "assistant",
-          content: result.content || "",
-        },
-        {
-          role: "user",
-          content: `ツール実行結果:\n${toolResults.map(tr => 
-            `${tr.toolName}: ${JSON.stringify(tr.result)}`
-          ).join("\n")}`,
-        },
-      ];
-
-      const finalResult = await callLovableAI(messagesWithToolResults, systemPrompt, allTools);
-      result = finalResult;
-
-      // Process additional tool calls (max 2 more rounds)
-      let rounds = 0;
-      while (result.toolCalls.length > 0 && rounds < 2) {
-        rounds++;
-        const additionalResults: typeof toolResults = [];
-        
-        for (const toolCall of result.toolCalls) {
-          try {
-            const toolResult = await executeToolCall(
-              toolCall.name,
-              toolCall.input as Record<string, unknown>,
-              userId,
-              supabaseAdmin
-            );
-            additionalResults.push({
-              toolCallId: toolCall.id,
-              toolName: toolCall.name,
-              result: toolResult,
-            });
-          } catch (error) {
-            additionalResults.push({
-              toolCallId: toolCall.id,
-              toolName: toolCall.name,
-              result: { error: error instanceof Error ? error.message : "Unknown error" },
-              isError: true,
-            });
-          }
-        }
-
-        const nextMessages: Array<{ role: string; content: string }> = [
-          ...messagesWithToolResults,
-          {
-            role: "assistant",
-            content: result.content || "",
-          },
-          {
-            role: "user",
-            content: `追加ツール実行結果:\n${additionalResults.map(tr => 
-              `${tr.toolName}: ${JSON.stringify(tr.result)}`
-            ).join("\n")}`,
-          },
-        ];
-
-        const nextResult = await callLovableAI(nextMessages, systemPrompt, allTools);
-        result = nextResult;
-
-        if (result.toolCalls.length === 0) break;
-      }
-    }
+  if (!response.ok) {
+    const text = await response.text();
+    console.error("Chat API error:", response.status, text);
+    throw new Error("Chat API error");
   }
 
-  return result.content;
+  const data = await response.json();
+  return data.content || "申し訳ありません。応答を生成できませんでした。";
 }
 
 // Split message into chunks
@@ -434,8 +316,8 @@ serve(async (req: Request) => {
         }));
 
       try {
-        // Process with AI (using service role for tool execution)
-        const aiResponse = await processChat(messages, systemUserId, supabaseAdmin);
+        // Process with AI via chat API
+        const aiResponse = await callChatAPI(messages, supabaseUrl, supabaseServiceRoleKey);
 
         // Split long responses (LINE has 5000 char limit per message)
         const responseChunks = splitMessage(aiResponse, 4500);
