@@ -66,3 +66,7 @@ verify_jwt = false
 # Close GitHub Issue: GitHub Issue操作（内部呼び出し）
 [functions.close-github-issue]
 verify_jwt = false
+
+# Send Auth Email: 認証メール送信（ログイン/登録/パスワードリセット）
+[functions.send-auth-email]
+verify_jwt = false
