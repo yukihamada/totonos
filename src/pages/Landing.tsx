@@ -379,46 +379,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* LINE Integration Section */}
-      <section className="border-b-2 border-foreground py-16 bg-chart-2/10">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <MessageSquare className="h-6 w-6 text-chart-2" />
-            <span className="bg-chart-2 text-background text-xs font-bold px-2 py-1 rounded">NEW</span>
-          </div>
-          <h2 className="text-3xl font-bold text-center mb-4">
-            LINEで業務を完結
-          </h2>
-          <p className="text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
-            外出先でも、移動中でも。LINEから自然言語で全機能にアクセス。
-            <br />
-            「請求書を確認して」「今月の売上は？」— 話しかけるだけで操作完了。
-          </p>
-          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            <div className="border-2 border-foreground p-6 bg-background text-center">
-              <Smartphone className="h-10 w-10 mx-auto mb-4 text-chart-2" />
-              <h3 className="font-bold text-lg mb-2">いつでもどこでも</h3>
-              <p className="text-sm text-muted-foreground">
-                外出先でもLINEから請求書確認・契約書送付が可能
-              </p>
-            </div>
-            <div className="border-2 border-foreground p-6 bg-background text-center">
-              <Wrench className="h-10 w-10 mx-auto mb-4 text-chart-2" />
-              <h3 className="font-bold text-lg mb-2">全機能アクセス</h3>
-              <p className="text-sm text-muted-foreground">
-                12個のモジュールすべてをチャットで操作
-              </p>
-            </div>
-            <div className="border-2 border-foreground p-6 bg-background text-center">
-              <Bot className="h-10 w-10 mx-auto mb-4 text-chart-2" />
-              <h3 className="font-bold text-lg mb-2">AI自動処理</h3>
-              <p className="text-sm text-muted-foreground">
-                自然言語で指示するだけでデータ作成・更新
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Features */}
       <section className="border-b-2 border-foreground py-24">
