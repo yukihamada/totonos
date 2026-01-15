@@ -329,6 +329,7 @@ export type Database = {
           logo_url: string | null
           name: string
           phone: string | null
+          slug: string | null
           updated_at: string
           website: string | null
         }
@@ -345,6 +346,7 @@ export type Database = {
           logo_url?: string | null
           name: string
           phone?: string | null
+          slug?: string | null
           updated_at?: string
           website?: string | null
         }
@@ -361,6 +363,7 @@ export type Database = {
           logo_url?: string | null
           name?: string
           phone?: string | null
+          slug?: string | null
           updated_at?: string
           website?: string | null
         }
@@ -424,6 +427,7 @@ export type Database = {
           display_name: string | null
           id: string
           is_active: boolean
+          notify_mode: string | null
           purpose: Database["public"]["Enums"]["email_purpose"]
           updated_at: string
           webhook_url: string | null
@@ -438,6 +442,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           is_active?: boolean
+          notify_mode?: string | null
           purpose?: Database["public"]["Enums"]["email_purpose"]
           updated_at?: string
           webhook_url?: string | null
@@ -452,6 +457,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           is_active?: boolean
+          notify_mode?: string | null
           purpose?: Database["public"]["Enums"]["email_purpose"]
           updated_at?: string
           webhook_url?: string | null
@@ -2886,6 +2892,12 @@ export type Database = {
         Returns: string
       }
       generate_employee_number: { Args: { p_user_id: string }; Returns: string }
+      get_company_members_by_company: {
+        Args: { p_company_id: string }
+        Returns: {
+          user_id: string
+        }[]
+      }
       has_permission: {
         Args: {
           p_company_id: string

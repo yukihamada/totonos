@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Mail, Plus, Copy, Check, Trash2, Settings2, UserPlus, HelpCircle, Receipt, FileText, Users } from "lucide-react";
+import { Mail, Plus, Copy, Check, Trash2, Settings2, UserPlus, HelpCircle, Receipt, FileText, Users, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -30,16 +30,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   useCompanyEmailAddresses,
   useCreateEmailAddress,
   useUpdateEmailAddress,
   useDeleteEmailAddress,
   EMAIL_PURPOSE_LABELS,
+  NOTIFY_MODE_LABELS,
   type EmailPurpose,
+  type NotifyMode,
   type CompanyEmailAddress,
 } from "@/hooks/useCompanyEmailAddresses";
-import { useCurrentCompany } from "@/hooks/useCompany";
+import { useCurrentCompany, useCompanyMembers } from "@/hooks/useCompany";
 import { toast } from "sonner";
 
 const PurposeIcon = ({ purpose }: { purpose: EmailPurpose }) => {
@@ -72,9 +75,12 @@ export function CompanyEmailSettings() {
   const [displayName, setDisplayName] = useState("");
   const [autoCreate, setAutoCreate] = useState(false);
   const [aiEnabled, setAiEnabled] = useState(true);
+  const [assignedTo, setAssignedTo] = useState<string | null>(null);
+  const [notifyMode, setNotifyMode] = useState<NotifyMode>("assigned_only");
 
   const { data: currentCompany } = useCurrentCompany();
   const { data: emailAddresses = [], isLoading } = useCompanyEmailAddresses();
+  const { data: companyMembers = [] } = useCompanyMembers(currentCompany?.id);
   const createAddress = useCreateEmailAddress();
   const updateAddress = useUpdateEmailAddress();
   const deleteAddress = useDeleteEmailAddress();
@@ -82,7 +88,7 @@ export function CompanyEmailSettings() {
   // Generate email domain based on company
   const getEmailDomain = () => {
     if (!currentCompany) return "company.totonos.jp";
-    const slug = currentCompany.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const slug = currentCompany.slug || currentCompany.name.toLowerCase().replace(/[^a-z0-9]/g, "");
     return `${slug}.totonos.jp`;
   };
 
@@ -114,6 +120,8 @@ export function CompanyEmailSettings() {
       display_name: displayName || undefined,
       auto_create_entity: autoCreate,
       ai_processing_enabled: aiEnabled,
+      assigned_to: assignedTo || undefined,
+      notify_mode: notifyMode,
     });
 
     resetForm();
@@ -128,6 +136,8 @@ export function CompanyEmailSettings() {
       display_name: displayName || undefined,
       auto_create_entity: autoCreate,
       ai_processing_enabled: aiEnabled,
+      assigned_to: assignedTo,
+      notify_mode: notifyMode,
     });
 
     setShowEditDialog(false);
@@ -141,6 +151,8 @@ export function CompanyEmailSettings() {
     setDisplayName(address.display_name || "");
     setAutoCreate(address.auto_create_entity);
     setAiEnabled(address.ai_processing_enabled);
+    setAssignedTo(address.assigned_to);
+    setNotifyMode(address.notify_mode || "assigned_only");
     setShowEditDialog(true);
   };
 
@@ -162,11 +174,20 @@ export function CompanyEmailSettings() {
     setDisplayName("");
     setAutoCreate(false);
     setAiEnabled(true);
+    setAssignedTo(null);
+    setNotifyMode("assigned_only");
   };
 
   const openAddDialog = () => {
     resetForm();
     setShowAddDialog(true);
+  };
+
+  // Get member display name
+  const getMemberName = (userId: string | null) => {
+    if (!userId) return "未設定";
+    const member = companyMembers.find(m => m.user_id === userId);
+    return member?.user?.email || userId.slice(0, 8);
   };
 
   if (isLoading) {
@@ -178,6 +199,130 @@ export function CompanyEmailSettings() {
       </Card>
     );
   }
+
+  // Form fields for add/edit dialog
+  const FormFields = ({ isEdit = false }: { isEdit?: boolean }) => (
+    <div className="space-y-4">
+      {!isEdit && (
+        <>
+          <div>
+            <Label>用途</Label>
+            <Select value={purpose} onValueChange={(v) => setPurpose(v as EmailPurpose)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(EMAIL_PURPOSE_LABELS).map(([key, { label, description }]) => (
+                  <SelectItem key={key} value={key}>
+                    <div className="flex items-center gap-2">
+                      <PurposeIcon purpose={key as EmailPurpose} />
+                      <span>{label}</span>
+                      <span className="text-muted-foreground text-xs">- {description}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>プレフィックス</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                value={prefix}
+                onChange={(e) => setPrefix(e.target.value.toLowerCase())}
+                placeholder="lead"
+                className="flex-1"
+              />
+              <span className="text-muted-foreground whitespace-nowrap">
+                @{getEmailDomain()}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              半角英数字とハイフンのみ使用可能
+            </p>
+          </div>
+        </>
+      )}
+      <div>
+        <Label>表示名（任意）</Label>
+        <Input
+          value={displayName}
+          onChange={(e) => setDisplayName(e.target.value)}
+          placeholder="リード獲得用"
+        />
+      </div>
+
+      {/* 担当者選択 */}
+      <div>
+        <Label>担当者</Label>
+        <Select value={assignedTo || "none"} onValueChange={(v) => setAssignedTo(v === "none" ? null : v)}>
+          <SelectTrigger>
+            <SelectValue placeholder="担当者を選択" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">
+              <span className="text-muted-foreground">未設定（管理者に通知）</span>
+            </SelectItem>
+            {companyMembers.map((member) => (
+              <SelectItem key={member.user_id} value={member.user_id}>
+                <div className="flex items-center gap-2">
+                  <span>{member.user?.email || member.user_id.slice(0, 8)}</span>
+                  <Badge variant="outline" className="text-xs">{member.role}</Badge>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground mt-1">
+          メール受信時に通知を受け取る担当者
+        </p>
+      </div>
+
+      {/* 通知モード選択 */}
+      <div className="space-y-3">
+        <Label className="flex items-center gap-2">
+          <Bell className="h-4 w-4" />
+          通知設定
+        </Label>
+        <RadioGroup 
+          value={notifyMode} 
+          onValueChange={(v) => setNotifyMode(v as NotifyMode)}
+          className="space-y-2"
+        >
+          {Object.entries(NOTIFY_MODE_LABELS).map(([key, { label, description }]) => (
+            <div key={key} className="flex items-start space-x-3">
+              <RadioGroupItem value={key} id={`notify-${key}`} className="mt-1" />
+              <div className="space-y-1">
+                <Label htmlFor={`notify-${key}`} className="font-normal cursor-pointer">
+                  {label}
+                </Label>
+                <p className="text-xs text-muted-foreground">{description}</p>
+              </div>
+            </div>
+          ))}
+        </RadioGroup>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div>
+          <Label>自動エンティティ作成</Label>
+          <p className="text-xs text-muted-foreground">
+            受信時にリード等を自動作成
+          </p>
+        </div>
+        <Switch checked={autoCreate} onCheckedChange={setAutoCreate} />
+      </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <Label>AI分析</Label>
+          <p className="text-xs text-muted-foreground">
+            要約・分類・緊急度を自動判定
+          </p>
+        </div>
+        <Switch checked={aiEnabled} onCheckedChange={setAiEnabled} />
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-4">
@@ -200,77 +345,14 @@ export function CompanyEmailSettings() {
                   アドレスを追加
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-lg">
                 <DialogHeader>
                   <DialogTitle>新しいメールアドレスを追加</DialogTitle>
                   <DialogDescription>
                     用途に応じたメールアドレスを作成します
                   </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label>用途</Label>
-                    <Select value={purpose} onValueChange={(v) => setPurpose(v as EmailPurpose)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(EMAIL_PURPOSE_LABELS).map(([key, { label, description }]) => (
-                          <SelectItem key={key} value={key}>
-                            <div className="flex items-center gap-2">
-                              <PurposeIcon purpose={key as EmailPurpose} />
-                              <span>{label}</span>
-                              <span className="text-muted-foreground text-xs">- {description}</span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>プレフィックス</Label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        value={prefix}
-                        onChange={(e) => setPrefix(e.target.value.toLowerCase())}
-                        placeholder="lead"
-                        className="flex-1"
-                      />
-                      <span className="text-muted-foreground whitespace-nowrap">
-                        @{getEmailDomain()}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      半角英数字とハイフンのみ使用可能
-                    </p>
-                  </div>
-                  <div>
-                    <Label>表示名（任意）</Label>
-                    <Input
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      placeholder="リード獲得用"
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>自動エンティティ作成</Label>
-                      <p className="text-xs text-muted-foreground">
-                        受信時にリード等を自動作成
-                      </p>
-                    </div>
-                    <Switch checked={autoCreate} onCheckedChange={setAutoCreate} />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>AI分析</Label>
-                      <p className="text-xs text-muted-foreground">
-                        要約・分類・緊急度を自動判定
-                      </p>
-                    </div>
-                    <Switch checked={aiEnabled} onCheckedChange={setAiEnabled} />
-                  </div>
-                </div>
+                <FormFields />
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setShowAddDialog(false)}>
                     キャンセル
@@ -300,6 +382,8 @@ export function CompanyEmailSettings() {
                 <TableRow>
                   <TableHead>メールアドレス</TableHead>
                   <TableHead>用途</TableHead>
+                  <TableHead>担当者</TableHead>
+                  <TableHead>通知</TableHead>
                   <TableHead>設定</TableHead>
                   <TableHead>ステータス</TableHead>
                   <TableHead className="text-right">操作</TableHead>
@@ -337,6 +421,16 @@ export function CompanyEmailSettings() {
                         <PurposeIcon purpose={address.purpose} />
                         <span>{EMAIL_PURPOSE_LABELS[address.purpose].label}</span>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">
+                        {getMemberName(address.assigned_to)}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">
+                        {NOTIFY_MODE_LABELS[address.notify_mode || "assigned_only"].label}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
@@ -406,6 +500,7 @@ export function CompanyEmailSettings() {
                       purpose: suggestion.purpose,
                       auto_create_entity: suggestion.autoCreate,
                       ai_processing_enabled: true,
+                      notify_mode: "assigned_only",
                     });
                   }}
                 >
@@ -429,41 +524,14 @@ export function CompanyEmailSettings() {
 
       {/* Edit Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>メールアドレスを編集</DialogTitle>
             <DialogDescription>
               {editingAddress && getFullEmail(editingAddress.address_prefix)}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>表示名</Label>
-              <Input
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="リード獲得用"
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>自動エンティティ作成</Label>
-                <p className="text-xs text-muted-foreground">
-                  受信時にリード等を自動作成
-                </p>
-              </div>
-              <Switch checked={autoCreate} onCheckedChange={setAutoCreate} />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>AI分析</Label>
-                <p className="text-xs text-muted-foreground">
-                  要約・分類・緊急度を自動判定
-                </p>
-              </div>
-              <Switch checked={aiEnabled} onCheckedChange={setAiEnabled} />
-            </div>
-          </div>
+          <FormFields isEdit />
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>
               キャンセル

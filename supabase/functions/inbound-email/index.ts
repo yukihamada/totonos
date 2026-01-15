@@ -66,33 +66,46 @@ interface EmailAddressConfig {
   auto_create_entity: boolean;
   ai_processing_enabled: boolean;
   assigned_to: string | null;
+  notify_mode: string; // 'assigned_only' | 'all_members' | 'admins_only'
 }
 
-// メールアドレスのプレフィックスから設定を取得
+type NotifyMode = 'assigned_only' | 'all_members' | 'admins_only';
+
+// 登録されたメールアドレスから設定を取得（totonos.jpドメインのみ）
 async function findEmailAddressConfig(
   supabase: any, 
   toEmail: string
 ): Promise<{ config: EmailAddressConfig | null; companyId: string | null }> {
   if (!toEmail) return { config: null, companyId: null };
   
-  // Parse email address: prefix@company-slug.totonos.jp
+  // totonos.jp へのメールのみ処理
   const match = toEmail.match(/^([^@]+)@([^.]+)\.totonos\.jp$/i);
-  if (!match) return { config: null, companyId: null };
+  if (!match) {
+    console.log(`Email not in totonos.jp format: ${toEmail}`);
+    return { config: null, companyId: null };
+  }
 
   const prefix = match[1].toLowerCase();
-  const slug = match[2];
+  const slug = match[2].toLowerCase();
+
+  console.log(`Looking for company with slug: ${slug}, prefix: ${prefix}`);
 
   // Find company by slug
-  const { data: company } = await supabase
+  const { data: company, error: companyError } = await supabase
     .from("companies")
-    .select("id")
-    .or(`name.ilike.${slug},id.eq.${slug}`)
+    .select("id, slug, name")
+    .eq("slug", slug)
     .single();
 
-  if (!company) return { config: null, companyId: null };
+  if (companyError || !company) {
+    console.log(`Company not found for slug: ${slug}`);
+    return { config: null, companyId: null };
+  }
+
+  console.log(`Found company: ${company.id} (${company.name})`);
 
   // Find email address config
-  const { data: emailConfig } = await supabase
+  const { data: emailConfig, error: configError } = await supabase
     .from("company_email_addresses")
     .select("*")
     .eq("company_id", company.id)
@@ -100,36 +113,91 @@ async function findEmailAddressConfig(
     .eq("is_active", true)
     .single();
 
+  if (configError || !emailConfig) {
+    console.log(`No active email config found for prefix: ${prefix} in company: ${company.id}`);
+    // 会社は見つかったが、メールアドレス設定がない場合も会社IDは返す
+    return { config: null, companyId: company.id };
+  }
+
+  console.log(`Found email config: ${emailConfig.id} (purpose: ${emailConfig.purpose})`);
+  
   return { 
-    config: emailConfig as EmailAddressConfig | null, 
+    config: emailConfig as EmailAddressConfig, 
     companyId: company.id 
   };
 }
 
-// メールアドレスからcompany_idを特定（fallback）
-async function findCompanyByEmail(supabase: any, toEmail: string): Promise<string | null> {
-  if (!toEmail) return null;
+// 送信者のメールアドレスから所属会社を特定（複数会社対応）
+async function findCompanyByUserEmail(
+  supabase: any, 
+  fromEmail: string,
+  ocrVendorName?: string
+): Promise<{ companyId: string | null; userId: string | null }> {
+  console.log(`Looking for user by email: ${fromEmail}`);
   
-  // totonos.jp のサブドメインからcompany_idを特定
-  const match = toEmail.match(/^[^@]+@([^.]+)\.totonos\.jp$/i);
-  if (match) {
-    const slug = match[1];
-    const { data } = await supabase
-      .from("companies")
-      .select("id")
-      .or(`name.ilike.${slug},id.eq.${slug}`)
-      .single();
-    return data?.id || null;
+  // まずauth.usersからユーザーを検索（メールアドレスで）
+  // サービスロールを使っているのでauth.usersにアクセス可能
+  const { data: authUser, error: authError } = await supabase.auth.admin.listUsers();
+  
+  if (authError) {
+    console.error("Failed to list users:", authError);
+    return { companyId: null, userId: null };
   }
 
-  // 直接メールアドレスで会社を検索
-  const { data } = await supabase
-    .from("companies")
-    .select("id")
-    .eq("email", toEmail)
-    .single();
+  const user = authUser?.users?.find((u: any) => 
+    u.email?.toLowerCase() === fromEmail.toLowerCase()
+  );
 
-  return data?.id || null;
+  if (!user) {
+    console.log(`No user found with email: ${fromEmail}`);
+    return { companyId: null, userId: null };
+  }
+
+  const userId = user.id;
+  console.log(`Found user: ${userId}`);
+
+  // ユーザーが所属する会社を取得
+  const { data: memberships, error: memberError } = await supabase
+    .from("company_members")
+    .select("company_id, companies(id, name, slug)")
+    .eq("user_id", userId)
+    .eq("is_active", true);
+
+  if (memberError || !memberships || memberships.length === 0) {
+    console.log(`No company memberships for user: ${userId}`);
+    return { companyId: null, userId };
+  }
+
+  console.log(`User belongs to ${memberships.length} companies`);
+
+  // 1社のみの場合はそのまま返す
+  if (memberships.length === 1) {
+    return { companyId: memberships[0].company_id, userId };
+  }
+
+  // 複数会社の場合、領収書のベンダー名から会社を特定
+  if (ocrVendorName) {
+    console.log(`Trying to match vendor name: ${ocrVendorName}`);
+    
+    // 会社名とベンダー名を比較
+    for (const m of memberships) {
+      const company = m.companies as any;
+      if (!company) continue;
+      
+      const companyName = company.name?.toLowerCase() || "";
+      const vendorLower = ocrVendorName.toLowerCase();
+      
+      // 部分一致でマッチング
+      if (companyName.includes(vendorLower) || vendorLower.includes(companyName)) {
+        console.log(`Matched company by vendor name: ${company.id} (${company.name})`);
+        return { companyId: m.company_id, userId };
+      }
+    }
+  }
+
+  // マッチしない場合は最初の会社を返す（ユーザーの現在選択中の会社を優先したいが、情報がない）
+  console.log(`Using first company: ${memberships[0].company_id}`);
+  return { companyId: memberships[0].company_id, userId };
 }
 
 // 自動エンティティ作成
@@ -168,8 +236,6 @@ async function autoCreateEntity(
     }
 
     case "recruit": {
-      // Create a candidate (if candidates table exists)
-      // For now, just log
       console.log(`Would create candidate from: ${fromEmail}`);
       return null;
     }
@@ -214,7 +280,6 @@ async function triggerAIAnalysis(
   subject: string | null
 ): Promise<void> {
   try {
-    // Call the analyze-email edge function
     const { error } = await supabase.functions.invoke("analyze-email", {
       body: { emailId, textContent, subject },
     });
@@ -227,13 +292,64 @@ async function triggerAIAnalysis(
   }
 }
 
+// 通知を送信する対象ユーザーを取得
+async function getNotificationRecipients(
+  supabase: any,
+  companyId: string,
+  notifyMode: NotifyMode,
+  assignedTo: string | null
+): Promise<string[]> {
+  switch (notifyMode) {
+    case "assigned_only":
+      if (assignedTo) {
+        return [assignedTo];
+      }
+      // フォールバック: 管理者に通知
+      return await getCompanyAdmins(supabase, companyId);
+
+    case "admins_only":
+      return await getCompanyAdmins(supabase, companyId);
+
+    case "all_members":
+      return await getCompanyMembers(supabase, companyId);
+
+    default:
+      return assignedTo ? [assignedTo] : await getCompanyAdmins(supabase, companyId);
+  }
+}
+
+// 会社の管理者を取得
+async function getCompanyAdmins(supabase: any, companyId: string): Promise<string[]> {
+  const { data } = await supabase
+    .from("company_members")
+    .select("user_id")
+    .eq("company_id", companyId)
+    .eq("is_active", true)
+    .in("role", ["owner", "admin"]);
+
+  return (data || []).map((m: { user_id: string }) => m.user_id);
+}
+
+// 会社のメンバー全員を取得
+async function getCompanyMembers(supabase: any, companyId: string): Promise<string[]> {
+  const { data } = await supabase
+    .from("company_members")
+    .select("user_id")
+    .eq("company_id", companyId)
+    .eq("is_active", true);
+
+  return (data || []).map((m: { user_id: string }) => m.user_id);
+}
+
 // 画像添付ファイルをOCR処理
 async function processReceiptAttachment(
   supabase: any,
   attachment: { filename: string; type: string; content?: string },
   companyId: string | null,
   emailId: string,
-  assignedTo: string | null
+  notifyMode: NotifyMode,
+  assignedTo: string | null,
+  fromEmail: string
 ): Promise<void> {
   if (!attachment.content) {
     console.log("No content in attachment, skipping OCR");
@@ -251,7 +367,7 @@ async function processReceiptAttachment(
         sourceEmailId: emailId,
         companyId: companyId,
         saveToDb: true,
-        applyLegalTimestamp: true, // 電子帳簿保存法対応
+        applyLegalTimestamp: true,
       },
     });
 
@@ -262,47 +378,65 @@ async function processReceiptAttachment(
 
     console.log(`Receipt OCR completed: ${data?.receipt?.id}`);
 
-    // 通知を作成
-    if (assignedTo && data?.receipt) {
+    // 会社IDがない場合、領収書のベンダー名から会社を特定
+    let finalCompanyId = companyId;
+    let finalAssignedTo = assignedTo;
+    
+    if (!finalCompanyId && data?.receipt?.vendor) {
+      const { companyId: matchedCompanyId, userId } = await findCompanyByUserEmail(
+        supabase, 
+        fromEmail, 
+        data.receipt.vendor
+      );
+      finalCompanyId = matchedCompanyId;
+      if (!finalAssignedTo && userId) {
+        finalAssignedTo = userId;
+      }
+    }
+
+    // 通知を送信
+    if (finalCompanyId && data?.receipt) {
       const receipt = data.receipt;
       const vendor = receipt.vendor || "不明な店舗";
       const total = receipt.total_amount 
         ? `¥${Number(receipt.total_amount).toLocaleString()}` 
         : "金額不明";
 
-      await supabase.from("notifications").insert({
-        user_id: assignedTo,
-        company_id: companyId,
-        type: "info",
-        title: "📧 メール経由の領収書を保存しました",
-        message: `${vendor} - ${total}\n電子帳簿保存法に準拠して保存されました。`,
-        category: "receipt",
-        link: `/receipt-capture`,
-        metadata: {
-          receipt_id: receipt.id,
-          email_id: emailId,
-          vendor: vendor,
-          total: receipt.total_amount,
-          legal_verified: true,
-        },
-      });
+      // 通知対象ユーザーを取得
+      const recipients = await getNotificationRecipients(
+        supabase,
+        finalCompanyId,
+        notifyMode,
+        finalAssignedTo
+      );
 
-      console.log(`Notification sent to user: ${assignedTo}`);
+      console.log(`Sending notifications to ${recipients.length} users`);
+
+      // 全員に通知を作成
+      for (const userId of recipients) {
+        await supabase.from("notifications").insert({
+          user_id: userId,
+          company_id: finalCompanyId,
+          type: "info",
+          title: "📧 メール経由の領収書を保存しました",
+          message: `${vendor} - ${total}\n電子帳簿保存法に準拠して保存されました。`,
+          category: "receipt",
+          link: `/receipt-capture`,
+          metadata: {
+            receipt_id: receipt.id,
+            email_id: emailId,
+            vendor: vendor,
+            total: receipt.total_amount,
+            legal_verified: true,
+          },
+        });
+      }
+
+      console.log(`Notifications sent to ${recipients.length} users`);
     }
   } catch (err) {
     console.error("Failed to process receipt:", err);
   }
-}
-
-// 会社の管理者を取得
-async function getCompanyAdmins(supabase: any, companyId: string): Promise<string[]> {
-  const { data } = await supabase
-    .from("company_members")
-    .select("user_id")
-    .eq("company_id", companyId)
-    .in("role", ["owner", "admin"]);
-
-  return (data || []).map((m: { user_id: string }) => m.user_id);
 }
 
 serve(async (req) => {
@@ -408,14 +542,13 @@ serve(async (req) => {
           attachments: data.attachments?.map(att => ({
             filename: att.filename,
             type: att.content_type,
-            size: att.content ? Math.ceil(att.content.length * 0.75) : 0, // base64 to byte estimate
+            size: att.content ? Math.ceil(att.content.length * 0.75) : 0,
             content: att.content,
           })),
         };
       } else {
         // Generic JSON format
         emailData = jsonPayload;
-        // Ensure required fields
         emailData.from = emailData.from || "";
         emailData.to = emailData.to || "";
       }
@@ -443,19 +576,23 @@ serve(async (req) => {
 
     console.log(`Processing email from: ${fromEmail} to: ${toEmail}`);
 
-    // メールアドレス設定を取得
+    // 登録されたメールアドレスから設定を取得
     const { config: emailAddressConfig, companyId: configCompanyId } = 
       await findEmailAddressConfig(supabase, toEmail);
     
-    // 会社IDを決定
-    const companyId = configCompanyId || await findCompanyByEmail(supabase, toEmail);
-    console.log(`Found company: ${companyId}, email config: ${emailAddressConfig?.id}`);
-
-    let relatedType: string | null = null;
-    let relatedId: string | null = null;
-    let autoCreatedEntityType: string | null = null;
-    let autoCreatedEntityId: string | null = null;
+    let companyId = configCompanyId;
     let assignedTo: string | null = emailAddressConfig?.assigned_to || null;
+    const notifyMode: NotifyMode = (emailAddressConfig?.notify_mode as NotifyMode) || "assigned_only";
+
+    // 会社が特定できない場合、送信者のメールから会社を特定
+    if (!companyId) {
+      console.log("Company not found by email address, trying to find by sender email");
+      const { companyId: senderCompanyId, userId } = await findCompanyByUserEmail(supabase, fromEmail);
+      companyId = senderCompanyId;
+      if (!assignedTo && userId) {
+        assignedTo = userId;
+      }
+    }
 
     // 担当者が未設定の場合、会社の管理者を取得
     if (!assignedTo && companyId) {
@@ -464,6 +601,13 @@ serve(async (req) => {
         assignedTo = admins[0];
       }
     }
+
+    console.log(`Found company: ${companyId}, email config: ${emailAddressConfig?.id}, assignedTo: ${assignedTo}`);
+
+    let relatedType: string | null = null;
+    let relatedId: string | null = null;
+    let autoCreatedEntityType: string | null = null;
+    let autoCreatedEntityId: string | null = null;
 
     if (companyId) {
       // 自動エンティティ作成
@@ -557,8 +701,10 @@ serve(async (req) => {
           supabase, 
           att, 
           companyId, 
-          savedEmail.id, 
-          assignedTo
+          savedEmail.id,
+          notifyMode,
+          assignedTo,
+          fromEmail
         );
       }
     }
@@ -577,6 +723,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         id: savedEmail.id,
+        companyId: companyId,
         autoCreated: autoCreatedEntityType ? { type: autoCreatedEntityType, id: autoCreatedEntityId } : null,
         receiptProcessing: imageAttachments.length > 0 ? { count: imageAttachments.length } : null
       }),

@@ -4,6 +4,7 @@ import { useCurrentCompany } from '@/hooks/useCompany';
 import { toast } from 'sonner';
 
 export type EmailPurpose = 'lead_capture' | 'support' | 'invoice' | 'contract' | 'recruit' | 'general';
+export type NotifyMode = 'assigned_only' | 'all_members' | 'admins_only';
 
 export interface CompanyEmailAddress {
   id: string;
@@ -15,6 +16,7 @@ export interface CompanyEmailAddress {
   auto_create_entity: boolean;
   ai_processing_enabled: boolean;
   assigned_to: string | null;
+  notify_mode: NotifyMode;
   webhook_url: string | null;
   created_at: string;
   updated_at: string;
@@ -28,6 +30,7 @@ export interface CreateEmailAddressInput {
   auto_create_entity?: boolean;
   ai_processing_enabled?: boolean;
   assigned_to?: string;
+  notify_mode?: NotifyMode;
   webhook_url?: string;
 }
 
@@ -39,7 +42,8 @@ export interface UpdateEmailAddressInput {
   is_active?: boolean;
   auto_create_entity?: boolean;
   ai_processing_enabled?: boolean;
-  assigned_to?: string;
+  assigned_to?: string | null;
+  notify_mode?: NotifyMode;
   webhook_url?: string;
 }
 
@@ -83,6 +87,7 @@ export function useCreateEmailAddress() {
           auto_create_entity: input.auto_create_entity ?? false,
           ai_processing_enabled: input.ai_processing_enabled ?? true,
           assigned_to: input.assigned_to,
+          notify_mode: input.notify_mode ?? 'assigned_only',
           webhook_url: input.webhook_url,
         })
         .select()
@@ -158,4 +163,11 @@ export const EMAIL_PURPOSE_LABELS: Record<EmailPurpose, { label: string; descrip
   contract: { label: '契約', description: 'contract@で契約関連の連絡', icon: 'FileText' },
   recruit: { label: '採用', description: 'recruit@で採用応募を受付', icon: 'Users' },
   general: { label: '一般', description: '汎用的な連絡用', icon: 'Mail' },
+};
+
+// ヘルパー: 通知モードごとのラベル
+export const NOTIFY_MODE_LABELS: Record<NotifyMode, { label: string; description: string }> = {
+  assigned_only: { label: '担当者のみ', description: '設定された担当者にのみ通知' },
+  admins_only: { label: '管理者全員', description: '会社の管理者全員に通知' },
+  all_members: { label: 'メンバー全員', description: '会社のメンバー全員に通知' },
 };
