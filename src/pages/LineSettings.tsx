@@ -334,11 +334,18 @@ export default function LineSettings() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex justify-center p-4 bg-white rounded-lg">
-                    {/* LINE Official Account QR Code - 正しいQRコード画像 */}
+                    {/* LINE Official Account QR Code */}
                     <img 
-                      src={`https://qr-official.line.me/gs/M_165ikada_GW.png`}
+                      src="https://qr-official.line.me/sid/M/165ikada.png"
                       alt="LINE QRコード"
                       className="w-48 h-48"
+                      onError={(e) => {
+                        // Fallback to alternative QR code URL
+                        const target = e.target as HTMLImageElement;
+                        if (!target.src.includes('line.me/ti')) {
+                          target.src = `https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(LINE_ADD_FRIEND_URL)}`;
+                        }
+                      }}
                     />
                   </div>
                   <p className="text-center text-sm text-muted-foreground mt-4">

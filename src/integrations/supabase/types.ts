@@ -3135,12 +3135,6 @@ export type Database = {
       }
       employees_safe: {
         Row: {
-          bank_account_number: string | null
-          bank_account_type: string | null
-          bank_branch: string | null
-          bank_name: string | null
-          base_salary: number | null
-          birth_date: string | null
           company_id: string | null
           created_at: string | null
           department: string | null
@@ -3154,18 +3148,11 @@ export type Database = {
           phone: string | null
           position: string | null
           resignation_date: string | null
-          social_insurance_number: string | null
           status: Database["public"]["Enums"]["employee_status"] | null
           updated_at: string | null
           user_id: string | null
         }
         Insert: {
-          bank_account_number?: never
-          bank_account_type?: never
-          bank_branch?: never
-          bank_name?: never
-          base_salary?: never
-          birth_date?: string | null
           company_id?: string | null
           created_at?: string | null
           department?: string | null
@@ -3181,18 +3168,11 @@ export type Database = {
           phone?: string | null
           position?: string | null
           resignation_date?: string | null
-          social_insurance_number?: never
           status?: Database["public"]["Enums"]["employee_status"] | null
           updated_at?: string | null
           user_id?: string | null
         }
         Update: {
-          bank_account_number?: never
-          bank_account_type?: never
-          bank_branch?: never
-          bank_name?: never
-          base_salary?: never
-          birth_date?: string | null
           company_id?: string | null
           created_at?: string | null
           department?: string | null
@@ -3208,7 +3188,6 @@ export type Database = {
           phone?: string | null
           position?: string | null
           resignation_date?: string | null
-          social_insurance_number?: never
           status?: Database["public"]["Enums"]["employee_status"] | null
           updated_at?: string | null
           user_id?: string | null
@@ -3268,6 +3247,10 @@ export type Database = {
       is_company_member: {
         Args: { p_company_id: string; p_user_id: string }
         Returns: boolean
+      }
+      log_client_access: {
+        Args: { p_client_id?: string; p_user_id: string }
+        Returns: undefined
       }
       log_data_access: {
         Args: {
