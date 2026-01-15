@@ -31,6 +31,7 @@ const defaultMenuGroups: MenuGroupConfig[] = [
     order: 0,
     items: [
       { id: 'dashboard', title: 'ダッシュボード', visible: true, order: 0 },
+      { id: 'getting-started', title: '初めての方へ', visible: true, order: 1 },
     ],
   },
   {
