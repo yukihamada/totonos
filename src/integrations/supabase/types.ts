@@ -405,6 +405,7 @@ export type Database = {
           phone: string | null
           slug: string | null
           updated_at: string
+          verified_email_addresses: string[] | null
           website: string | null
         }
         Insert: {
@@ -422,6 +423,7 @@ export type Database = {
           phone?: string | null
           slug?: string | null
           updated_at?: string
+          verified_email_addresses?: string[] | null
           website?: string | null
         }
         Update: {
@@ -439,6 +441,7 @@ export type Database = {
           phone?: string | null
           slug?: string | null
           updated_at?: string
+          verified_email_addresses?: string[] | null
           website?: string | null
         }
         Relationships: []
@@ -672,6 +675,60 @@ export type Database = {
           {
             foreignKeyName: "company_members_company_id_fkey"
             columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_merge_requests: {
+        Row: {
+          completed_at: string | null
+          confirmation_token: string
+          confirmed_by: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          requested_by: string
+          source_company_id: string
+          status: string
+          target_company_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          confirmation_token?: string
+          confirmed_by?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          requested_by: string
+          source_company_id: string
+          status?: string
+          target_company_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          confirmation_token?: string
+          confirmed_by?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          requested_by?: string
+          source_company_id?: string
+          status?: string
+          target_company_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_merge_requests_source_company_id_fkey"
+            columns: ["source_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_merge_requests_target_company_id_fkey"
+            columns: ["target_company_id"]
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
@@ -1125,6 +1182,63 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_verification_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          company_id: string
+          created_at: string
+          from_email: string
+          from_name: string | null
+          id: string
+          inbound_email_id: string | null
+          rejected_reason: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          company_id: string
+          created_at?: string
+          from_email: string
+          from_name?: string | null
+          id?: string
+          inbound_email_id?: string | null
+          rejected_reason?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          company_id?: string
+          created_at?: string
+          from_email?: string
+          from_name?: string | null
+          id?: string
+          inbound_email_id?: string | null
+          rejected_reason?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_verification_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_verification_requests_inbound_email_id_fkey"
+            columns: ["inbound_email_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_emails"
             referencedColumns: ["id"]
           },
         ]
@@ -2292,6 +2406,7 @@ export type Database = {
       }
       line_users: {
         Row: {
+          company_id: string | null
           created_at: string
           display_name: string | null
           id: string
@@ -2303,6 +2418,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
@@ -2314,6 +2430,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
@@ -2324,7 +2441,15 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "line_users_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       member_permissions: {
         Row: {
@@ -3621,6 +3746,7 @@ export type Database = {
         Returns: string
       }
       generate_employee_number: { Args: { p_user_id: string }; Returns: string }
+      generate_random_email_prefix: { Args: never; Returns: string }
       get_company_members_by_company: {
         Args: { p_company_id: string }
         Returns: {

@@ -95,7 +95,7 @@ serve(async (req) => {
           Authorization: `Bearer ${resendApiKey}`,
         },
         body: JSON.stringify({
-          from: "Totonos <noreply@resend.dev>",
+          from: "ミナト - Totonos <minato@totonos.jp>",
           to: [invitation.email],
           subject: `【招待】${companyName}への参加招待`,
           html: `
