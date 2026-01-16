@@ -293,8 +293,69 @@ function getContentTypeFromMessageType(messageType: string, fileName?: string): 
     if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
     if (ext === "gif") return "image/gif";
     if (ext === "webp") return "image/webp";
+    if (ext === "csv") return "text/csv";
+    if (ext === "xlsx") return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    if (ext === "xls") return "application/vnd.ms-excel";
   }
   return "application/octet-stream";
+}
+
+// Parse CSV content
+function parseCSV(content: string): { headers: string[]; rows: string[][] } {
+  const lines = content.split(/\r?\n/).filter(line => line.trim());
+  if (lines.length === 0) return { headers: [], rows: [] };
+  
+  const parseCSVLine = (line: string): string[] => {
+    const result: string[] = [];
+    let current = "";
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim());
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+    result.push(current.trim());
+    return result;
+  };
+  
+  const headers = parseCSVLine(lines[0]);
+  const rows = lines.slice(1).map(line => parseCSVLine(line));
+  
+  return { headers, rows };
+}
+
+// Format spreadsheet data for AI analysis
+function formatSpreadsheetForAI(data: { headers: string[]; rows: string[][] }, fileName: string): string {
+  const { headers, rows } = data;
+  const maxRows = 50; // Limit rows for AI processing
+  const displayRows = rows.slice(0, maxRows);
+  
+  let formatted = `【ファイル: ${fileName}】\n`;
+  formatted += `総行数: ${rows.length}行（ヘッダー除く）\n\n`;
+  formatted += `■ ヘッダー:\n${headers.join(" | ")}\n\n`;
+  formatted += `■ データ (${displayRows.length}件表示):\n`;
+  
+  displayRows.forEach((row, index) => {
+    formatted += `${index + 1}. ${row.join(" | ")}\n`;
+  });
+  
+  if (rows.length > maxRows) {
+    formatted += `\n... 他 ${rows.length - maxRows} 件のデータがあります`;
+  }
+  
+  return formatted;
 }
 
 serve(async (req: Request) => {
@@ -461,13 +522,16 @@ serve(async (req: Request) => {
         const contentType = getContentTypeFromMessageType("file", fileName);
         const isPdf = contentType === "application/pdf";
         const isImage = contentType.startsWith("image/");
+        const isCsv = contentType === "text/csv";
+        const isExcel = contentType.includes("spreadsheetml") || contentType.includes("ms-excel");
+        const isSpreadsheet = isCsv || isExcel;
 
-        if (!isPdf && !isImage) {
+        if (!isPdf && !isImage && !isSpreadsheet) {
           await replyMessage(
             event.replyToken!,
             [{
               type: "text",
-              text: "対応していないファイル形式です。画像（JPG, PNG）またはPDFファイルを送信してください。",
+              text: "対応していないファイル形式です。画像（JPG, PNG）、PDF、CSV、またはExcelファイルを送信してください。",
             }],
             LINE_CHANNEL_ACCESS_TOKEN
           );
@@ -496,6 +560,57 @@ serve(async (req: Request) => {
                   [{
                     type: "text",
                     text: `クレジットが不足しています。PDF解析には${5}クレジットが必要です。`,
+                  }],
+                  LINE_CHANNEL_ACCESS_TOKEN
+                );
+                continue;
+              }
+            }
+          } else if (isSpreadsheet) {
+            // Process CSV/Excel file
+            console.log(`Received ${isCsv ? 'CSV' : 'Excel'} from ${lineUserId}, size: ${fileContent.byteLength} bytes`);
+            
+            if (isCsv) {
+              // Decode CSV (try UTF-8, then Shift-JIS)
+              let csvText: string;
+              try {
+                csvText = new TextDecoder("utf-8").decode(fileContent);
+                // Check for garbled text (common with Shift-JIS encoded as UTF-8)
+                if (csvText.includes("�")) {
+                  throw new Error("UTF-8 decode failed");
+                }
+              } catch {
+                // Try Shift-JIS for Japanese CSVs
+                csvText = new TextDecoder("shift-jis").decode(fileContent);
+              }
+              const spreadsheetData = parseCSV(csvText);
+              
+              if (spreadsheetData.headers.length > 0) {
+                // Format CSV for AI analysis
+                userMessage = formatSpreadsheetForAI(spreadsheetData, fileName);
+                userMessage += "\n\nこのCSVデータを分析してください。データの概要、重要なポイント、経費精算や仕訳登録が必要な場合はその提案をお願いします。";
+              } else {
+                userMessage = `CSVファイル「${fileName}」を受信しましたが、データが空か解析できませんでした。`;
+              }
+            } else {
+              // For Excel, inform AI about the file
+              userMessage = `Excelファイル「${fileName}」を受信しました。Excelファイルの解析にはWebアプリでのアップロードをお勧めします。CSVに変換して再送信いただければ、内容を詳細に分析できます。`;
+            }
+            
+            // Consume credits for file analysis
+            if (companyId) {
+              const creditResult = await consumeCompanyCredits(
+                supabaseAdmin, 
+                companyId, 
+                "ai_chat" as CreditAction, 
+                `LINE ${isCsv ? 'CSV' : 'Excel'}ファイル解析`
+              );
+              if (!creditResult.success) {
+                await replyMessage(
+                  event.replyToken!,
+                  [{
+                    type: "text",
+                    text: `クレジットが不足しています。ファイル解析にはクレジットが必要です。`,
                   }],
                   LINE_CHANNEL_ACCESS_TOKEN
                 );
