@@ -1475,6 +1475,99 @@ export type Database = {
           },
         ]
       }
+      external_connections: {
+        Row: {
+          company_id: string | null
+          created_at: string | null
+          credentials: Json | null
+          display_name: string | null
+          id: string
+          last_error: string | null
+          last_sync_at: string | null
+          service_type: string
+          settings: Json | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string | null
+          credentials?: Json | null
+          display_name?: string | null
+          id?: string
+          last_error?: string | null
+          last_sync_at?: string | null
+          service_type: string
+          settings?: Json | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string | null
+          credentials?: Json | null
+          display_name?: string | null
+          id?: string
+          last_error?: string | null
+          last_sync_at?: string | null
+          service_type?: string
+          settings?: Json | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_connections_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_connections_service_type_fkey"
+            columns: ["service_type"]
+            isOneToOne: false
+            referencedRelation: "external_service_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      external_service_types: {
+        Row: {
+          auth_type: string
+          category: string
+          config: Json | null
+          created_at: string | null
+          icon_name: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+        }
+        Insert: {
+          auth_type?: string
+          category: string
+          config?: Json | null
+          created_at?: string | null
+          icon_name?: string | null
+          id: string
+          is_active?: boolean | null
+          name: string
+        }
+        Update: {
+          auth_type?: string
+          category?: string
+          config?: Json | null
+          created_at?: string | null
+          icon_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+        }
+        Relationships: []
+      }
       fiscal_periods: {
         Row: {
           closed_at: string | null
