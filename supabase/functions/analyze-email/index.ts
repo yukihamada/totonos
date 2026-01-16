@@ -6,10 +6,17 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface SpreadsheetData {
+  filename: string;
+  formattedContent: string;
+  rowCount: number;
+}
+
 interface AnalyzeRequest {
   emailId: string;
   textContent: string;
   subject: string | null;
+  spreadsheetData?: SpreadsheetData[];
 }
 
 interface AIAnalysis {
@@ -18,9 +25,14 @@ interface AIAnalysis {
   urgency: "high" | "medium" | "low";
   sentiment: "positive" | "negative" | "neutral";
   extractedDeadline: string | null;
+  spreadsheetInsights?: string;
 }
 
-async function analyzeWithAI(content: string, subject: string | null): Promise<AIAnalysis> {
+async function analyzeWithAI(
+  content: string, 
+  subject: string | null,
+  spreadsheetData?: SpreadsheetData[]
+): Promise<AIAnalysis> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   
   if (!LOVABLE_API_KEY) {
@@ -28,19 +40,34 @@ async function analyzeWithAI(content: string, subject: string | null): Promise<A
     throw new Error("AI API key not configured");
   }
 
+  // スプレッドシートデータがある場合は追加のコンテキストを含める
+  let spreadsheetContext = "";
+  if (spreadsheetData && spreadsheetData.length > 0) {
+    spreadsheetContext = "\n\n【添付されたスプレッドシートデータ】\n";
+    for (const sheet of spreadsheetData) {
+      spreadsheetContext += `\nファイル: ${sheet.filename} (${sheet.rowCount}行)\n`;
+      spreadsheetContext += sheet.formattedContent.substring(0, 2000);
+      if (sheet.formattedContent.length > 2000) {
+        spreadsheetContext += "\n... (データ省略)";
+      }
+    }
+  }
+
   const prompt = `以下のメールを分析してJSON形式で回答してください。
 
 件名: ${subject || "(なし)"}
 本文:
 ${content.substring(0, 3000)}
+${spreadsheetContext}
 
 回答形式:
 {
-  "summary": "3行以内の要約（日本語）",
-  "category": "問い合わせ|見積依頼|クレーム|契約関連|採用応募|請求関連|その他 のいずれか",
+  "summary": "3行以内の要約（日本語）${spreadsheetData?.length ? "、添付データの概要も含める" : ""}",
+  "category": "問い合わせ|見積依頼|クレーム|契約関連|採用応募|請求関連|データ送付|その他 のいずれか",
   "urgency": "high|medium|low のいずれか（緊急度）",
   "sentiment": "positive|negative|neutral のいずれか（感情）",
-  "extractedDeadline": "期日があれば ISO8601形式、なければ null"
+  "extractedDeadline": "期日があれば ISO8601形式、なければ null"${spreadsheetData?.length ? `,
+  "spreadsheetInsights": "添付データから読み取れる重要な情報（件数、合計金額、主な内容など）"` : ""}
 }
 
 JSON のみを返してください。`;
@@ -57,7 +84,7 @@ JSON のみを返してください。`;
         { role: "user", content: prompt }
       ],
       temperature: 0.3,
-      max_tokens: 500,
+      max_tokens: 800,
     }),
   });
 
@@ -93,7 +120,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const { emailId, textContent, subject }: AnalyzeRequest = await req.json();
+    const { emailId, textContent, subject, spreadsheetData }: AnalyzeRequest = await req.json();
 
     if (!emailId || !textContent) {
       return new Response(
@@ -102,24 +129,32 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Analyzing email ${emailId}`);
+    console.log(`Analyzing email ${emailId}${spreadsheetData?.length ? ` with ${spreadsheetData.length} spreadsheet(s)` : ""}`);
 
     // Run AI analysis
-    const analysis = await analyzeWithAI(textContent, subject);
+    const analysis = await analyzeWithAI(textContent, subject, spreadsheetData);
 
     console.log(`Analysis result:`, analysis);
 
     // Update email with AI analysis
+    const updateData: Record<string, unknown> = {
+      ai_summary: analysis.summary,
+      ai_category: analysis.category,
+      ai_urgency: analysis.urgency,
+      ai_sentiment: analysis.sentiment,
+      ai_extracted_deadline: analysis.extractedDeadline,
+      status: "processed",
+    };
+
+    // スプレッドシートインサイトがある場合はメタデータとして保存
+    if (analysis.spreadsheetInsights) {
+      // 既存のai_summaryにスプレッドシートインサイトを追加
+      updateData.ai_summary = `${analysis.summary}\n\n📊 添付データ分析: ${analysis.spreadsheetInsights}`;
+    }
+
     const { error: updateError } = await supabase
       .from("inbound_emails")
-      .update({
-        ai_summary: analysis.summary,
-        ai_category: analysis.category,
-        ai_urgency: analysis.urgency,
-        ai_sentiment: analysis.sentiment,
-        ai_extracted_deadline: analysis.extractedDeadline,
-        status: "processed",
-      })
+      .update(updateData)
       .eq("id", emailId);
 
     if (updateError) {

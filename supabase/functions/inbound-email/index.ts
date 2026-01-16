@@ -277,11 +277,12 @@ async function triggerAIAnalysis(
   supabase: any,
   emailId: string,
   textContent: string,
-  subject: string | null
+  subject: string | null,
+  spreadsheetData?: { filename: string; formattedContent: string; rowCount: number }[]
 ): Promise<void> {
   try {
     const { error } = await supabase.functions.invoke("analyze-email", {
-      body: { emailId, textContent, subject },
+      body: { emailId, textContent, subject, spreadsheetData },
     });
     
     if (error) {
@@ -339,6 +340,165 @@ async function getCompanyMembers(supabase: any, companyId: string): Promise<stri
     .eq("is_active", true);
 
   return (data || []).map((m: { user_id: string }) => m.user_id);
+}
+
+// CSV文字列をパースする関数
+function parseCSV(csvContent: string): { headers: string[]; rows: string[][]; error?: string } {
+  try {
+    const lines = csvContent.split(/\r?\n/).filter(line => line.trim());
+    if (lines.length === 0) {
+      return { headers: [], rows: [], error: "Empty CSV" };
+    }
+
+    const headers = lines[0].split(",").map(h => h.trim().replace(/^["']|["']$/g, ""));
+    const rows: string[][] = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const values: string[] = [];
+      let current = "";
+      let inQuotes = false;
+
+      for (const char of lines[i]) {
+        if (char === '"' && !inQuotes) {
+          inQuotes = true;
+        } else if (char === '"' && inQuotes) {
+          inQuotes = false;
+        } else if (char === "," && !inQuotes) {
+          values.push(current.trim());
+          current = "";
+        } else {
+          current += char;
+        }
+      }
+      values.push(current.trim());
+      rows.push(values);
+    }
+
+    return { headers, rows };
+  } catch (err) {
+    return { headers: [], rows: [], error: String(err) };
+  }
+}
+
+// Base64デコードしてテキストに変換（Shift-JIS対応）
+function decodeBase64ToText(base64: string): string {
+  try {
+    const binaryString = atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    // Try UTF-8 first
+    try {
+      const utf8Decoder = new TextDecoder("utf-8", { fatal: true });
+      return utf8Decoder.decode(bytes);
+    } catch {
+      // Fallback to Shift-JIS for Japanese CSVs
+      try {
+        const sjisDecoder = new TextDecoder("shift-jis", { fatal: false });
+        return sjisDecoder.decode(bytes);
+      } catch {
+        // Last resort: Latin-1
+        const latinDecoder = new TextDecoder("iso-8859-1");
+        return latinDecoder.decode(bytes);
+      }
+    }
+  } catch (err) {
+    console.error("Failed to decode base64:", err);
+    return "";
+  }
+}
+
+// スプレッドシートデータをAI分析用にフォーマット
+function formatSpreadsheetForAI(
+  headers: string[],
+  rows: string[][],
+  maxRows: number = 50
+): string {
+  const displayRows = rows.slice(0, maxRows);
+  const headerLine = headers.join(" | ");
+  const separator = headers.map(() => "---").join(" | ");
+  const dataLines = displayRows.map(row => row.join(" | "));
+
+  let result = `| ${headerLine} |\n| ${separator} |\n`;
+  for (const line of dataLines) {
+    result += `| ${line} |\n`;
+  }
+
+  if (rows.length > maxRows) {
+    result += `\n... 他 ${rows.length - maxRows} 行`;
+  }
+
+  return result;
+}
+
+// スプレッドシート添付ファイルを処理
+interface SpreadsheetData {
+  filename: string;
+  headers: string[];
+  rows: string[][];
+  rowCount: number;
+  formattedContent: string;
+}
+
+async function processSpreadsheetAttachment(
+  attachment: { filename: string; type: string; content?: string }
+): Promise<SpreadsheetData | null> {
+  if (!attachment.content) {
+    console.log("No content in attachment, skipping");
+    return null;
+  }
+
+  console.log(`Processing spreadsheet attachment: ${attachment.filename}`);
+
+  try {
+    const mimeType = attachment.type?.toLowerCase() || "";
+    const filename = attachment.filename?.toLowerCase() || "";
+
+    // CSVの場合
+    if (mimeType === "text/csv" || filename.endsWith(".csv")) {
+      const textContent = decodeBase64ToText(attachment.content);
+      const { headers, rows, error } = parseCSV(textContent);
+
+      if (error) {
+        console.error("CSV parse error:", error);
+        return null;
+      }
+
+      return {
+        filename: attachment.filename,
+        headers,
+        rows,
+        rowCount: rows.length,
+        formattedContent: formatSpreadsheetForAI(headers, rows),
+      };
+    }
+
+    // Excelの場合（基本的なXLSX解析）
+    if (
+      mimeType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+      mimeType === "application/vnd.ms-excel" ||
+      filename.endsWith(".xlsx") ||
+      filename.endsWith(".xls")
+    ) {
+      // Excel files require a library for full parsing
+      // For now, return metadata only
+      console.log(`Excel file detected: ${attachment.filename}, size: ${attachment.content.length}`);
+      return {
+        filename: attachment.filename,
+        headers: [],
+        rows: [],
+        rowCount: 0,
+        formattedContent: `[Excelファイル: ${attachment.filename}]\n※Excelファイルは詳細解析が必要です。CSV形式での送信をお勧めします。`,
+      };
+    }
+
+    return null;
+  } catch (err) {
+    console.error("Failed to process spreadsheet:", err);
+    return null;
+  }
 }
 
 // 画像添付ファイルをOCR処理
@@ -709,13 +869,39 @@ serve(async (req) => {
       }
     }
 
+    // スプレッドシート添付ファイルを処理
+    const spreadsheetAttachments = (emailData.attachments || []).filter(
+      att => att.type === "text/csv" ||
+             att.type === "application/vnd.ms-excel" ||
+             att.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+             /\.(csv|xlsx?|xls)$/i.test(att.filename)
+    );
+
+    const spreadsheetDataList: { filename: string; formattedContent: string; rowCount: number }[] = [];
+    
+    if (spreadsheetAttachments.length > 0) {
+      console.log(`Found ${spreadsheetAttachments.length} spreadsheet attachments`);
+      
+      for (const att of spreadsheetAttachments) {
+        const data = await processSpreadsheetAttachment(att);
+        if (data) {
+          spreadsheetDataList.push({
+            filename: data.filename,
+            formattedContent: data.formattedContent,
+            rowCount: data.rowCount,
+          });
+        }
+      }
+    }
+
     // AI分析をトリガー（非同期）
     if (emailAddressConfig?.ai_processing_enabled !== false) {
       triggerAIAnalysis(
         supabase,
         savedEmail.id,
         emailData.text || emailData.html || "",
-        emailData.subject || null
+        emailData.subject || null,
+        spreadsheetDataList.length > 0 ? spreadsheetDataList : undefined
       );
     }
 
@@ -725,7 +911,8 @@ serve(async (req) => {
         id: savedEmail.id,
         companyId: companyId,
         autoCreated: autoCreatedEntityType ? { type: autoCreatedEntityType, id: autoCreatedEntityId } : null,
-        receiptProcessing: imageAttachments.length > 0 ? { count: imageAttachments.length } : null
+        receiptProcessing: imageAttachments.length > 0 ? { count: imageAttachments.length } : null,
+        spreadsheetProcessing: spreadsheetDataList.length > 0 ? { count: spreadsheetDataList.length } : null
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
