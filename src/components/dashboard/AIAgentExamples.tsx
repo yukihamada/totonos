@@ -169,7 +169,7 @@ export function AIAgentExamples({ onChatOpen }: AIAgentExamplesProps) {
               <div className="text-xs text-muted-foreground space-y-1">
                 <p className="font-medium text-foreground">送信先アドレス:</p>
                 <code className="block px-2 py-1 bg-muted rounded text-xs break-all">
-                  ai@totonos.jp
+                  minato@totonos.jp
                 </code>
                 <p className="mt-2">例: 請求書作成依頼をメールで送信</p>
               </div>

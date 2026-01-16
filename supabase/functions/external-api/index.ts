@@ -88,8 +88,8 @@ const serviceHandlers: Record<string, {
           return { success: true };
         }
         return { success: false, error: `API error: ${response.status}` };
-      } catch (e) {
-        return { success: false, error: e.message };
+      } catch (e: unknown) {
+        return { success: false, error: e instanceof Error ? e.message : String(e) };
       }
     },
     fetch: async (credentials, config, params) => {
@@ -118,8 +118,8 @@ const serviceHandlers: Record<string, {
           return { success: true };
         }
         return { success: false, error: `API error: ${response.status}` };
-      } catch (e) {
-        return { success: false, error: e.message };
+      } catch (e: unknown) {
+        return { success: false, error: e instanceof Error ? e.message : String(e) };
       }
     },
     fetch: async (credentials, config, params) => {
@@ -152,8 +152,8 @@ const serviceHandlers: Record<string, {
           return { success: true };
         }
         return { success: false, error: `API error: ${response.status}` };
-      } catch (e) {
-        return { success: false, error: e.message };
+      } catch (e: unknown) {
+        return { success: false, error: e instanceof Error ? e.message : String(e) };
       }
     },
     fetch: async (credentials, config, params) => {
@@ -272,13 +272,14 @@ serve(async (req) => {
 
         try {
           result = await handler.fetch(credentials, serviceConfig, params);
-        } catch (e) {
+        } catch (e: unknown) {
+          const errorMessage = e instanceof Error ? e.message : String(e);
           // Update connection status on error
           await supabase
             .from("external_connections")
             .update({
               status: "error",
-              last_error: e.message,
+              last_error: errorMessage,
               updated_at: new Date().toISOString(),
             })
             .eq("id", connection_id);
@@ -308,18 +309,19 @@ serve(async (req) => {
                 syncedCount = arr.length;
               }
             }
-          } catch (e) {
+          } catch (e: unknown) {
+            const errorMessage = e instanceof Error ? e.message : String(e);
             await supabase
               .from("external_connections")
               .update({
                 status: "error",
-                last_error: e.message,
+                last_error: errorMessage,
                 updated_at: new Date().toISOString(),
               })
               .eq("id", connection_id);
 
             return new Response(
-              JSON.stringify({ success: false, error: e.message }),
+              JSON.stringify({ success: false, error: errorMessage }),
               { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
           }
@@ -354,10 +356,10 @@ serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("[external-api] Error:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
