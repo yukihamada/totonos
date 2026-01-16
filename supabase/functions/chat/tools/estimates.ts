@@ -1,5 +1,6 @@
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+const APP_BASE_URL = "https://totonos.lovable.app";
 export const estimateTools = [
   {
     name: "list_estimates",
@@ -207,9 +208,13 @@ export async function executeEstimateTool(
         if (itemsError) throw new Error(itemsError.message);
       }
 
-      return { estimate, message: `見積書 ${estimateNumber} を作成しました` };
+      const estimateUrl = `${APP_BASE_URL}/estimates/${estimate.id}`;
+      return { 
+        estimate, 
+        url: estimateUrl,
+        message: `見積書 ${estimateNumber} を作成しました\n📄 ${estimateUrl}` 
+      };
     }
-
     case "estimate_update_status": {
       const updateData: Record<string, unknown> = { status: input.status };
       if (input.status === "accepted") {

@@ -1,5 +1,6 @@
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+const APP_BASE_URL = "https://totonos.lovable.app";
 export const contractTools = [
   {
     name: "list_contracts",
@@ -202,9 +203,13 @@ export async function executeContractTool(
         .single();
 
       if (error) throw new Error(error.message);
-      return { contract: data, message: "契約書を作成しました" };
+      const contractUrl = `${APP_BASE_URL}/contracts/${data.id}`;
+      return { 
+        contract: data, 
+        url: contractUrl,
+        message: `契約書を作成しました\n📄 ${contractUrl}` 
+      };
     }
-
     case "contract_update": {
       const updateData: Record<string, unknown> = {};
       if (input.title) updateData.title = input.title;
