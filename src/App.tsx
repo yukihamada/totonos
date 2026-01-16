@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { SettingsProvider } from "@/contexts/SettingsContext";
-import { DemoProvider, useDemo } from "@/contexts/DemoContext";
 import { OrganizationProvider } from "@/contexts/OrganizationContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Landing from "./pages/Landing";
@@ -155,12 +154,6 @@ const queryClient = new QueryClient({
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-  const { isDemoMode } = useDemo();
-
-  // In demo mode, skip authentication
-  if (isDemoMode) {
-    return <>{children}</>;
-  }
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">読み込み中...</div>;
@@ -328,20 +321,18 @@ const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <DemoProvider>
-          <OrganizationProvider>
-            <SettingsProvider>
-              <TooltipProvider>
-                <Toaster />
-                <Sonner />
-                <BrowserRouter>
-                  <AppRoutes />
-                  <ChatWidget />
-                </BrowserRouter>
-              </TooltipProvider>
-            </SettingsProvider>
-          </OrganizationProvider>
-        </DemoProvider>
+        <OrganizationProvider>
+          <SettingsProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <AppRoutes />
+                <ChatWidget />
+              </BrowserRouter>
+            </TooltipProvider>
+          </SettingsProvider>
+        </OrganizationProvider>
       </AuthProvider>
     </QueryClientProvider>
   </ErrorBoundary>
