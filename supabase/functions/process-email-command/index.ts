@@ -11,6 +11,11 @@ interface CommandRequest {
   emailId: string;
   companyId: string;
   userId?: string;
+  spreadsheetData?: Array<{
+    filename: string;
+    formattedContent: string;
+    rowCount: number;
+  }>;
 }
 
 interface CommandResponse {
@@ -48,6 +53,31 @@ const EMAIL_TOOLS = [
     },
   },
   {
+    name: "bulk_create_leads",
+    description: "複数のリードを一括登録します。CSVやExcelデータからリードを作成する場合に使用します",
+    parameters: {
+      type: "object",
+      properties: {
+        leads: {
+          type: "array",
+          description: "登録するリードの配列",
+          items: {
+            type: "object",
+            properties: {
+              company_name: { type: "string", description: "会社名" },
+              contact_name: { type: "string", description: "担当者名" },
+              email: { type: "string", description: "メールアドレス" },
+              phone: { type: "string", description: "電話番号" },
+              notes: { type: "string", description: "備考" },
+            },
+            required: ["company_name"],
+          },
+        },
+      },
+      required: ["leads"],
+    },
+  },
+  {
     name: "search_clients",
     description: "取引先を検索します",
     parameters: {
@@ -76,6 +106,19 @@ const EMAIL_TOOLS = [
       properties: {},
     },
   },
+  {
+    name: "analyze_spreadsheet",
+    description: "添付されたスプレッドシートデータを分析します",
+    parameters: {
+      type: "object",
+      properties: {
+        analysis_type: { 
+          type: "string", 
+          description: "分析タイプ: summary (要約), list (一覧表示), insights (洞察)" 
+        },
+      },
+    },
+  },
 ];
 
 interface ToolResult {
@@ -88,7 +131,8 @@ async function executeToolCall(
   supabase: any,
   toolName: string,
   args: Record<string, unknown>,
-  _companyId: string
+  _companyId: string,
+  spreadsheetContent?: string
 ): Promise<string> {
   console.log(`Executing tool: ${toolName}`, args);
 
@@ -120,6 +164,35 @@ async function executeToolCall(
       
       if (error) return JSON.stringify({ error: error.message });
       return JSON.stringify({ success: true, lead: data });
+    }
+
+    case "bulk_create_leads": {
+      const leads = args.leads as Array<Record<string, unknown>>;
+      if (!leads || !Array.isArray(leads) || leads.length === 0) {
+        return JSON.stringify({ error: "リードデータがありません" });
+      }
+
+      const insertData = leads.map(lead => ({
+        company_name: lead.company_name as string,
+        contact_name: lead.contact_name as string || null,
+        email: lead.email as string || null,
+        phone: lead.phone as string || null,
+        notes: lead.notes as string || null,
+        status: "new",
+        source: "email",
+      }));
+
+      const { data, error } = await supabase
+        .from("leads")
+        .insert(insertData)
+        .select();
+      
+      if (error) return JSON.stringify({ error: error.message });
+      return JSON.stringify({ 
+        success: true, 
+        message: `${data.length}件のリードを登録しました`,
+        leads: data 
+      });
     }
 
     case "search_clients": {
@@ -170,6 +243,17 @@ async function executeToolCall(
       return JSON.stringify(stats);
     }
 
+    case "analyze_spreadsheet": {
+      if (!spreadsheetContent) {
+        return JSON.stringify({ error: "添付されたスプレッドシートがありません" });
+      }
+      return JSON.stringify({ 
+        success: true, 
+        content: spreadsheetContent,
+        analysis_type: args.analysis_type || "summary"
+      });
+    }
+
     default:
       return JSON.stringify({ error: `Unknown tool: ${toolName}` });
   }
@@ -179,7 +263,8 @@ async function executeToolCall(
 async function processCommand(
   supabase: any,
   command: string,
-  companyId: string
+  companyId: string,
+  spreadsheetContent?: string
 ): Promise<string> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   
@@ -187,9 +272,19 @@ async function processCommand(
     throw new Error("LOVABLE_API_KEY not configured");
   }
 
+  // スプレッドシートデータがある場合はシステムプロンプトに追加
+  let spreadsheetContext = "";
+  if (spreadsheetContent) {
+    spreadsheetContext = `\n\n【添付されたスプレッドシートデータ】\n${spreadsheetContent.substring(0, 5000)}`;
+  }
+
   const systemPrompt = `あなたはTotonosのAIアシスタントです。
 メールで受け取った指示に従ってシステムを操作します。
 利用可能なツールを使って、ユーザーのリクエストに応えてください。
+
+${spreadsheetContent ? `添付されたCSV/Excelデータがある場合:
+- 「リードに登録して」などの指示があれば、bulk_create_leads ツールを使用してデータを一括登録してください
+- データの分析や一覧表示が必要な場合は analyze_spreadsheet ツールを使用してください` : ""}
 
 回答は日本語で、簡潔にまとめてください。
 ツールの実行結果に基づいて、分かりやすく報告してください。`;
@@ -205,7 +300,7 @@ async function processCommand(
       model: "google/gemini-2.5-flash",
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: command }
+        { role: "user", content: command + spreadsheetContext }
       ],
       tools: EMAIL_TOOLS.map(tool => ({
         type: "function",
@@ -213,7 +308,7 @@ async function processCommand(
       })),
       tool_choice: "auto",
       temperature: 0.3,
-      max_tokens: 1500,
+      max_tokens: 2000,
     }),
   });
 
@@ -238,7 +333,8 @@ async function processCommand(
       supabase,
       toolCall.function.name,
       JSON.parse(toolCall.function.arguments || "{}"),
-      companyId
+      companyId,
+      spreadsheetContent
     );
     toolResults.push({
       tool_call_id: toolCall.id,
@@ -257,7 +353,7 @@ async function processCommand(
       model: "google/gemini-2.5-flash",
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: command },
+        { role: "user", content: command + spreadsheetContext },
         message,
         ...toolResults.map(result => ({
           role: "tool",
@@ -291,7 +387,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const { emailId, companyId }: CommandRequest = await req.json();
+    const { emailId, companyId, spreadsheetData }: CommandRequest = await req.json();
 
     if (!emailId || !companyId) {
       return new Response(
@@ -300,7 +396,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Processing email command for ${emailId}`);
+    console.log(`Processing email command for ${emailId}${spreadsheetData?.length ? ` with ${spreadsheetData.length} spreadsheet(s)` : ""}`);
 
     // Check credits
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -329,8 +425,16 @@ serve(async (req) => {
 
     const command = email.text_body || email.html_body?.replace(/<[^>]*>/g, "") || "";
 
+    // スプレッドシートコンテンツを結合
+    let combinedSpreadsheetContent: string | undefined;
+    if (spreadsheetData && spreadsheetData.length > 0) {
+      combinedSpreadsheetContent = spreadsheetData
+        .map(s => `【${s.filename} (${s.rowCount}行)】\n${s.formattedContent}`)
+        .join("\n\n");
+    }
+
     // Process the command
-    const commandResponse = await processCommand(supabase, command, companyId);
+    const commandResponse = await processCommand(supabase, command, companyId, combinedSpreadsheetContent);
 
     // Consume credits
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -339,7 +443,7 @@ serve(async (req) => {
       companyId,
       "ai_email_command",
       `メール経由AI指示: ${email.subject?.substring(0, 30) || "(件名なし)"}`,
-      { email_id: emailId, from: email.from_email }
+      { email_id: emailId, from: email.from_email, has_spreadsheet: !!spreadsheetData?.length }
     );
 
     if (!consumeResult.success) {
