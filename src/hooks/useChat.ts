@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { ChatMessage, ToolCall, ToolResult } from "@/types/chat";
-import { streamChatMessage } from "@/lib/chat-api";
+import { streamChatMessage, processFilesForMessage, AttachedFile } from "@/lib/chat-api";
 import { toast } from "sonner";
 import { useCredits } from "@/hooks/useCredits";
 
@@ -29,11 +29,14 @@ export function useChat() {
   }, []);
 
   const sendMessage = useCallback(
-    async (content: string) => {
-      if (!content.trim()) return;
+    async (content: string, files?: AttachedFile[]) => {
+      if (!content.trim() && (!files || files.length === 0)) return;
+
+      // Use ai_chat for all file types (credit system handles it)
+      const creditAction = 'ai_chat' as const;
 
       // クレジットチェック
-      if (!canUse('ai_chat')) {
+      if (!canUse(creditAction)) {
         toast.error("クレジット不足", {
           description: "AIチャットを利用するにはクレジットが必要です。クレジットを購入してください。",
         });
@@ -41,7 +44,7 @@ export function useChat() {
       }
 
       // クレジット消費
-      const consumed = await consume('ai_chat', 'AIチャット');
+      const consumed = await consume(creditAction, 'AIチャット');
       if (!consumed) {
         toast.error("クレジット消費エラー", {
           description: "クレジットの消費に失敗しました。",
@@ -55,17 +58,34 @@ export function useChat() {
       }
       abortControllerRef.current = new AbortController();
 
-      // Add user message
+      // Create display content for user message
+      let displayContent = content.trim();
+      if (files && files.length > 0) {
+        const fileNames = files.map(f => f.file.name).join(', ');
+        if (displayContent) {
+          displayContent += `\n📎 添付: ${fileNames}`;
+        } else {
+          displayContent = `📎 添付: ${fileNames}`;
+        }
+      }
+
+      // Add user message to UI
       addMessage({
         role: "user",
-        content: content.trim(),
+        content: displayContent,
       });
 
-      // Prepare messages for API
-      const apiMessages = [...messages, { role: "user" as const, content: content.trim() }].map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-      }));
+      // Process files and prepare message for API
+      const processedMessage = await processFilesForMessage(content.trim() || "このファイルを分析してください。", files);
+
+      // Prepare messages for API (convert previous messages + new one)
+      const apiMessages = [
+        ...messages.map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+        })),
+        processedMessage
+      ];
 
       setIsLoading(true);
 
@@ -164,7 +184,7 @@ export function useChat() {
     // Remove messages after the last user message
     setMessages((prev) => prev.slice(0, lastUserMessageIndex + 1));
 
-    // Resend the message
+    // Resend the message (without files since we don't store them)
     await sendMessage(lastUserMessage.content);
   }, [messages, sendMessage]);
 
@@ -178,3 +198,5 @@ export function useChat() {
     updateMessage,
   };
 }
+
+export type { AttachedFile };
