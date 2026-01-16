@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import type { Json } from '@/integrations/supabase/types';
 import type { 
   ExternalServiceType, 
   ExternalConnection, 
@@ -64,8 +65,8 @@ export function useCreateConnection() {
           user_id: user.id,
           service_type: formData.service_type,
           display_name: formData.display_name || null,
-          credentials: formData.credentials as unknown as Record<string, never>,
-          settings: (formData.settings || {}) as unknown as Record<string, never>,
+          credentials: formData.credentials as Json,
+          settings: (formData.settings || {}) as Json,
           status: 'pending' as const,
         }])
         .select()
