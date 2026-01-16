@@ -18,7 +18,7 @@ interface AuthEmailRequest {
 
 const APP_NAME = "Totonos";
 const AI_AGENT_NAME = "ミナト";
-const AI_AGENT_EMAIL = "minato@totonos.lovable.app"; // 返信先として使用
+const AI_AGENT_EMAIL = "minato@totonos.jp"; // 返信先として使用
 const SUPPORT_EMAIL = "support@totonos.lovable.app";
 
 const APP_FEATURES = [

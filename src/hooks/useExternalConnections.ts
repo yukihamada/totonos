@@ -64,8 +64,8 @@ export function useCreateConnection() {
           user_id: user.id,
           service_type: formData.service_type,
           display_name: formData.display_name || null,
-          credentials: formData.credentials,
-          settings: formData.settings || {},
+          credentials: formData.credentials as unknown as Record<string, never>,
+          settings: (formData.settings || {}) as unknown as Record<string, never>,
           status: 'pending' as const,
         }])
         .select()

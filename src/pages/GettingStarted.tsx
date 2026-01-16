@@ -76,7 +76,7 @@ export default function GettingStarted() {
   };
 
   const copyEmailAddress = () => {
-    navigator.clipboard.writeText("minato@totos.jp");
+    navigator.clipboard.writeText("minato@totonos.jp");
     toast.success("メールアドレスをコピーしました");
   };
 
@@ -230,7 +230,7 @@ export default function GettingStarted() {
               </div>
               <div className="flex items-center gap-2">
                 <code className="px-3 py-2 bg-background border rounded text-sm font-mono">
-                  minato@totos.jp
+                  minato@totonos.jp
                 </code>
                 <Button variant="ghost" size="sm" onClick={copyEmailAddress}>
                   <Copy className="h-4 w-4" />

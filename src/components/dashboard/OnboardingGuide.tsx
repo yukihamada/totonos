@@ -75,7 +75,7 @@ export function OnboardingGuide({ onChatOpen }: OnboardingGuideProps) {
     {
       id: "email",
       title: "メールでAIを使う",
-      description: "ai@totonos.jp にメールを送るだけで自動処理",
+      description: "minato@totonos.jp にメールを送るだけで自動処理",
       icon: Mail,
       color: "text-chart-2",
       actionLabel: "メール設定",
