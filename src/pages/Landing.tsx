@@ -305,7 +305,7 @@ function HeroSection() {
     <section className="border-b-2 border-foreground py-24">
       <div className="container mx-auto px-4 text-center">
         <div className="inline-block mb-4 px-4 py-1 border-2 border-foreground bg-muted text-sm font-medium">
-          🚀 完全無料の会社運営OS
+          🚀 無料で始める会社運営OS
         </div>
         <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6">
           10個のSaaSを
