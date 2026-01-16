@@ -1,14 +1,12 @@
 import { ReactNode, useState, useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { BottomNavigation } from "./BottomNavigation";
-import { MessageCircle, X, LogIn } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ChatWidget } from "@/components/chat/ChatWidget";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useDemo } from "@/contexts/DemoContext";
 import { FeedbackButton } from "@/components/FeedbackButton";
 import { NotificationBell } from "@/components/NotificationBell";
 import { CompanySetupDialog } from "@/components/CompanySetupDialog";
@@ -26,9 +24,7 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   const isMobile = useIsMobile();
   const [chatOpen, setChatOpen] = useState(false);
-  const { isDemoMode, exitDemoMode } = useDemo();
   const { user } = useAuth();
-  const navigate = useNavigate();
   const searchRef = useRef<GlobalSearchRef>(null);
 
   const { data: currentCompany, isLoading: companyLoading } = useCurrentCompany();
@@ -36,15 +32,15 @@ export function AppLayout({ children }: AppLayoutProps) {
   const ensureDefaultCompany = useEnsureDefaultCompany();
 
   // Check if company needs setup (name is "会社名未登録")
-  const needsCompanySetup = !isDemoMode && user && currentCompany && currentCompany.name === "会社名未登録";
+  const needsCompanySetup = user && currentCompany && currentCompany.name === "会社名未登録";
   const [showSetupDialog, setShowSetupDialog] = useState(false);
 
   // Ensure user has a company when logged in
   useEffect(() => {
-    if (!isDemoMode && user && !companyLoading && !currentCompany) {
+    if (user && !companyLoading && !currentCompany) {
       ensureDefaultCompany.mutate();
     }
-  }, [isDemoMode, user, companyLoading, currentCompany]);
+  }, [user, companyLoading, currentCompany]);
 
   // Show setup dialog when company name is not set
   useEffect(() => {
@@ -52,11 +48,6 @@ export function AppLayout({ children }: AppLayoutProps) {
       setShowSetupDialog(true);
     }
   }, [needsCompanySetup]);
-
-  const handleExitDemo = () => {
-    exitDemoMode();
-    navigate("/");
-  };
 
   const handleCompanySetup = async (companyName: string, displayName?: string) => {
     if (!currentCompany) return;
@@ -86,36 +77,6 @@ export function AppLayout({ children }: AppLayoutProps) {
           onOpenChat={() => setChatOpen(true)}
           onOpenSearch={() => searchRef.current?.open()}
         />
-        
-        {/* Demo Mode Banner */}
-        {isDemoMode && (
-          <div className="bg-amber-500 text-amber-950 px-4 py-2 text-center text-sm flex items-center justify-center gap-2 flex-wrap">
-            <span className="font-medium">🎮 デモモード</span>
-            <span className="hidden sm:inline">- サンプルデータを表示中です</span>
-            <div className="flex items-center gap-2 ml-2">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-6 px-2 text-amber-950 hover:bg-amber-400 hover:text-amber-950"
-                onClick={handleExitDemo}
-              >
-                <X className="h-3 w-3 mr-1" />
-                終了
-              </Button>
-              <Link to="/auth">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-6 px-2 text-amber-950 hover:bg-amber-400 hover:text-amber-950"
-                  onClick={() => exitDemoMode()}
-                >
-                  <LogIn className="h-3 w-3 mr-1" />
-                  アカウント作成
-                </Button>
-              </Link>
-            </div>
-          </div>
-        )}
         
         <div className="flex flex-1">
           <AppSidebar onChatOpen={() => setChatOpen(true)} />

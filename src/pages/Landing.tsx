@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -31,15 +31,11 @@ import {
   Book,
   Laptop,
   Menu,
-  Eye,
   Mail,
   MessageSquare,
-  Smartphone,
-  Wrench,
   Bot,
   Sparkles,
 } from "lucide-react";
-import { useDemo } from "@/contexts/DemoContext";
 import { FeedbackButton } from "@/components/FeedbackButton";
 
 const features = [
@@ -274,7 +270,7 @@ const typingTexts = [
   "「来週の商談予定を確認」",
 ];
 
-function HeroSection({ handleDemoClick }: { handleDemoClick: () => void }) {
+function HeroSection() {
   const [displayText, setDisplayText] = useState("");
   const [textIndex, setTextIndex] = useState(0);
   const [charIndex, setCharIndex] = useState(0);
@@ -363,13 +359,6 @@ function HeroSection({ handleDemoClick }: { handleDemoClick: () => void }) {
 export default function Landing() {
   const [activeTab, setActiveTab] = useState<CategoryKey>("invoice");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { enterDemoMode } = useDemo();
-  const navigate = useNavigate();
-
-  const handleDemoClick = () => {
-    enterDemoMode();
-    navigate("/dashboard");
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -390,10 +379,6 @@ export default function Landing() {
                 ログイン
               </Button>
             </Link>
-            <Button onClick={handleDemoClick} variant="ghost">
-              <Eye className="mr-2 h-4 w-4" />
-              デモを見る
-            </Button>
             <Link to="/auth">
               <Button>
                 無料で始める
@@ -404,9 +389,6 @@ export default function Landing() {
 
           {/* Mobile Navigation */}
           <div className="flex md:hidden items-center gap-2">
-            <Button onClick={handleDemoClick} variant="ghost" size="sm">
-              <Eye className="h-4 w-4" />
-            </Button>
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="outline" size="icon" className="border-2">
@@ -420,17 +402,6 @@ export default function Landing() {
                       ログイン
                     </Button>
                   </Link>
-                  <Button 
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      handleDemoClick();
-                    }} 
-                    variant="ghost" 
-                    className="w-full"
-                  >
-                    <Eye className="mr-2 h-4 w-4" />
-                    デモを見る
-                  </Button>
                   <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
                     <Button className="w-full">
                       無料で始める
@@ -445,7 +416,7 @@ export default function Landing() {
       </header>
 
       {/* Hero with Typing Animation */}
-      <HeroSection handleDemoClick={handleDemoClick} />
+      <HeroSection />
 
 
       {/* Features */}

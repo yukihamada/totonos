@@ -1,8 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useDemo } from '@/contexts/DemoContext';
-import { demoDashboardStats } from '@/data/demo-data';
 
 export interface DashboardStats {
   // Invoice stats
@@ -41,16 +39,10 @@ export interface DashboardStats {
 
 export function useDashboardStats() {
   const { user } = useAuth();
-  const { isDemoMode } = useDemo();
 
   return useQuery({
-    queryKey: ['dashboard_stats', isDemoMode ? 'demo' : user?.id],
+    queryKey: ['dashboard_stats', user?.id],
     queryFn: async (): Promise<DashboardStats> => {
-      // Return demo data if in demo mode
-      if (isDemoMode) {
-        return demoDashboardStats;
-      }
-
       if (!user) throw new Error('User not authenticated');
 
       const today = new Date();
@@ -213,7 +205,7 @@ export function useDashboardStats() {
         recentActivities: recentActivities.slice(0, 10),
       };
     },
-    enabled: isDemoMode || !!user,
+    enabled: !!user,
     staleTime: 30000, // 30 seconds
   });
 }
