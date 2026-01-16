@@ -1,6 +1,8 @@
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 
+const APP_BASE_URL = "https://totonos.lovable.app";
+
 export const invoiceTools = [
   {
     name: "invoice_list",
@@ -232,9 +234,11 @@ export async function executeInvoiceTool(
         if (itemsError) throw new Error(itemsError.message);
       }
 
+      const invoiceUrl = `${APP_BASE_URL}/invoices/${invoice.id}`;
       return {
         invoice,
-        message: `請求書 ${invoice.invoice_number} を作成しました（合計: ¥${totalAmount.toLocaleString()}）`,
+        url: invoiceUrl,
+        message: `請求書 ${invoice.invoice_number} を作成しました（合計: ¥${totalAmount.toLocaleString()}）\n📄 ${invoiceUrl}`,
       };
     }
 
