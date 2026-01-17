@@ -23,14 +23,14 @@ const examples = [
   {
     icon: FileText,
     title: "請求書を作成",
-    description: "株式会社ABCへ10万円の請求書を作成して",
+    description: "サンプル商事へ15万円の清掃代の請求書を作成して",
     category: "請求",
     color: "text-chart-1"
   },
   {
     icon: Users,
     title: "リードを登録",
-    description: "新規リード「山田太郎様・株式会社XYZ」を追加して",
+    description: "新規リード「佐藤花子様・サンプル工業」を追加して",
     category: "CRM",
     color: "text-chart-2"
   },
@@ -58,7 +58,7 @@ const examples = [
   {
     icon: Users,
     title: "顧客情報を検索",
-    description: "株式会社ABCの連絡先と取引履歴を見せて",
+    description: "サンプル商事の連絡先と取引履歴を見せて",
     category: "CRM",
     color: "text-primary"
   }
