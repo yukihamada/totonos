@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useCompanyEmailAddresses } from "@/hooks/useCompanyEmailAddresses";
 
 interface OnboardingGuideProps {
   onChatOpen?: () => void;
@@ -41,6 +42,12 @@ export function OnboardingGuide({ onChatOpen }: OnboardingGuideProps) {
   const [dismissed, setDismissed] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
   const [isExpanded, setIsExpanded] = useState(true);
+  const { data: emailAddresses = [] } = useCompanyEmailAddresses();
+
+  // 会社のメールアドレスを取得
+  const companyEmail = emailAddresses[0]?.address_prefix 
+    ? `${emailAddresses[0].address_prefix}@totonos.jp`
+    : "読込中...";
 
   useEffect(() => {
     const isDismissed = localStorage.getItem(ONBOARDING_DISMISSED_KEY);
@@ -75,7 +82,7 @@ export function OnboardingGuide({ onChatOpen }: OnboardingGuideProps) {
     {
       id: "email",
       title: "メールでAIを使う",
-      description: "minato@totonos.jp にメールを送るだけで自動処理",
+      description: `${companyEmail} にメールを送るだけで自動処理`,
       icon: Mail,
       color: "text-chart-2",
       actionLabel: "メール設定",

@@ -13,6 +13,7 @@ import {
   Mail,
   MessageCircle
 } from "lucide-react";
+import { useCompanyEmailAddresses } from "@/hooks/useCompanyEmailAddresses";
 
 interface AIAgentExamplesProps {
   onChatOpen?: () => void;
@@ -64,6 +65,13 @@ const examples = [
 ];
 
 export function AIAgentExamples({ onChatOpen }: AIAgentExamplesProps) {
+  const { data: emailAddresses = [] } = useCompanyEmailAddresses();
+
+  // 会社のメールアドレスを取得
+  const companyEmail = emailAddresses[0]?.address_prefix 
+    ? `${emailAddresses[0].address_prefix}@totonos.jp`
+    : "読込中...";
+
   const handleExampleClick = (prompt: string) => {
     // Open chat and send the prompt
     window.dispatchEvent(new CustomEvent('open-chat', { detail: { prompt } }));
@@ -169,7 +177,7 @@ export function AIAgentExamples({ onChatOpen }: AIAgentExamplesProps) {
               <div className="text-xs text-muted-foreground space-y-1">
                 <p className="font-medium text-foreground">送信先アドレス:</p>
                 <code className="block px-2 py-1 bg-muted rounded text-xs break-all">
-                  minato@totonos.jp
+                  {companyEmail}
                 </code>
                 <p className="mt-2">例: 請求書作成依頼をメールで送信</p>
               </div>
