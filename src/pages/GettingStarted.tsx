@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useCompanyEmailAddresses } from "@/hooks/useCompanyEmailAddresses";
 
 interface TutorialStep {
   id: string;
@@ -42,6 +43,12 @@ export default function GettingStarted() {
   const navigate = useNavigate();
   const [dismissed, setDismissed] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
+  const { data: emailAddresses = [] } = useCompanyEmailAddresses();
+
+  // 会社のメールアドレスを取得
+  const companyEmail = emailAddresses[0]?.address_prefix 
+    ? `${emailAddresses[0].address_prefix}@totonos.jp`
+    : "読込中...";
 
   useEffect(() => {
     const isDismissed = localStorage.getItem(STORAGE_KEY) === "true";
@@ -76,7 +83,7 @@ export default function GettingStarted() {
   };
 
   const copyEmailAddress = () => {
-    navigator.clipboard.writeText("minato@totonos.jp");
+    navigator.clipboard.writeText(companyEmail);
     toast.success("メールアドレスをコピーしました");
   };
 
@@ -230,7 +237,7 @@ export default function GettingStarted() {
               </div>
               <div className="flex items-center gap-2">
                 <code className="px-3 py-2 bg-background border rounded text-sm font-mono">
-                  minato@totonos.jp
+                  {companyEmail}
                 </code>
                 <Button variant="ghost" size="sm" onClick={copyEmailAddress}>
                   <Copy className="h-4 w-4" />
