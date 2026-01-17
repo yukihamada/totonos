@@ -19,6 +19,7 @@ import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { AIDocumentAssistant } from "@/components/AIDocumentAssistant";
 import { GeneratedInvoiceData } from "@/hooks/useDocumentAI";
+import { LoadingWithTips } from "@/components/LoadingWithTips";
 
 const statusConfig = {
   draft: { label: "下書き", variant: "secondary" as const, icon: FileText },
@@ -353,7 +354,7 @@ export default function Invoices() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="text-center py-8 text-muted-foreground">読み込み中...</div>
+              <LoadingWithTips module="invoices" columns={8} rows={5} />
             ) : invoices?.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 請求書がありません。「新規作成」から作成してください。

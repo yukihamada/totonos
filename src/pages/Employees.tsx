@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/select";
 import { useEmployees, useCreateEmployee, useDeleteEmployee } from "@/hooks/useHR";
 import type { EmploymentType } from "@/types/hr";
+import { LoadingWithTips } from "@/components/LoadingWithTips";
 
 const employmentTypeLabels: Record<EmploymentType, string> = {
   full_time: '正社員',
@@ -207,7 +208,7 @@ export default function Employees() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">読み込み中...</TableCell>
+                  <TableCell colSpan={7}><LoadingWithTips module="employees" columns={7} rows={5} showTip={false} /></TableCell>
                 </TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow>

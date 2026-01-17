@@ -16,6 +16,7 @@ import {
 import { useWikiPages, useCreateWikiPage, useDeleteWikiPage } from "@/hooks/useWiki";
 import { categoryLabels } from "@/types/wiki";
 import type { WikiCategory } from "@/types/wiki";
+import { LoadingWithTips } from "@/components/LoadingWithTips";
 
 export default function Wiki() {
   const [search, setSearch] = useState("");
@@ -95,7 +96,7 @@ export default function Wiki() {
         </div>
 
         {isLoading ? (
-          <div className="text-center py-8">読み込み中...</div>
+          <LoadingWithTips module="wiki" skeletonType="grid" rows={6} columns={3} />
         ) : filtered.length === 0 ? (
           <div className="text-center py-12">
             <Book className="h-16 w-16 mx-auto text-muted-foreground mb-4" />

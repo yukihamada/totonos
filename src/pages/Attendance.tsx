@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { useEmployees, useAttendanceRecords, useClockIn, useClockOut } from "@/hooks/useHR";
 import type { AttendanceStatus } from "@/types/hr";
+import { LoadingWithTips } from "@/components/LoadingWithTips";
 
 const statusLabels: Record<AttendanceStatus, string> = {
   present: '出勤',
@@ -213,7 +214,7 @@ export default function Attendance() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">読み込み中...</TableCell>
+                  <TableCell colSpan={7}><LoadingWithTips module="attendance" columns={7} rows={5} showTip={false} /></TableCell>
                 </TableRow>
               ) : records.length === 0 ? (
                 <TableRow>
