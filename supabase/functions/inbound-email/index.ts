@@ -293,6 +293,73 @@ async function triggerAIAnalysis(
   }
 }
 
+// AIコマンド処理をトリガー（自動実行）
+async function triggerAICommandProcessing(
+  supabase: any,
+  emailId: string,
+  companyId: string,
+  subject: string | null,
+  textContent: string,
+  assignedTo: string | null,
+  spreadsheetData?: { filename: string; formattedContent: string; rowCount: number }[]
+): Promise<void> {
+  try {
+    console.log(`Triggering AI command processing for email ${emailId}`);
+    
+    const { data, error } = await supabase.functions.invoke("process-email-command", {
+      body: { 
+        emailId, 
+        companyId,
+        spreadsheetData 
+      },
+    });
+    
+    if (error) {
+      console.error("AI command processing failed:", error);
+      
+      // 失敗時も通知を送信
+      if (assignedTo) {
+        await supabase.from("notifications").insert({
+          user_id: assignedTo,
+          company_id: companyId,
+          type: "error",
+          title: "📧 メールコマンド処理エラー",
+          message: `件名: ${subject || "(なし)"}\n処理中にエラーが発生しました。`,
+          category: "email",
+          link: "/inbound-emails",
+          metadata: {
+            email_id: emailId,
+            error: error.message || "Unknown error",
+          },
+        });
+      }
+      return;
+    }
+    
+    console.log(`AI command processing completed for ${emailId}:`, data);
+    
+    // 処理成功時、担当者に通知を送信
+    if (assignedTo && data?.response) {
+      await supabase.from("notifications").insert({
+        user_id: assignedTo,
+        company_id: companyId,
+        type: "success",
+        title: "📧 メールコマンドを処理しました",
+        message: `件名: ${subject || "(なし)"}\n\n結果: ${(data.response as string).substring(0, 200)}${(data.response as string).length > 200 ? "..." : ""}`,
+        category: "email",
+        link: "/inbound-emails",
+        metadata: {
+          email_id: emailId,
+          response: data.response,
+          credits_used: data.creditsUsed,
+        },
+      });
+    }
+  } catch (err) {
+    console.error("Failed to trigger AI command processing:", err);
+  }
+}
+
 // 通知を送信する対象ユーザーを取得
 async function getNotificationRecipients(
   supabase: any,
@@ -1013,8 +1080,9 @@ serve(async (req) => {
       }
     }
 
-    // AI分析をトリガー（非同期）
-    if (emailAddressConfig?.ai_processing_enabled !== false) {
+    // AI処理（認証済み送信者のみ）
+    if (isVerifiedSender && emailAddressConfig?.ai_processing_enabled !== false) {
+      // AI分析をトリガー（非同期）
       triggerAIAnalysis(
         supabase,
         savedEmail.id,
@@ -1022,6 +1090,21 @@ serve(async (req) => {
         emailData.subject || null,
         spreadsheetDataList.length > 0 ? spreadsheetDataList : undefined
       );
+      
+      // AIコマンド処理を自動実行（件名や本文にコマンドがある場合）
+      const commandText = emailData.subject || emailData.text || emailData.html || "";
+      if (commandText && companyId) {
+        // コマンド処理を非同期で実行
+        triggerAICommandProcessing(
+          supabase,
+          savedEmail.id,
+          companyId,
+          emailData.subject || null,
+          emailData.text || emailData.html || "",
+          assignedTo,
+          spreadsheetDataList.length > 0 ? spreadsheetDataList : undefined
+        );
+      }
     }
 
     return new Response(
