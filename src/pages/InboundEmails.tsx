@@ -145,9 +145,23 @@ export default function InboundEmails() {
 
           <TabsContent value={activeTab} className="mt-4">
             {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
+              <Card>
+                <CardContent className="p-0">
+                  <div className="divide-y">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div key={i} className="flex items-start gap-4 p-4">
+                        <div className="h-8 w-8 bg-muted animate-shimmer rounded" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 w-40 bg-muted animate-shimmer rounded" />
+                          <div className="h-4 w-64 bg-muted animate-shimmer rounded" />
+                          <div className="h-3 w-full bg-muted animate-shimmer rounded" />
+                        </div>
+                        <div className="h-4 w-16 bg-muted animate-shimmer rounded" />
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             ) : filteredEmails.length === 0 ? (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12">

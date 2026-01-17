@@ -9,22 +9,16 @@ import { TrustPassportMini } from "@/components/dashboard/TrustPassportMini";
 import { OnboardingGuide } from "@/components/dashboard/OnboardingGuide";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
-import { Wallet, FileText, Target, TrendingUp, Loader2 } from "lucide-react";
+import { Wallet, FileText, Target, TrendingUp, Users } from "lucide-react";
 import { formatCurrency } from "@/types/database";
+import { useClients } from "@/hooks/useClients";
+import { TableSkeleton } from "@/components/TableSkeleton";
+import { LoadingWithTips } from "@/components/LoadingWithTips";
 
 export default function Dashboard() {
   const [chatOpen, setChatOpen] = useState(false);
   const { data: stats, isLoading, error } = useDashboardStats();
-
-  if (isLoading) {
-    return (
-      <AppLayout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      </AppLayout>
-    );
-  }
+  const { data: clients, isLoading: clientsLoading } = useClients();
 
   if (error) {
     return (
@@ -63,32 +57,43 @@ export default function Dashboard() {
         <OnboardingGuide onChatOpen={handleChatOpen} />
 
         {/* KPI Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
           <StatsCard
             title="今月の請求額"
-            value={formatCurrency(stats?.monthlyInvoiced || 0)}
-            description={`合計: ${formatCurrency(stats?.totalInvoiced || 0)}`}
+            value={isLoading ? "-" : formatCurrency(stats?.monthlyInvoiced || 0)}
+            description={isLoading ? "-" : `合計: ${formatCurrency(stats?.totalInvoiced || 0)}`}
             icon={<FileText className="h-4 w-4 text-muted-foreground" />}
+            isLoading={isLoading}
           />
           <StatsCard
             title="入金待ち"
-            value={formatCurrency(stats?.unpaidAmount || 0)}
-            description={`${stats?.unpaidCount || 0}件`}
+            value={isLoading ? "-" : formatCurrency(stats?.unpaidAmount || 0)}
+            description={isLoading ? "-" : `${stats?.unpaidCount || 0}件`}
             icon={<Wallet className="h-4 w-4 text-muted-foreground" />}
             trend={stats?.overdueCount ? { value: `${stats.overdueCount}件期限超過`, positive: false } : undefined}
+            isLoading={isLoading}
           />
           <StatsCard
             title="パイプライン"
-            value={formatCurrency(stats?.pipelineValue || 0)}
-            description={`${stats?.dealsCount || 0}件の商談`}
+            value={isLoading ? "-" : formatCurrency(stats?.pipelineValue || 0)}
+            description={isLoading ? "-" : `${stats?.dealsCount || 0}件の商談`}
             icon={<Target className="h-4 w-4 text-muted-foreground" />}
+            isLoading={isLoading}
           />
           <StatsCard
             title="成約済み"
-            value={formatCurrency(stats?.wonDealsValue || 0)}
+            value={isLoading ? "-" : formatCurrency(stats?.wonDealsValue || 0)}
             description="今期の成約"
             icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />}
             trend={stats?.wonDealsValue ? { value: "成約", positive: true } : undefined}
+            isLoading={isLoading}
+          />
+          <StatsCard
+            title="取引先数"
+            value={clientsLoading ? "-社" : `${clients?.length || 0}社`}
+            description="登録済み取引先"
+            icon={<Users className="h-4 w-4 text-muted-foreground" />}
+            isLoading={clientsLoading}
           />
         </div>
 
@@ -117,29 +122,33 @@ export default function Dashboard() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <StatsCard
             title="送付中の見積書"
-            value={formatCurrency(stats?.sentEstimates || 0)}
+            value={isLoading ? "-" : formatCurrency(stats?.sentEstimates || 0)}
             description="承諾待ち"
             icon={<FileText className="h-4 w-4 text-muted-foreground" />}
+            isLoading={isLoading}
           />
           <StatsCard
             title="承諾済み見積書"
-            value={formatCurrency(stats?.acceptedEstimates || 0)}
+            value={isLoading ? "-" : formatCurrency(stats?.acceptedEstimates || 0)}
             description="請求書変換可能"
             icon={<FileText className="h-4 w-4 text-muted-foreground" />}
             trend={{ value: "変換可能", positive: true }}
+            isLoading={isLoading}
           />
           <StatsCard
             title="期限超過"
-            value={formatCurrency(stats?.overdueAmount || 0)}
-            description={`${stats?.overdueCount || 0}件`}
+            value={isLoading ? "-" : formatCurrency(stats?.overdueAmount || 0)}
+            description={isLoading ? "-" : `${stats?.overdueCount || 0}件`}
             icon={<Wallet className="h-4 w-4 text-destructive" />}
             className={stats?.overdueCount ? "border-destructive" : ""}
+            isLoading={isLoading}
           />
           <StatsCard
             title="合計請求額"
-            value={formatCurrency(stats?.totalInvoiced || 0)}
+            value={isLoading ? "-" : formatCurrency(stats?.totalInvoiced || 0)}
             description="全期間"
             icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />}
+            isLoading={isLoading}
           />
         </div>
       </div>
