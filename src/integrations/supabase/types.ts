@@ -1136,6 +1136,71 @@ export type Database = {
           },
         ]
       }
+      email_integrations: {
+        Row: {
+          access_token: string | null
+          auto_log: boolean | null
+          company_id: string | null
+          created_at: string
+          email: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          last_error: string | null
+          last_sync_at: string | null
+          provider: string
+          refresh_token: string | null
+          scopes: string[] | null
+          sync_enabled: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          auto_log?: boolean | null
+          company_id?: string | null
+          created_at?: string
+          email?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_error?: string | null
+          last_sync_at?: string | null
+          provider: string
+          refresh_token?: string | null
+          scopes?: string[] | null
+          sync_enabled?: boolean | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          auto_log?: boolean | null
+          company_id?: string | null
+          created_at?: string
+          email?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_error?: string | null
+          last_sync_at?: string | null
+          provider?: string
+          refresh_token?: string | null
+          scopes?: string[] | null
+          sync_enabled?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_integrations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_logs: {
         Row: {
           created_at: string
@@ -3045,6 +3110,159 @@ export type Database = {
             columns: ["contract_id"]
             isOneToOne: false
             referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      synced_calendar_events: {
+        Row: {
+          attendees: Json | null
+          company_id: string | null
+          created_at: string
+          description: string | null
+          end_time: string | null
+          external_id: string
+          id: string
+          integration_id: string | null
+          is_all_day: boolean | null
+          linked_entity_id: string | null
+          linked_entity_type: string | null
+          location: string | null
+          start_time: string | null
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          attendees?: Json | null
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          end_time?: string | null
+          external_id: string
+          id?: string
+          integration_id?: string | null
+          is_all_day?: boolean | null
+          linked_entity_id?: string | null
+          linked_entity_type?: string | null
+          location?: string | null
+          start_time?: string | null
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          attendees?: Json | null
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          end_time?: string | null
+          external_id?: string
+          id?: string
+          integration_id?: string | null
+          is_all_day?: boolean | null
+          linked_entity_id?: string | null
+          linked_entity_type?: string | null
+          location?: string | null
+          start_time?: string | null
+          title?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "synced_calendar_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "synced_calendar_events_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "email_integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      synced_emails: {
+        Row: {
+          body_html: string | null
+          body_text: string | null
+          cc_addresses: string[] | null
+          company_id: string | null
+          created_at: string
+          date: string | null
+          external_id: string
+          from_address: string | null
+          has_attachments: boolean | null
+          id: string
+          integration_id: string | null
+          is_read: boolean | null
+          labels: string[] | null
+          linked_entity_id: string | null
+          linked_entity_type: string | null
+          snippet: string | null
+          subject: string | null
+          thread_id: string | null
+          to_addresses: string[] | null
+          user_id: string
+        }
+        Insert: {
+          body_html?: string | null
+          body_text?: string | null
+          cc_addresses?: string[] | null
+          company_id?: string | null
+          created_at?: string
+          date?: string | null
+          external_id: string
+          from_address?: string | null
+          has_attachments?: boolean | null
+          id?: string
+          integration_id?: string | null
+          is_read?: boolean | null
+          labels?: string[] | null
+          linked_entity_id?: string | null
+          linked_entity_type?: string | null
+          snippet?: string | null
+          subject?: string | null
+          thread_id?: string | null
+          to_addresses?: string[] | null
+          user_id: string
+        }
+        Update: {
+          body_html?: string | null
+          body_text?: string | null
+          cc_addresses?: string[] | null
+          company_id?: string | null
+          created_at?: string
+          date?: string | null
+          external_id?: string
+          from_address?: string | null
+          has_attachments?: boolean | null
+          id?: string
+          integration_id?: string | null
+          is_read?: boolean | null
+          labels?: string[] | null
+          linked_entity_id?: string | null
+          linked_entity_type?: string | null
+          snippet?: string | null
+          subject?: string | null
+          thread_id?: string | null
+          to_addresses?: string[] | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "synced_emails_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "synced_emails_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "email_integrations"
             referencedColumns: ["id"]
           },
         ]
