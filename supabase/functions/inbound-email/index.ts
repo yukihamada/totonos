@@ -764,12 +764,75 @@ serve(async (req) => {
 
     console.log(`Found company: ${companyId}, email config: ${emailAddressConfig?.id}, assignedTo: ${assignedTo}`);
 
+    // メール送信者の認証チェック
+    let isVerifiedSender = false;
+    let requiresVerification = false;
+
+    if (companyId) {
+      // 会社の登録済みメールアドレスリストを取得
+      const { data: company } = await supabase
+        .from("companies")
+        .select("verified_email_addresses")
+        .eq("id", companyId)
+        .single();
+
+      const verifiedEmails = company?.verified_email_addresses || [];
+      
+      // 登録ユーザーのメールアドレスも検証済みとして扱う
+      const { data: authUsers } = await supabase.auth.admin.listUsers();
+      const userEmails = (authUsers?.users || [])
+        .filter((u: any) => u.email)
+        .map((u: any) => u.email!.toLowerCase());
+
+      // 会社メンバーのメールアドレスを取得
+      const { data: members } = await supabase
+        .from("company_members")
+        .select("user_id")
+        .eq("company_id", companyId)
+        .eq("is_active", true);
+
+      const memberUserIds = (members || []).map((m: { user_id: string }) => m.user_id);
+      const memberEmails = (authUsers?.users || [])
+        .filter((u: any) => memberUserIds.includes(u.id) && u.email)
+        .map((u: any) => u.email!.toLowerCase());
+
+      const allVerifiedEmails = [...verifiedEmails.map((e: string) => e.toLowerCase()), ...memberEmails];
+      const senderLower = fromEmail.toLowerCase();
+
+      isVerifiedSender = allVerifiedEmails.includes(senderLower);
+      
+      console.log(`Sender ${fromEmail} verified: ${isVerifiedSender}`);
+
+      if (!isVerifiedSender) {
+        // 未承認の送信者の場合、承認リクエストが既にあるかチェック
+        const { data: existingRequest } = await supabase
+          .from("email_verification_requests")
+          .select("id, status")
+          .eq("company_id", companyId)
+          .eq("from_email", fromEmail)
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        if (!existingRequest || existingRequest.length === 0 || existingRequest[0].status === 'rejected') {
+          requiresVerification = true;
+          console.log(`Creating verification request for ${fromEmail}`);
+        } else if (existingRequest[0].status === 'pending') {
+          requiresVerification = true;
+          console.log(`Pending verification request exists for ${fromEmail}`);
+        } else if (existingRequest[0].status === 'approved') {
+          isVerifiedSender = true;
+          console.log(`Already approved: ${fromEmail}`);
+        }
+      }
+    }
+
     let relatedType: string | null = null;
     let relatedId: string | null = null;
     let autoCreatedEntityType: string | null = null;
     let autoCreatedEntityId: string | null = null;
 
-    if (companyId) {
+    // 認証済み送信者のみ自動処理を実行
+    if (companyId && isVerifiedSender) {
       // 自動エンティティ作成
       if (emailAddressConfig?.auto_create_entity) {
         const created = await autoCreateEntity(
@@ -806,6 +869,9 @@ serve(async (req) => {
         })
       : [];
 
+    // メールのステータスを決定
+    const emailStatus = requiresVerification ? "pending_verification" : "received";
+
     // DBに保存
     const { data: savedEmail, error } = await supabase
       .from("inbound_emails")
@@ -823,11 +889,11 @@ serve(async (req) => {
         attachments: emailData.attachments || [],
         headers: emailData.headers || {},
         raw_payload: emailData,
-        status: "received",
+        status: emailStatus,
         related_type: relatedType,
         related_id: relatedId,
         assigned_to: assignedTo,
-        tags: [],
+        tags: requiresVerification ? ["要承認"] : [],
         email_address_id: emailAddressConfig?.id || null,
         auto_created_entity_type: autoCreatedEntityType,
         auto_created_entity_id: autoCreatedEntityId,
@@ -843,30 +909,83 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Email saved: ${savedEmail.id} from ${fromEmail} to ${toEmail}`);
+    console.log(`Email saved: ${savedEmail.id} from ${fromEmail} to ${toEmail}, status: ${emailStatus}`);
 
-    // 画像添付ファイルをOCR処理（非同期）
-    const imageAttachments = (emailData.attachments || []).filter(
-      att => att.type?.startsWith("image/") || 
-             /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(att.filename)
-    );
+    // 未認証の送信者の場合、承認リクエストを作成
+    if (requiresVerification && companyId) {
+      const { data: existingPending } = await supabase
+        .from("email_verification_requests")
+        .select("id")
+        .eq("company_id", companyId)
+        .eq("from_email", fromEmail)
+        .eq("status", "pending")
+        .limit(1);
 
-    if (imageAttachments.length > 0) {
-      console.log(`Found ${imageAttachments.length} image attachments, processing as receipts`);
-      
-      // 並列でOCR処理
-      for (const att of imageAttachments) {
-        // 非同期で処理（await しない）
-        processReceiptAttachment(
-          supabase, 
-          att, 
-          companyId, 
-          savedEmail.id,
-          notifyMode,
-          assignedTo,
-          fromEmail
-        );
+      if (!existingPending || existingPending.length === 0) {
+        const { error: verifyError } = await supabase
+          .from("email_verification_requests")
+          .insert({
+            company_id: companyId,
+            inbound_email_id: savedEmail.id,
+            from_email: fromEmail,
+            from_name: fromName || null,
+            status: "pending",
+          });
+
+        if (verifyError) {
+          console.error("Failed to create verification request:", verifyError);
+        } else {
+          console.log(`Created verification request for ${fromEmail}`);
+        }
       }
+
+      // 管理者に通知を送信
+      const admins = await getCompanyAdmins(supabase, companyId);
+      for (const adminId of admins) {
+        await supabase.from("notifications").insert({
+          user_id: adminId,
+          company_id: companyId,
+          type: "warning",
+          title: "📧 未登録アドレスからのメール",
+          message: `${fromName || fromEmail} からのメールが届きました。処理するには送信者の承認が必要です。`,
+          category: "email",
+          link: "/inbound-emails",
+          metadata: {
+            email_id: savedEmail.id,
+            from_email: fromEmail,
+            subject: emailData.subject,
+          },
+        });
+      }
+    }
+
+    // 認証済み送信者のみ添付ファイル処理を実行
+    if (isVerifiedSender) {
+      // 画像添付ファイルをOCR処理（非同期）
+      const imageAttachments = (emailData.attachments || []).filter(
+        att => att.type?.startsWith("image/") || 
+               /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(att.filename)
+      );
+
+      if (imageAttachments.length > 0) {
+        console.log(`Found ${imageAttachments.length} image attachments, processing as receipts`);
+        
+        // 並列でOCR処理
+        for (const att of imageAttachments) {
+          // 非同期で処理（await しない）
+          processReceiptAttachment(
+            supabase, 
+            att, 
+            companyId, 
+            savedEmail.id,
+            notifyMode,
+            assignedTo,
+            fromEmail
+          );
+        }
+      }
+    } else {
+      console.log("Skipping attachment processing for unverified sender");
     }
 
     // スプレッドシート添付ファイルを処理
@@ -910,8 +1029,8 @@ serve(async (req) => {
         success: true, 
         id: savedEmail.id,
         companyId: companyId,
+        requiresVerification: requiresVerification,
         autoCreated: autoCreatedEntityType ? { type: autoCreatedEntityType, id: autoCreatedEntityId } : null,
-        receiptProcessing: imageAttachments.length > 0 ? { count: imageAttachments.length } : null,
         spreadsheetProcessing: spreadsheetDataList.length > 0 ? { count: spreadsheetDataList.length } : null
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
