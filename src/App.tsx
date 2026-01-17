@@ -56,6 +56,8 @@ import Estimates from "./pages/Estimates";
 import EstimateDetail from "./pages/EstimateDetail";
 import EstimateEdit from "./pages/EstimateEdit";
 import PurchaseOrders from "./pages/PurchaseOrders";
+import PurchaseOrderDetail from "./pages/PurchaseOrderDetail";
+import PurchaseOrderEdit from "./pages/PurchaseOrderEdit";
 // Finance
 import Clients from "./pages/Clients";
 import Reconciliation from "./pages/Reconciliation";
@@ -187,6 +189,8 @@ function AppRoutes() {
       <Route path="/estimates/:id" element={<ProtectedRoute><EstimateDetail /></ProtectedRoute>} />
       <Route path="/estimates/:id/edit" element={<ProtectedRoute><EstimateEdit /></ProtectedRoute>} />
       <Route path="/purchase-orders" element={<ProtectedRoute><PurchaseOrders /></ProtectedRoute>} />
+      <Route path="/purchase-orders/:id" element={<ProtectedRoute><PurchaseOrderDetail /></ProtectedRoute>} />
+      <Route path="/purchase-orders/:id/edit" element={<ProtectedRoute><PurchaseOrderEdit /></ProtectedRoute>} />
       <Route path="/contracts" element={<ProtectedRoute><Contracts /></ProtectedRoute>} />
       <Route path="/contracts/new" element={<ProtectedRoute><ContractNew /></ProtectedRoute>} />
       <Route path="/contracts/:id" element={<ProtectedRoute><ContractDetail /></ProtectedRoute>} />

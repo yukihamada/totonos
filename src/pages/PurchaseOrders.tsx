@@ -9,10 +9,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { usePurchaseOrders, useCreatePurchaseOrder, useUpdatePurchaseOrderStatus, useDeletePurchaseOrder } from "@/hooks/usePurchaseOrders";
 import { useClients } from "@/hooks/useClients";
-import { Plus, MoreHorizontal, FileText, Send, CheckCircle, Clock, XCircle, X, Trash2, Package, Truck } from "lucide-react";
+import { Plus, MoreHorizontal, FileText, Send, CheckCircle, Clock, XCircle, X, Trash2, Package, Truck, Pencil, Eye } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ClientQuickCreate } from "@/components/ClientQuickCreate";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { AIDocumentAssistant } from "@/components/AIDocumentAssistant";
@@ -146,7 +148,10 @@ export default function PurchaseOrders() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="client">発注先</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="client">発注先</Label>
+                      <ClientQuickCreate onCreated={(client) => setClientId(client.id)} />
+                    </div>
                     <Select value={clientId} onValueChange={setClientId}>
                       <SelectTrigger>
                         <SelectValue placeholder="発注先を選択" />
@@ -343,7 +348,11 @@ export default function PurchaseOrders() {
                     const StatusIcon = config.icon;
                     return (
                       <TableRow key={order.id}>
-                        <TableCell className="font-mono">{order.order_number}</TableCell>
+                        <TableCell className="font-mono">
+                          <Link to={`/purchase-orders/${order.id}`} className="hover:underline text-primary">
+                            {order.order_number}
+                          </Link>
+                        </TableCell>
                         <TableCell>{order.title}</TableCell>
                         <TableCell>{(order as any).client?.name || "-"}</TableCell>
                         <TableCell className="font-medium">¥{order.total_amount.toLocaleString()}</TableCell>
@@ -368,11 +377,26 @@ export default function PurchaseOrders() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              <DropdownMenuItem asChild>
+                                <Link to={`/purchase-orders/${order.id}`}>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  詳細を見る
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild>
+                                <Link to={`/purchase-orders/${order.id}/edit`}>
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  編集
+                                </Link>
+                              </DropdownMenuItem>
                               {order.status === 'draft' && (
-                                <DropdownMenuItem onClick={() => updateStatus.mutate({ id: order.id, status: 'sent' })}>
-                                  <Send className="mr-2 h-4 w-4" />
-                                  送付済にする
-                                </DropdownMenuItem>
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => updateStatus.mutate({ id: order.id, status: 'sent' })}>
+                                    <Send className="mr-2 h-4 w-4" />
+                                    送付済にする
+                                  </DropdownMenuItem>
+                                </>
                               )}
                               {order.status === 'sent' && (
                                 <DropdownMenuItem onClick={() => updateStatus.mutate({ id: order.id, status: 'confirmed' })}>

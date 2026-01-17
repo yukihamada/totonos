@@ -9,10 +9,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useEstimates, useCreateEstimate, useUpdateEstimateStatus, useDeleteEstimate, useConvertEstimateToInvoice } from "@/hooks/useEstimates";
 import { useClients } from "@/hooks/useClients";
-import { Plus, MoreHorizontal, FileText, Send, CheckCircle, Clock, XCircle, X, Trash2, FileOutput, AlertTriangle } from "lucide-react";
+import { Plus, MoreHorizontal, FileText, Send, CheckCircle, Clock, XCircle, X, Trash2, FileOutput, AlertTriangle, Pencil, Eye } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ClientQuickCreate } from "@/components/ClientQuickCreate";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { AIDocumentAssistant } from "@/components/AIDocumentAssistant";
@@ -147,7 +149,10 @@ export default function Estimates() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="client">取引先</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="client">取引先</Label>
+                      <ClientQuickCreate onCreated={(client) => setClientId(client.id)} />
+                    </div>
                     <Select value={clientId} onValueChange={setClientId}>
                       <SelectTrigger>
                         <SelectValue placeholder="取引先を選択" />
@@ -344,7 +349,11 @@ export default function Estimates() {
                     const StatusIcon = config.icon;
                     return (
                       <TableRow key={estimate.id}>
-                        <TableCell className="font-mono">{estimate.estimate_number}</TableCell>
+                        <TableCell className="font-mono">
+                          <Link to={`/estimates/${estimate.id}`} className="hover:underline text-primary">
+                            {estimate.estimate_number}
+                          </Link>
+                        </TableCell>
                         <TableCell>{estimate.title}</TableCell>
                         <TableCell>{(estimate as any).client?.name || "-"}</TableCell>
                         <TableCell className="font-medium">¥{estimate.total_amount.toLocaleString()}</TableCell>
@@ -364,11 +373,26 @@ export default function Estimates() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              <DropdownMenuItem asChild>
+                                <Link to={`/estimates/${estimate.id}`}>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  詳細を見る
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild>
+                                <Link to={`/estimates/${estimate.id}/edit`}>
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  編集
+                                </Link>
+                              </DropdownMenuItem>
                               {estimate.status === 'draft' && (
-                                <DropdownMenuItem onClick={() => updateStatus.mutate({ id: estimate.id, status: 'sent' })}>
-                                  <Send className="mr-2 h-4 w-4" />
-                                  送付済にする
-                                </DropdownMenuItem>
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => updateStatus.mutate({ id: estimate.id, status: 'sent' })}>
+                                    <Send className="mr-2 h-4 w-4" />
+                                    送付済にする
+                                  </DropdownMenuItem>
+                                </>
                               )}
                               {estimate.status === 'sent' && (
                                 <>
