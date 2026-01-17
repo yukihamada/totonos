@@ -255,7 +255,19 @@ export default function AuditLog() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="text-center py-8 text-muted-foreground">読み込み中...</div>
+              <div className="space-y-4">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="flex items-center gap-4 p-4 border-b">
+                    <div className="h-4 w-24 bg-muted animate-shimmer rounded" />
+                    <div className="h-4 w-32 bg-muted animate-shimmer rounded" />
+                    <div className="h-6 w-16 bg-muted animate-shimmer rounded" />
+                    <div className="h-4 w-20 bg-muted animate-shimmer rounded" />
+                    <div className="flex-1 h-4 bg-muted animate-shimmer rounded" />
+                    <div className="h-4 w-24 bg-muted animate-shimmer rounded" />
+                    <div className="h-6 w-14 bg-muted animate-shimmer rounded" />
+                  </div>
+                ))}
+              </div>
             ) : logs.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 該当するログがありません

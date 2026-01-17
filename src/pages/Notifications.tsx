@@ -158,8 +158,42 @@ export default function Notifications() {
   if (loading) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center h-64">
-          <p className="text-muted-foreground">読み込み中...</p>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+                <Bell className="h-8 w-8" />
+                通知センター
+              </h1>
+              <p className="text-muted-foreground">読み込み中...</p>
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i}>
+                <CardHeader className="pb-2">
+                  <div className="h-4 w-20 bg-muted animate-shimmer rounded" />
+                  <div className="h-8 w-12 bg-muted animate-shimmer rounded mt-2" />
+                </CardHeader>
+              </Card>
+            ))}
+          </div>
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <Card key={i}>
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-4">
+                    <div className="h-10 w-10 bg-muted animate-shimmer rounded-full" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 w-32 bg-muted animate-shimmer rounded" />
+                      <div className="h-4 w-full bg-muted animate-shimmer rounded" />
+                      <div className="h-3 w-24 bg-muted animate-shimmer rounded" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       </AppLayout>
     );
