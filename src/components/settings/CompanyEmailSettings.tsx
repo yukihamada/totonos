@@ -85,14 +85,10 @@ export function CompanyEmailSettings() {
   const updateAddress = useUpdateEmailAddress();
   const deleteAddress = useDeleteEmailAddress();
 
-  // Generate email domain based on company
-  const getEmailDomain = () => {
-    if (!currentCompany) return "company.totonos.jp";
-    const slug = currentCompany.slug || currentCompany.name.toLowerCase().replace(/[^a-z0-9]/g, "");
-    return `${slug}.totonos.jp`;
-  };
+  // 統一ドメインを使用（会社ごとにランダムプレフィックス）
+  const EMAIL_DOMAIN = "totonos.jp";
 
-  const getFullEmail = (prefix: string) => `${prefix}@${getEmailDomain()}`;
+  const getFullEmail = (prefix: string) => `${prefix}@${EMAIL_DOMAIN}`;
 
   const handleCopy = async (address: CompanyEmailAddress) => {
     const fullEmail = getFullEmail(address.address_prefix);
@@ -234,7 +230,7 @@ export function CompanyEmailSettings() {
                 className="flex-1"
               />
               <span className="text-muted-foreground whitespace-nowrap">
-                @{getEmailDomain()}
+                @{EMAIL_DOMAIN}
               </span>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
