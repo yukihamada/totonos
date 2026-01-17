@@ -270,25 +270,25 @@ export default function Activities() {
           <Card>
             <CardHeader className="pb-2">
               <CardDescription>今日の活動</CardDescription>
-              <CardTitle className="text-2xl">{todayActivities}件</CardTitle>
+              <CardTitle className="text-2xl">{isLoading ? "-" : todayActivities}件</CardTitle>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="pb-2">
               <CardDescription>今週の活動</CardDescription>
-              <CardTitle className="text-2xl">{weekActivities}件</CardTitle>
+              <CardTitle className="text-2xl">{isLoading ? "-" : weekActivities}件</CardTitle>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="pb-2">
               <CardDescription>予定アクション</CardDescription>
-              <CardTitle className="text-2xl">{upcomingActions}件</CardTitle>
+              <CardTitle className="text-2xl">{isLoading ? "-" : upcomingActions}件</CardTitle>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="pb-2">
               <CardDescription>総活動数</CardDescription>
-              <CardTitle className="text-2xl">{activities?.length || 0}件</CardTitle>
+              <CardTitle className="text-2xl">{isLoading ? "-" : (activities?.length || 0)}件</CardTitle>
             </CardHeader>
           </Card>
         </div>
