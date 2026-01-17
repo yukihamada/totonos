@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useEstimate } from "@/hooks/useEstimates";
 import { useClients } from "@/hooks/useClients";
+import { ClientQuickCreate } from "@/components/ClientQuickCreate";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -187,7 +188,10 @@ export default function EstimateEdit() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="client">取引先</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="client">取引先</Label>
+                  <ClientQuickCreate onCreated={(client) => setClientId(client.id)} />
+                </div>
                 <Select value={clientId} onValueChange={setClientId}>
                   <SelectTrigger>
                     <SelectValue placeholder="取引先を選択" />

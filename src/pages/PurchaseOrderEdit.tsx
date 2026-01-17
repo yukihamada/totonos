@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useInvoice } from "@/hooks/useInvoices";
+import { usePurchaseOrder } from "@/hooks/usePurchaseOrders";
 import { useClients } from "@/hooks/useClients";
 import { ClientQuickCreate } from "@/components/ClientQuickCreate";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,35 +16,35 @@ import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
-interface InvoiceItem {
+interface PurchaseOrderItem {
   id?: string;
   description: string;
   quantity: number;
   unit_price: number;
 }
 
-export default function InvoiceEdit() {
+export default function PurchaseOrderEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { data: invoice, isLoading } = useInvoice(id!);
+  const { data: order, isLoading } = usePurchaseOrder(id!);
   const { data: clients } = useClients();
 
   const [title, setTitle] = useState("");
   const [clientId, setClientId] = useState<string>("");
   const [description, setDescription] = useState("");
-  const [dueDate, setDueDate] = useState("");
-  const [items, setItems] = useState<InvoiceItem[]>([]);
+  const [deliveryDate, setDeliveryDate] = useState("");
+  const [items, setItems] = useState<PurchaseOrderItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (invoice) {
-      setTitle(invoice.title);
-      setClientId(invoice.client_id || "");
-      setDescription(invoice.description || "");
-      setDueDate(invoice.due_date);
+    if (order) {
+      setTitle(order.title);
+      setClientId(order.client_id || "");
+      setDescription(order.description || "");
+      setDeliveryDate(order.delivery_date || "");
       setItems(
-        invoice.items?.map((item: any) => ({
+        order.items?.map((item: any) => ({
           id: item.id,
           description: item.description,
           quantity: item.quantity,
@@ -52,7 +52,7 @@ export default function InvoiceEdit() {
         })) || []
       );
     }
-  }, [invoice]);
+  }, [order]);
 
   const handleAddItem = () => {
     setItems([...items, { description: "", quantity: 1, unit_price: 0 }]);
@@ -62,7 +62,7 @@ export default function InvoiceEdit() {
     setItems(items.filter((_, i) => i !== index));
   };
 
-  const handleItemChange = (index: number, field: keyof InvoiceItem, value: string | number) => {
+  const handleItemChange = (index: number, field: keyof PurchaseOrderItem, value: string | number) => {
     const newItems = [...items];
     newItems[index] = { ...newItems[index], [field]: value };
     setItems(newItems);
@@ -77,7 +77,7 @@ export default function InvoiceEdit() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !dueDate || items.length === 0) {
+    if (!title || items.length === 0) {
       toast.error("必須項目を入力してください");
       return;
     }
@@ -86,30 +86,30 @@ export default function InvoiceEdit() {
     try {
       const { amount, taxAmount, totalAmount } = calculateTotals();
 
-      // Update invoice
-      const { error: invoiceError } = await supabase
-        .from("invoices")
+      // Update purchase order
+      const { error: orderError } = await supabase
+        .from("purchase_orders")
         .update({
           title,
           client_id: clientId || null,
           description: description || null,
-          due_date: dueDate,
+          delivery_date: deliveryDate || null,
           amount,
           tax_amount: taxAmount,
           total_amount: totalAmount,
         })
         .eq("id", id!);
 
-      if (invoiceError) throw invoiceError;
+      if (orderError) throw orderError;
 
       // Delete existing items and re-insert
-      await supabase.from("invoice_items").delete().eq("invoice_id", id!);
+      await supabase.from("purchase_order_items").delete().eq("purchase_order_id", id!);
 
       const validItems = items.filter((item) => item.description.trim());
       if (validItems.length > 0) {
-        const { error: itemsError } = await supabase.from("invoice_items").insert(
+        const { error: itemsError } = await supabase.from("purchase_order_items").insert(
           validItems.map((item) => ({
-            invoice_id: id!,
+            purchase_order_id: id!,
             description: item.description,
             quantity: item.quantity,
             unit_price: item.unit_price,
@@ -119,12 +119,12 @@ export default function InvoiceEdit() {
         if (itemsError) throw itemsError;
       }
 
-      queryClient.invalidateQueries({ queryKey: ["invoices"] });
-      queryClient.invalidateQueries({ queryKey: ["invoice", id] });
-      toast.success("請求書を更新しました");
-      navigate(`/invoices/${id}`);
+      queryClient.invalidateQueries({ queryKey: ["purchase-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["purchase-order", id] });
+      toast.success("発注書を更新しました");
+      navigate(`/purchase-orders/${id}`);
     } catch (error) {
-      toast.error("請求書の更新に失敗しました");
+      toast.error("発注書の更新に失敗しました");
     } finally {
       setIsSubmitting(false);
     }
@@ -143,13 +143,13 @@ export default function InvoiceEdit() {
     );
   }
 
-  if (!invoice) {
+  if (!order) {
     return (
       <AppLayout>
         <div className="text-center py-12">
-          <p className="text-muted-foreground">請求書が見つかりません</p>
+          <p className="text-muted-foreground">発注書が見つかりません</p>
           <Button className="mt-4" asChild>
-            <Link to="/invoices">請求書一覧へ</Link>
+            <Link to="/purchase-orders">発注書一覧へ</Link>
           </Button>
         </div>
       </AppLayout>
@@ -161,13 +161,13 @@ export default function InvoiceEdit() {
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" type="button" asChild>
-            <Link to={`/invoices/${id}`}>
+            <Link to={`/purchase-orders/${id}`}>
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">請求書を編集</h1>
-            <p className="text-muted-foreground font-mono">{invoice.invoice_number}</p>
+            <h1 className="text-3xl font-bold">発注書を編集</h1>
+            <p className="text-muted-foreground font-mono">{order.order_number}</p>
           </div>
         </div>
 
@@ -183,18 +183,18 @@ export default function InvoiceEdit() {
                   id="title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="例：Webサイト制作費用"
+                  placeholder="例：○○部品 発注"
                   required
                 />
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="client">取引先</Label>
+                  <Label htmlFor="client">発注先</Label>
                   <ClientQuickCreate onCreated={(client) => setClientId(client.id)} />
                 </div>
                 <Select value={clientId} onValueChange={setClientId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="取引先を選択" />
+                    <SelectValue placeholder="発注先を選択" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="">なし</SelectItem>
@@ -208,13 +208,12 @@ export default function InvoiceEdit() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="dueDate">支払期限 *</Label>
+              <Label htmlFor="deliveryDate">納品希望日</Label>
               <Input
-                id="dueDate"
+                id="deliveryDate"
                 type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                required
+                value={deliveryDate}
+                onChange={(e) => setDeliveryDate(e.target.value)}
               />
             </div>
             <div className="space-y-2">
@@ -301,7 +300,7 @@ export default function InvoiceEdit() {
 
         <div className="flex justify-end gap-4">
           <Button type="button" variant="outline" asChild>
-            <Link to={`/invoices/${id}`}>キャンセル</Link>
+            <Link to={`/purchase-orders/${id}`}>キャンセル</Link>
           </Button>
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? "保存中..." : "保存"}

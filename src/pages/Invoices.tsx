@@ -14,7 +14,9 @@ import { useInvoices, useCreateInvoice, useUpdateInvoiceStatus, useDeleteInvoice
 import { useClients } from "@/hooks/useClients";
 import { useSendEmail } from "@/hooks/useEmailSending";
 import { useCreatePaymentSession } from "@/hooks/useStripePayment";
-import { Plus, MoreHorizontal, FileText, Send, CheckCircle, Clock, AlertCircle, X, Trash2, Mail, Bell, CreditCard } from "lucide-react";
+import { Plus, MoreHorizontal, FileText, Send, CheckCircle, Clock, AlertCircle, X, Trash2, Mail, Bell, CreditCard, Pencil, Eye } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ClientQuickCreate } from "@/components/ClientQuickCreate";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { AIDocumentAssistant } from "@/components/AIDocumentAssistant";
@@ -182,7 +184,10 @@ export default function Invoices() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="client">取引先</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="client">取引先</Label>
+                      <ClientQuickCreate onCreated={(client) => setClientId(client.id)} />
+                    </div>
                     <Select value={clientId} onValueChange={setClientId}>
                       <SelectTrigger>
                         <SelectValue placeholder="取引先を選択" />
@@ -379,7 +384,11 @@ export default function Invoices() {
                     const StatusIcon = config.icon;
                     return (
                       <TableRow key={invoice.id}>
-                        <TableCell className="font-mono">{invoice.invoice_number}</TableCell>
+                        <TableCell className="font-mono">
+                          <Link to={`/invoices/${invoice.id}`} className="hover:underline text-primary">
+                            {invoice.invoice_number}
+                          </Link>
+                        </TableCell>
                         <TableCell>{invoice.title}</TableCell>
                         <TableCell>{(invoice as any).client?.name || "-"}</TableCell>
                         <TableCell className="font-medium">¥{invoice.total_amount.toLocaleString()}</TableCell>
@@ -399,6 +408,19 @@ export default function Invoices() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              <DropdownMenuItem asChild>
+                                <Link to={`/invoices/${invoice.id}`}>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  詳細を見る
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild>
+                                <Link to={`/invoices/${invoice.id}/edit`}>
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  編集
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => handleOpenEmailDialog(invoice, 'invoice')}>
                                 <Mail className="mr-2 h-4 w-4" />
                                 請求書をメール送信
