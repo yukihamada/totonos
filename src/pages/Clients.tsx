@@ -13,6 +13,7 @@ import { Plus, MoreHorizontal, Pencil, Trash2, Building2, Mail, Phone, MapPin, S
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import type { Client } from '@/types/database';
+import { LoadingWithTips } from '@/components/LoadingWithTips';
 
 export default function Clients() {
   const { data: clients, isLoading } = useClients();
@@ -205,7 +206,7 @@ export default function Clients() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="text-center py-8 text-muted-foreground">読み込み中...</div>
+              <LoadingWithTips module="clients" columns={5} rows={5} />
             ) : filteredClients.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 取引先がありません

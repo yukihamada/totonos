@@ -21,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useLeads, useCreateLead, useDeleteLead, useUpdateLead } from "@/hooks/useCRM";
 import { leadStatusLabels, sourceLabels } from "@/types/crm";
 import type { LeadSource, LeadStatus } from "@/types/crm";
+import { LoadingWithTips } from "@/components/LoadingWithTips";
 
 const statusColors: Record<LeadStatus, string> = {
   new: 'bg-blue-100 text-blue-800',
@@ -123,7 +124,7 @@ export default function Leads() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8">読み込み中...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6}><LoadingWithTips module="leads" columns={6} rows={5} showTip={false} /></TableCell></TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow><TableCell colSpan={6} className="text-center py-8">
                   <UserPlus className="h-12 w-12 mx-auto text-muted-foreground mb-2" />

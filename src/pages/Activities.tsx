@@ -17,6 +17,7 @@ import { Plus, MoreHorizontal, Phone, Mail, Users, MapPin, Presentation, Calenda
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import type { Database } from "@/integrations/supabase/types";
+import { LoadingWithTips } from "@/components/LoadingWithTips";
 
 type ActivityType = Database['public']['Enums']['activity_type'];
 
@@ -299,7 +300,7 @@ export default function Activities() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="text-center py-8 text-muted-foreground">読み込み中...</div>
+              <LoadingWithTips module="activities" columns={7} rows={5} />
             ) : activities?.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 活動がありません。「活動を記録」から作成してください。

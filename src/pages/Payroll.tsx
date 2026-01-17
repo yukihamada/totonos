@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useEmployees, usePayrollRecords, useCreatePayroll, useAttendanceRecords } from "@/hooks/useHR";
 import type { PayrollStatus } from "@/types/hr";
+import { LoadingWithTips } from "@/components/LoadingWithTips";
 
 const statusLabels: Record<PayrollStatus, string> = {
   draft: '下書き',
@@ -284,7 +285,7 @@ export default function Payroll() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">読み込み中...</TableCell>
+                  <TableCell colSpan={6}><LoadingWithTips module="payroll" columns={6} rows={5} showTip={false} /></TableCell>
                 </TableRow>
               ) : records.length === 0 ? (
                 <TableRow>

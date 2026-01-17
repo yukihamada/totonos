@@ -17,6 +17,7 @@ import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { AIDocumentAssistant } from "@/components/AIDocumentAssistant";
 import { GeneratedPurchaseOrderData } from "@/hooks/useDocumentAI";
+import { LoadingWithTips } from "@/components/LoadingWithTips";
 
 const statusConfig = {
   draft: { label: "下書き", variant: "secondary" as const, icon: FileText },
@@ -317,7 +318,7 @@ export default function PurchaseOrders() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="text-center py-8 text-muted-foreground">読み込み中...</div>
+              <LoadingWithTips module="purchase-orders" columns={8} rows={5} />
             ) : purchaseOrders?.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 発注書がありません。「新規作成」から作成してください。

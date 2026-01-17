@@ -17,6 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Database } from '@/integrations/supabase/types';
+import { LoadingWithTips } from '@/components/LoadingWithTips';
 
 type AttendanceStatus = Database['public']['Enums']['attendance_status'];
 
@@ -254,7 +255,7 @@ export default function LeaveRequests() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="text-center py-8 text-muted-foreground">読み込み中...</div>
+              <LoadingWithTips module="leave" columns={4} rows={5} />
             ) : leaveRecords.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 休暇記録がありません

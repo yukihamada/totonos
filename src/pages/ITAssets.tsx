@@ -20,6 +20,7 @@ import {
 import { useITAssets, useCreateITAsset, useDeleteITAsset } from "@/hooks/useWiki";
 import { assetTypeLabels, assetStatusLabels } from "@/types/wiki";
 import type { AssetType, AssetStatus } from "@/types/wiki";
+import { LoadingWithTips } from "@/components/LoadingWithTips";
 
 const statusColors: Record<AssetStatus, string> = {
   in_use: 'bg-green-100 text-green-800',
@@ -133,7 +134,7 @@ export default function ITAssets() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8">読み込み中...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7}><LoadingWithTips module="it-assets" columns={7} rows={5} showTip={false} /></TableCell></TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow><TableCell colSpan={7} className="text-center py-8">
                   <Laptop className="h-12 w-12 mx-auto text-muted-foreground mb-2" />

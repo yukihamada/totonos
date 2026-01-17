@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 interface StatsCardProps {
@@ -12,6 +13,7 @@ interface StatsCardProps {
     positive: boolean;
   };
   className?: string;
+  isLoading?: boolean;
 }
 
 export function StatsCard({ 
@@ -20,7 +22,8 @@ export function StatsCard({
   description, 
   icon, 
   trend,
-  className 
+  className,
+  isLoading = false
 }: StatsCardProps) {
   return (
     <Card className={cn("border-2 border-foreground", className)}>
@@ -31,20 +34,30 @@ export function StatsCard({
         {icon}
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
+        {isLoading ? (
+          <Skeleton className="h-8 w-20 mb-1" />
+        ) : (
+          <div className="text-2xl font-bold">{value}</div>
+        )}
         <div className="flex items-center gap-2 mt-1">
-          {trend && (
-            <span className={cn(
-              "text-sm font-medium",
-              trend.positive ? "text-chart-2" : "text-destructive"
-            )}>
-              {trend.positive ? "+" : ""}{trend.value}
-            </span>
-          )}
-          {description && (
-            <span className="text-xs text-muted-foreground">
-              {description}
-            </span>
+          {isLoading ? (
+            <Skeleton className="h-4 w-16" />
+          ) : (
+            <>
+              {trend && (
+                <span className={cn(
+                  "text-sm font-medium",
+                  trend.positive ? "text-chart-2" : "text-destructive"
+                )}>
+                  {trend.positive ? "+" : ""}{trend.value}
+                </span>
+              )}
+              {description && (
+                <span className="text-xs text-muted-foreground">
+                  {description}
+                </span>
+              )}
+            </>
           )}
         </div>
       </CardContent>

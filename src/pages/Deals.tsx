@@ -14,6 +14,7 @@ import {
 import { useDeals, useCreateDeal, useUpdateDeal } from "@/hooks/useCRM";
 import { stageLabels, stageColors } from "@/types/crm";
 import type { DealStage } from "@/types/crm";
+import { LoadingWithTips } from "@/components/LoadingWithTips";
 
 const stages: DealStage[] = ['initial', 'proposal', 'negotiation', 'contract', 'won', 'lost'];
 
@@ -90,7 +91,7 @@ export default function Deals() {
         </div>
 
         {isLoading ? (
-          <div className="text-center py-8">読み込み中...</div>
+          <LoadingWithTips module="deals" skeletonType="grid" rows={6} columns={6} />
         ) : (
           <div className="grid grid-cols-6 gap-4 overflow-x-auto">
             {stages.map(stage => (
