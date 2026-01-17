@@ -293,6 +293,102 @@ async function triggerAIAnalysis(
   }
 }
 
+// メール返信を送信
+async function sendReplyEmail(
+  toEmail: string,
+  toName: string | null,
+  originalSubject: string | null,
+  replyBody: string,
+  isQuestion: boolean = false
+): Promise<boolean> {
+  const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+  if (!RESEND_API_KEY) {
+    console.error("RESEND_API_KEY not configured");
+    return false;
+  }
+
+  try {
+    const subject = isQuestion
+      ? `【確認のお願い】Re: ${originalSubject || "(件名なし)"}`
+      : `【処理完了】Re: ${originalSubject || "(件名なし)"}`;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: 'Helvetica Neue', Arial, sans-serif; line-height: 1.8; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: ${isQuestion ? "#f59e0b" : "#16a34a"}; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+          .logo { font-size: 24px; font-weight: bold; }
+          .status { font-size: 14px; margin-top: 8px; }
+          .content { padding: 30px 20px; background: #f9f9f9; border-radius: 0 0 8px 8px; }
+          .message-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid ${isQuestion ? "#f59e0b" : "#16a34a"}; }
+          .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+          .note { background: #e8f4fd; padding: 15px; border-radius: 8px; margin-top: 20px; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="logo">Totonos</div>
+            <div class="status">${isQuestion ? "⚠️ 確認が必要です" : "✓ 処理が完了しました"}</div>
+          </div>
+          <div class="content">
+            <p>${toName || "お客様"} 様</p>
+            <p>${isQuestion ? "ご依頼いただいた内容について確認がございます。" : "ご依頼いただいた処理が完了しました。"}</p>
+            
+            <div class="message-box">
+              ${replyBody.split('\n').map(line => `<p style="margin: 8px 0;">${line}</p>`).join('')}
+            </div>
+            
+            ${isQuestion ? `
+              <div class="note">
+                💡 上記の内容をご確認いただき、ご希望の操作を記載してメールにご返信ください。
+              </div>
+            ` : `
+              <div class="note">
+                ℹ️ 処理結果の詳細はTotonosの受信メール画面からご確認いただけます。
+              </div>
+            `}
+          </div>
+          <div class="footer">
+            <p>このメールはTotonosから自動送信されています。</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${RESEND_API_KEY}`,
+      },
+      body: JSON.stringify({
+        from: "Totonos <onboarding@resend.dev>",
+        to: [toEmail],
+        subject,
+        html,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Failed to send reply email:", errorText);
+      return false;
+    }
+
+    console.log(`Reply email sent to ${toEmail}`);
+    return true;
+  } catch (err) {
+    console.error("Error sending reply email:", err);
+    return false;
+  }
+}
+
 // AIコマンド処理をトリガー（自動実行）
 async function triggerAICommandProcessing(
   supabase: any,
@@ -301,6 +397,8 @@ async function triggerAICommandProcessing(
   subject: string | null,
   textContent: string,
   assignedTo: string | null,
+  fromEmail: string,
+  fromName: string | null,
   spreadsheetData?: { filename: string; formattedContent: string; rowCount: number }[]
 ): Promise<void> {
   try {
@@ -333,6 +431,16 @@ async function triggerAICommandProcessing(
           },
         });
       }
+      
+      // エラー時もメールで通知
+      await sendReplyEmail(
+        fromEmail,
+        fromName,
+        subject,
+        `申し訳ございません。ご依頼の処理中にエラーが発生しました。\n\nエラー内容: ${error.message || "不明なエラー"}\n\n再度お試しいただくか、別の方法でお問い合わせください。`,
+        false
+      );
+      
       return;
     }
     
@@ -355,8 +463,33 @@ async function triggerAICommandProcessing(
         },
       });
     }
+    
+    // 処理結果をメールで送信
+    if (data?.response) {
+      const isQuestion = data.needsConfirmation === true || 
+                         (data.response as string).includes("確認") ||
+                         (data.response as string).includes("選択してください") ||
+                         (data.response as string).includes("どちら");
+      
+      await sendReplyEmail(
+        fromEmail,
+        fromName,
+        subject,
+        data.response as string,
+        isQuestion
+      );
+    }
   } catch (err) {
     console.error("Failed to trigger AI command processing:", err);
+    
+    // 例外時もメールで通知
+    await sendReplyEmail(
+      fromEmail,
+      fromName,
+      subject,
+      "申し訳ございません。処理中に予期せぬエラーが発生しました。後ほど再度お試しください。",
+      false
+    );
   }
 }
 
@@ -1102,6 +1235,8 @@ serve(async (req) => {
           emailData.subject || null,
           emailData.text || emailData.html || "",
           assignedTo,
+          emailData.from,
+          emailData.fromName || null,
           spreadsheetDataList.length > 0 ? spreadsheetDataList : undefined
         );
       }
