@@ -11,10 +11,6 @@ export const wikiTools = [
           type: "string",
           description: "検索キーワード",
         },
-        category: {
-          type: "string",
-          description: "カテゴリでフィルタ",
-        },
         limit: {
           type: "number",
           description: "取得件数の上限（デフォルト: 10）",
@@ -29,10 +25,6 @@ export const wikiTools = [
     input_schema: {
       type: "object" as const,
       properties: {
-        category: {
-          type: "string",
-          description: "カテゴリでフィルタ",
-        },
         limit: {
           type: "number",
           description: "取得件数の上限（デフォルト: 20）",
@@ -69,14 +61,9 @@ export const wikiTools = [
           type: "string",
           description: "ページ内容（Markdown形式）",
         },
-        category: {
+        parent_id: {
           type: "string",
-          description: "カテゴリ",
-        },
-        tags: {
-          type: "array",
-          items: { type: "string" },
-          description: "タグ（配列）",
+          description: "親ページID（オプション）",
         },
       },
       required: ["title", "content"],
@@ -99,15 +86,6 @@ export const wikiTools = [
         content: {
           type: "string",
           description: "ページ内容（Markdown形式）",
-        },
-        category: {
-          type: "string",
-          description: "カテゴリ",
-        },
-        tags: {
-          type: "array",
-          items: { type: "string" },
-          description: "タグ（配列）",
         },
       },
       required: ["page_id"],
@@ -137,17 +115,13 @@ export async function executeWikiTool(
 ): Promise<unknown> {
   switch (toolName) {
     case "search_wiki": {
-      let query = supabase
+      const query = supabase
         .from("wiki_pages")
-        .select("*")
+        .select("id, title, content, parent_id, updated_at")
         .eq("user_id", userId)
         .or(`title.ilike.%${input.query}%,content.ilike.%${input.query}%`)
         .order("updated_at", { ascending: false })
         .limit(input.limit as number || 10);
-
-      if (input.category) {
-        query = query.eq("category", input.category);
-      }
 
       const { data, error } = await query;
       if (error) throw new Error(error.message);
@@ -156,8 +130,7 @@ export async function executeWikiTool(
       const results = data?.map((page) => ({
         id: page.id,
         title: page.title,
-        category: page.category,
-        tags: page.tags,
+        parent_id: page.parent_id,
         excerpt: page.content?.substring(0, 200) + (page.content?.length > 200 ? "..." : ""),
         updated_at: page.updated_at,
       }));
@@ -166,16 +139,12 @@ export async function executeWikiTool(
     }
 
     case "wiki_list": {
-      let query = supabase
+      const query = supabase
         .from("wiki_pages")
-        .select("id, title, category, tags, updated_at")
+        .select("id, title, parent_id, updated_at")
         .eq("user_id", userId)
         .order("updated_at", { ascending: false })
         .limit(input.limit as number || 20);
-
-      if (input.category) {
-        query = query.eq("category", input.category);
-      }
 
       const { data, error } = await query;
       if (error) throw new Error(error.message);
@@ -201,8 +170,7 @@ export async function executeWikiTool(
           user_id: userId,
           title: input.title,
           content: input.content,
-          category: input.category || "一般",
-          tags: input.tags || [],
+          parent_id: input.parent_id || null,
         })
         .select()
         .single();
@@ -217,8 +185,6 @@ export async function executeWikiTool(
       };
       if (input.title) updateData.title = input.title;
       if (input.content) updateData.content = input.content;
-      if (input.category) updateData.category = input.category;
-      if (input.tags) updateData.tags = input.tags;
 
       const { data, error } = await supabase
         .from("wiki_pages")
