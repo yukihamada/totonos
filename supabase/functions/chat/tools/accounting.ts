@@ -374,22 +374,43 @@ export async function executeAccountingTool(
     }
 
     case "expense_create": {
-      const { data, error } = await supabase
+      // Generate claim number
+      const claimNumber = `EXP-${Date.now().toString(36).toUpperCase()}`;
+      const claimDate = input.date as string || new Date().toISOString().split("T")[0];
+      const amount = input.amount as number;
+
+      // First create the expense claim
+      const { data: claim, error: claimError } = await supabase
         .from("expense_claims")
         .insert({
           user_id: userId,
-          date: input.date,
-          category: input.category,
-          amount: input.amount,
-          description: input.description,
-          receipt_url: input.receipt_url,
+          claim_number: claimNumber,
+          claim_date: claimDate,
+          total_amount: amount,
           status: "pending",
         })
         .select()
         .single();
 
-      if (error) throw new Error(error.message);
-      return { expense: data, message: "経費申請を作成しました" };
+      if (claimError) throw new Error(claimError.message);
+
+      // Then create the expense item
+      const { error: itemError } = await supabase
+        .from("expense_items")
+        .insert({
+          expense_claim_id: claim.id,
+          expense_date: claimDate,
+          description: input.description as string || input.category as string,
+          amount: amount,
+          vendor_name: input.category as string,
+        });
+
+      if (itemError) throw new Error(itemError.message);
+
+      return { 
+        expense: claim, 
+        message: `経費申請を作成しました（申請番号: ${claimNumber}）` 
+      };
     }
 
     case "expense_list": {
