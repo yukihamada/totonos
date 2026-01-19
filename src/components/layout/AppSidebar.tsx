@@ -133,6 +133,7 @@ const iconMap: Record<string, LucideIcon> = {
   'bank-connections': Building2,
   workflows: Workflow,
   products: Package,
+  'auto-reorder': ShoppingCart,
   'payment-links': CreditCard,
   'email-templates': Mail,
   // Phase 1 competitive features
@@ -220,6 +221,7 @@ const urlMap: Record<string, string> = {
   'bank-connections': '/bank-connections',
   workflows: '/workflows',
   products: '/products',
+  'auto-reorder': '/auto-reorder',
   'payment-links': '/payment-links',
   'email-templates': '/email-templates',
   // Phase 1 competitive features
