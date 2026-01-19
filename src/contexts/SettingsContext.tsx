@@ -1,5 +1,6 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useSettings, AppSettings, MenuGroupConfig, MenuItemConfig } from '@/hooks/useSettings';
+import { MobileNavItemConfig } from '@/types/menu-templates';
 
 interface SettingsContextValue {
   settings: AppSettings;
@@ -7,6 +8,8 @@ interface SettingsContextValue {
   updateMenuGroup: (groupId: string, updates: Partial<MenuGroupConfig>) => void;
   updateMenuItem: (groupId: string, itemId: string, updates: Partial<MenuItemConfig>) => void;
   resetToDefaults: () => void;
+  updateMobileNavItems: (items: MobileNavItemConfig[]) => void;
+  applyTemplate: (templateId: string) => void;
 }
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
