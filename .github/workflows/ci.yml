@@ -92,15 +92,15 @@ jobs:
       - name: Build Application
         run: npm run build
         env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://example.supabase.co' }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example' }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://wnqfmvoyvipebipdpvcx.supabase.co' }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InducWZtdm95dmlwZWJpcGRwdmN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzMTI2NjgsImV4cCI6MjA4Mzg4ODY2OH0.mJbIGLhED4YU3uOWwfoaw-lJUnThJJgr1M9t38jihUM' }}
 
       - name: Run Playwright Tests
         run: npx playwright test --project=chromium
         env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://example.supabase.co' }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example' }}
-          VITE_E2E_TEST_KEY: ${{ secrets.VITE_E2E_TEST_KEY }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://wnqfmvoyvipebipdpvcx.supabase.co' }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InducWZtdm95dmlwZWJpcGRwdmN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzMTI2NjgsImV4cCI6MjA4Mzg4ODY2OH0.mJbIGLhED4YU3uOWwfoaw-lJUnThJJgr1M9t38jihUM' }}
+          VITE_E2E_TEST_KEY: ${{ secrets.VITE_E2E_TEST_KEY || 'test-key-12345' }}
 
       - name: Upload Playwright Report
         uses: actions/upload-artifact@v4
