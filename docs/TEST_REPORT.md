@@ -53,8 +53,9 @@
 | `auth.spec.ts` | 3 | Authentication flow |
 | `landing.spec.ts` | 5 | Landing page validation |
 | `dashboard.authenticated.spec.ts` | 4 | Dashboard functionality |
-| `invoices.authenticated.spec.ts` | 7 | Invoice CRUD operations |
+| `invoices.authenticated.spec.ts` | 4 | Invoice page tests |
 | `screenshots.authenticated.spec.ts` | 39 | Screenshot capture |
+| `crud-flows.authenticated.spec.ts` | 8 | CRUD input→list reflection tests |
 
 ## Test Pyramid
 

@@ -89,10 +89,35 @@ test.describe('Screenshot Capture', () => {
   for (const page of pages) {
     test(`capture ${page.description} (${page.path})`, async ({ page: playwrightPage }) => {
       await playwrightPage.goto(page.path, { timeout: 30000 });
-      await playwrightPage.waitForLoadState('domcontentloaded');
+      await playwrightPage.waitForLoadState('networkidle');
 
-      // Wait for content to render
-      await playwrightPage.waitForTimeout(2000);
+      // Wait for content to render and data to load
+      await playwrightPage.waitForTimeout(3000);
+
+      // Wait for any loading indicators to disappear
+      const loadingIndicators = playwrightPage.locator('[data-loading="true"]')
+        .or(playwrightPage.locator('.animate-spin'))
+        .or(playwrightPage.locator('[aria-busy="true"]'));
+
+      try {
+        await loadingIndicators.first().waitFor({ state: 'hidden', timeout: 5000 });
+      } catch {
+        // Loading indicator may not exist, continue
+      }
+
+      // Wait for main content to be visible
+      const mainContent = playwrightPage.locator('main')
+        .or(playwrightPage.locator('[role="main"]'))
+        .or(playwrightPage.locator('.container'));
+
+      try {
+        await mainContent.first().waitFor({ state: 'visible', timeout: 5000 });
+      } catch {
+        // Continue even if main not found
+      }
+
+      // Additional wait for any animations
+      await playwrightPage.waitForTimeout(1000);
 
       // Capture full page screenshot
       await playwrightPage.screenshot({
@@ -123,8 +148,19 @@ test.describe('Mobile Screenshots', () => {
   for (const page of mobilePages) {
     test(`capture ${page.description}`, async ({ page: playwrightPage }) => {
       await playwrightPage.goto(page.path, { timeout: 30000 });
-      await playwrightPage.waitForLoadState('domcontentloaded');
-      await playwrightPage.waitForTimeout(2000);
+      await playwrightPage.waitForLoadState('networkidle');
+
+      // Wait for content to render and data to load
+      await playwrightPage.waitForTimeout(3000);
+
+      // Wait for loading to complete
+      try {
+        await playwrightPage.locator('.animate-spin').first().waitFor({ state: 'hidden', timeout: 5000 });
+      } catch {
+        // Continue
+      }
+
+      await playwrightPage.waitForTimeout(1000);
 
       await playwrightPage.screenshot({
         path: path.join(SCREENSHOT_DIR, `${page.name}.png`),
