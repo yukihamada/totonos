@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
+import { shouldSkipAuthTests, skipAuthMessage } from './test-utils';
 
 test.describe('External Integrations', () => {
+  test.skip(shouldSkipAuthTests, skipAuthMessage);
   test.describe('Integrations Page', () => {
     test('should display integrations page', async ({ page }) => {
       await page.goto('/integrations');

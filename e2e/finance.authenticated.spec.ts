@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
+import { shouldSkipAuthTests, skipAuthMessage } from './test-utils';
 
 test.describe('Finance & Credits', () => {
+  test.skip(shouldSkipAuthTests, skipAuthMessage);
   test.describe('Clients Page', () => {
     test('should display clients page', async ({ page }) => {
       await page.goto('/clients');

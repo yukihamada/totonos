@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
+import { shouldSkipAuthTests, skipAuthMessage } from './test-utils';
 
 test.describe('Leads/CRM - Authenticated', () => {
+  test.skip(shouldSkipAuthTests, skipAuthMessage);
   test.beforeEach(async ({ page }) => {
     await page.goto('/leads');
   });

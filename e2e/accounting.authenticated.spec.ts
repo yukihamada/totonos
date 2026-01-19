@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
+import { shouldSkipAuthTests, skipAuthMessage } from './test-utils';
 
 test.describe('Accounting - Main Page', () => {
+  test.skip(shouldSkipAuthTests, skipAuthMessage);
   test('should display accounting page', async ({ page }) => {
     await page.goto('/accounting');
     await expect(page.getByRole('heading', { name: '会計' })).toBeVisible();

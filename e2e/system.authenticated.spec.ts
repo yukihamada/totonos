@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
+import { shouldSkipAuthTests, skipAuthMessage } from './test-utils';
 
 test.describe('System & Settings', () => {
+  test.skip(shouldSkipAuthTests, skipAuthMessage);
   test.describe('Notifications Page', () => {
     test('should display notifications page', async ({ page }) => {
       await page.goto('/notifications');

@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
+import { shouldSkipAuthTests, skipAuthMessage } from './test-utils';
 
 test.describe('HR - Employees', () => {
+  test.skip(shouldSkipAuthTests, skipAuthMessage);
   test('should display employees page', async ({ page }) => {
     await page.goto('/employees');
     await page.waitForLoadState('networkidle');

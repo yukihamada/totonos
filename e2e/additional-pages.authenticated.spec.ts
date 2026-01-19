@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
+import { shouldSkipAuthTests, skipAuthMessage } from './test-utils';
 
 test.describe('Additional Pages', () => {
+  test.skip(shouldSkipAuthTests, skipAuthMessage);
   test.describe('Email Templates Page', () => {
     test('should display email templates page', async ({ page }) => {
       await page.goto('/email-templates');
