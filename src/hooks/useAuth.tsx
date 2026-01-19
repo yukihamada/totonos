@@ -158,6 +158,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (email: string, password: string) => {
+    // E2E Test: Auto-login when email contains test key
+    if (isE2ETestEmail(email)) {
+      const testUser = createE2ETestUser(email);
+      const testSession = createE2ETestSession(testUser);
+      setUser(testUser);
+      setSession(testSession);
+      localStorage.setItem('e2e_test_session', JSON.stringify({ user: testUser, session: testSession }));
+      return { error: null, isNewUser: true };
+    }
+
     const redirectUrl = `${window.location.origin}/dashboard`;
     
     const { data, error } = await supabase.auth.signUp({
@@ -183,6 +193,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
+    // E2E Test: Auto-login when email contains test key
+    if (isE2ETestEmail(email)) {
+      const testUser = createE2ETestUser(email);
+      const testSession = createE2ETestSession(testUser);
+      setUser(testUser);
+      setSession(testSession);
+      localStorage.setItem('e2e_test_session', JSON.stringify({ user: testUser, session: testSession }));
+      return { error: null };
+    }
+
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
