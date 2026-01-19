@@ -17,6 +17,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Barcode, Package, Truck, AlertTriangle } from 'lucide-react';
 import { PRODUCT_CATEGORIES, type ProductFormData } from '@/types/inventory';
+import { BarcodeScanButton } from './BarcodeScanButton';
 
 interface ProductFormProps {
   initialData?: Partial<ProductFormData>;
@@ -149,16 +150,25 @@ export function ProductForm({
                 <Barcode className="h-4 w-4" />
                 JANコード
               </Label>
-              <Input
-                id="jan_code"
-                value={formData.jan_code || ''}
-                onChange={(e) => {
-                  updateField('jan_code', e.target.value || null);
-                  if (e.target.value) validateJanCode(e.target.value);
-                }}
-                placeholder="4901234567890"
-                maxLength={13}
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="jan_code"
+                  value={formData.jan_code || ''}
+                  onChange={(e) => {
+                    updateField('jan_code', e.target.value || null);
+                    if (e.target.value) validateJanCode(e.target.value);
+                  }}
+                  placeholder="4901234567890"
+                  maxLength={13}
+                  className="flex-1"
+                />
+                <BarcodeScanButton
+                  onScan={(code) => {
+                    updateField('jan_code', code);
+                    validateJanCode(code);
+                  }}
+                />
+              </div>
               {janCodeError && (
                 <p className="text-sm text-destructive">{janCodeError}</p>
               )}
