@@ -2,10 +2,12 @@
  * Screenshot Capture Test
  *
  * Captures screenshots of all major pages for documentation and visual regression testing.
+ * Optimized for speed with smart data loading detection.
  */
 
 import { test } from '@playwright/test';
 import { shouldSkipAuthTests, skipAuthMessage } from './test-utils';
+import { captureScreenshot, navigateAndWait } from './e2e-utils';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -83,47 +85,20 @@ const pages = [
 test.describe('Screenshot Capture', () => {
   test.skip(shouldSkipAuthTests, skipAuthMessage);
 
-  // Set longer timeout for screenshots
-  test.setTimeout(60000);
+  // Optimized timeout
+  test.setTimeout(30000);
 
   for (const page of pages) {
     test(`capture ${page.description} (${page.path})`, async ({ page: playwrightPage }) => {
-      await playwrightPage.goto(page.path, { timeout: 30000 });
-      await playwrightPage.waitForLoadState('networkidle');
+      // Navigate with smart waiting
+      await navigateAndWait(playwrightPage, page.path, { timeout: 15000 });
 
-      // Wait for content to render and data to load
-      await playwrightPage.waitForTimeout(3000);
-
-      // Wait for any loading indicators to disappear
-      const loadingIndicators = playwrightPage.locator('[data-loading="true"]')
-        .or(playwrightPage.locator('.animate-spin'))
-        .or(playwrightPage.locator('[aria-busy="true"]'));
-
-      try {
-        await loadingIndicators.first().waitFor({ state: 'hidden', timeout: 5000 });
-      } catch {
-        // Loading indicator may not exist, continue
-      }
-
-      // Wait for main content to be visible
-      const mainContent = playwrightPage.locator('main')
-        .or(playwrightPage.locator('[role="main"]'))
-        .or(playwrightPage.locator('.container'));
-
-      try {
-        await mainContent.first().waitFor({ state: 'visible', timeout: 5000 });
-      } catch {
-        // Continue even if main not found
-      }
-
-      // Additional wait for any animations
-      await playwrightPage.waitForTimeout(1000);
-
-      // Capture full page screenshot
-      await playwrightPage.screenshot({
-        path: path.join(SCREENSHOT_DIR, `${page.name}.png`),
-        fullPage: true,
-      });
+      // Capture screenshot with data wait
+      await captureScreenshot(
+        playwrightPage,
+        path.join(SCREENSHOT_DIR, `${page.name}.png`),
+        { fullPage: true, minWait: 500 }
+      );
     });
   }
 });
@@ -131,8 +106,8 @@ test.describe('Screenshot Capture', () => {
 test.describe('Mobile Screenshots', () => {
   test.skip(shouldSkipAuthTests, skipAuthMessage);
 
-  // Set longer timeout for screenshots
-  test.setTimeout(60000);
+  // Optimized timeout
+  test.setTimeout(30000);
 
   test.use({
     viewport: { width: 375, height: 812 }, // iPhone X size
@@ -147,25 +122,15 @@ test.describe('Mobile Screenshots', () => {
 
   for (const page of mobilePages) {
     test(`capture ${page.description}`, async ({ page: playwrightPage }) => {
-      await playwrightPage.goto(page.path, { timeout: 30000 });
-      await playwrightPage.waitForLoadState('networkidle');
+      // Navigate with smart waiting
+      await navigateAndWait(playwrightPage, page.path, { timeout: 15000 });
 
-      // Wait for content to render and data to load
-      await playwrightPage.waitForTimeout(3000);
-
-      // Wait for loading to complete
-      try {
-        await playwrightPage.locator('.animate-spin').first().waitFor({ state: 'hidden', timeout: 5000 });
-      } catch {
-        // Continue
-      }
-
-      await playwrightPage.waitForTimeout(1000);
-
-      await playwrightPage.screenshot({
-        path: path.join(SCREENSHOT_DIR, `${page.name}.png`),
-        fullPage: true,
-      });
+      // Capture screenshot with data wait
+      await captureScreenshot(
+        playwrightPage,
+        path.join(SCREENSHOT_DIR, `${page.name}.png`),
+        { fullPage: true, minWait: 500 }
+      );
     });
   }
 });

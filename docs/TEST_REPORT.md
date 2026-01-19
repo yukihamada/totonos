@@ -1,16 +1,16 @@
 # Test Report
 
-> Generated: 2026-01-19
+> Generated: 2026-01-19 (Updated)
 
 ## Summary
 
 | Metric | Value |
 |--------|-------|
-| Test Files | 31 |
-| Unit Tests | ~450 |
+| Test Files | 40+ |
+| Unit Tests | ~550 |
 | Integration Tests | 49 |
 | E2E Tests | 58 |
-| **Total** | **~557** |
+| **Total** | **~657** |
 
 ## Test Coverage by Category
 
@@ -29,12 +29,23 @@
 | | `useInvoices.test.tsx` | 20 |
 | | `useExpenses.test.tsx` | 18 |
 | | `useInboundEmails.test.ts` | 11 |
+| | `useCRM.test.tsx` | 13 |
+| | `useProjects.test.tsx` | 15 |
+| | `useContracts.test.tsx` | 12 |
+| | `useWiki.test.tsx` | 20 |
 | **Components** | `StatsCard.test.tsx` | 6 |
 | | `RecentActivity.test.tsx` | 6 |
 | | `ChatButton.test.tsx` | 6 |
 | | `ChatInput.test.tsx` | 12 |
 | | `ChatMessage.test.tsx` | 20 |
+| | `LoadingWithTips.test.tsx` | 35 |
+| | `ThemeToggle.test.tsx` | 5 |
+| | `ErrorBoundary.test.tsx` | 15 |
 | **Pages** | `Dashboard.test.tsx` | 5 |
+| | `Invoices.test.tsx` | 8 |
+| | `Expenses.test.tsx` | 8 |
+| | `Projects.test.tsx` | 8 |
+| | `Contracts.test.tsx` | 10 |
 | **Lib** | `inbound-email-parser.test.ts` | 37 |
 
 ### Integration Tests
