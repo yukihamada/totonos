@@ -21,6 +21,8 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:report": "playwright show-report",
+    "test:e2e:zerostep": "playwright test --project=zerostep --project=zerostep-authenticated",
+    "test:e2e:zerostep:public": "playwright test --project=zerostep",
     "typecheck": "tsc --noEmit",
     "screenshots": "node scripts/capture-screenshots.mjs",
     "screenshots:dev": "npm run dev & sleep 3 && npm run screenshots && pkill -f 'vite'"
@@ -111,6 +113,7 @@
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react-swc": "^3.11.0",
     "@vitest/coverage-v8": "^4.0.17",
+    "@zerostep/playwright": "^0.1.5",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",

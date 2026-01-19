@@ -1,8 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
-import { BrowserRouter } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { render, screen, waitFor } from "@/test/test-utils";
 import Employees from "@/pages/Employees";
 
 // Mock useAuth
@@ -53,18 +50,6 @@ vi.mock("@/hooks/useHR", () => ({
   useDeleteEmployee: vi.fn(() => ({
     mutate: vi.fn(),
   })),
-}));
-
-// Mock supabase
-vi.mock("@/integrations/supabase/client", () => ({
-  supabase: {
-    auth: {
-      getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
-      onAuthStateChange: vi.fn(() => ({
-        data: { subscription: { unsubscribe: vi.fn() } },
-      })),
-    },
-  },
 }));
 
 describe("Employees Page", () => {

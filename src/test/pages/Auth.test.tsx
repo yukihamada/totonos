@@ -1,9 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
-import { BrowserRouter } from "react-router-dom";
+import { screen, waitFor } from "@testing-library/react";
+import { render } from "@/test/test-utils";
 import userEvent from "@testing-library/user-event";
 import Auth from "@/pages/Auth";
-import { AuthProvider } from "@/hooks/useAuth";
 import { Toaster } from "@/components/ui/toaster";
 
 // Create fresh mocks for each test
@@ -34,10 +33,10 @@ vi.mock("@/integrations/supabase/client", () => ({
 
 const renderAuth = () => {
   return render(
-    <AuthProvider>
+    <>
       <Auth />
       <Toaster />
-    </AuthProvider>
+    </>
   );
 };
 

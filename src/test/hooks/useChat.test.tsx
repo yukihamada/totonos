@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useChat } from '@/hooks/useChat';
+import { AuthProvider } from '@/hooks/useAuth';
+import { ReactNode } from 'react';
 
 // Mock the chat API
 vi.mock('@/lib/chat-api', () => ({
@@ -9,6 +11,10 @@ vi.mock('@/lib/chat-api', () => ({
     role: 'assistant',
     content: 'Test response',
   }),
+  streamChatMessage: vi.fn().mockImplementation(async function* () {
+    yield { type: 'content_block_delta', delta: { text: 'Test response' } };
+  }),
+  processFilesForMessage: vi.fn().mockImplementation((content) => ({ role: 'user', content })),
 }));
 
 // Mock sonner toast
@@ -18,19 +24,37 @@ vi.mock('sonner', () => ({
   },
 }));
 
+// Mock useCredits to avoid auth dependency in unit tests
+vi.mock('@/hooks/useCredits', () => ({
+  useCredits: () => ({
+    credits: { plan: 'free', monthlyCredits: 100, chargedCredits: 0, usedThisMonth: 0 },
+    totalRemaining: 100,
+    isLoading: false,
+    canUse: () => true,
+    consume: vi.fn().mockResolvedValue(true),
+    charge: vi.fn(),
+    getLogs: () => [],
+    refetch: vi.fn(),
+  }),
+}));
+
+const wrapper = ({ children }: { children: ReactNode }) => (
+  <AuthProvider>{children}</AuthProvider>
+);
+
 describe('useChat', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('should initialize with empty messages', () => {
-    const { result } = renderHook(() => useChat());
+    const { result } = renderHook(() => useChat(), { wrapper });
     expect(result.current.messages).toEqual([]);
     expect(result.current.isLoading).toBe(false);
   });
 
   it('should add user message when sendMessage is called', async () => {
-    const { result } = renderHook(() => useChat());
+    const { result } = renderHook(() => useChat(), { wrapper });
 
     await act(async () => {
       await result.current.sendMessage('Hello');
@@ -43,7 +67,7 @@ describe('useChat', () => {
   });
 
   it('should not send empty messages', async () => {
-    const { result } = renderHook(() => useChat());
+    const { result } = renderHook(() => useChat(), { wrapper });
 
     await act(async () => {
       await result.current.sendMessage('');
@@ -53,7 +77,7 @@ describe('useChat', () => {
   });
 
   it('should not send whitespace-only messages', async () => {
-    const { result } = renderHook(() => useChat());
+    const { result } = renderHook(() => useChat(), { wrapper });
 
     await act(async () => {
       await result.current.sendMessage('   ');
@@ -63,7 +87,7 @@ describe('useChat', () => {
   });
 
   it('should clear messages when clearMessages is called', async () => {
-    const { result } = renderHook(() => useChat());
+    const { result } = renderHook(() => useChat(), { wrapper });
 
     await act(async () => {
       await result.current.sendMessage('Hello');
@@ -79,22 +103,22 @@ describe('useChat', () => {
   });
 
   it('should have addMessage function', () => {
-    const { result } = renderHook(() => useChat());
+    const { result } = renderHook(() => useChat(), { wrapper });
     expect(typeof result.current.addMessage).toBe('function');
   });
 
   it('should have updateMessage function', () => {
-    const { result } = renderHook(() => useChat());
+    const { result } = renderHook(() => useChat(), { wrapper });
     expect(typeof result.current.updateMessage).toBe('function');
   });
 
   it('should have regenerate function', () => {
-    const { result } = renderHook(() => useChat());
+    const { result } = renderHook(() => useChat(), { wrapper });
     expect(typeof result.current.regenerate).toBe('function');
   });
 
   it('should add message with generated id and timestamp', () => {
-    const { result } = renderHook(() => useChat());
+    const { result } = renderHook(() => useChat(), { wrapper });
 
     act(() => {
       result.current.addMessage({

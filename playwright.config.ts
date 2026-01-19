@@ -48,6 +48,9 @@ export default defineConfig({
     ['list'],
   ],
 
+  // Global timeout for each test
+  timeout: 60000,
+
   // Shared settings for all the projects below
   use: {
     // Base URL to use in actions like `await page.goto('/')`
@@ -61,6 +64,9 @@ export default defineConfig({
 
     // Video for all tests
     video: 'on',
+
+    // Action timeout
+    actionTimeout: 30000,
   },
 
   // Configure projects for major browsers
@@ -87,6 +93,25 @@ export default defineConfig({
         storageState: 'e2e/.auth/user.json',
       },
       testMatch: /.*\.authenticated\.spec\.ts/,
+      dependencies: ['setup'],
+    },
+
+    // ZeroStep AI tests - unauthenticated
+    {
+      name: 'zerostep',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: /zerostep\/.*\.zerostep\.spec\.ts/,
+      testIgnore: /.*\.authenticated\.spec\.ts/,
+    },
+
+    // ZeroStep AI tests - authenticated
+    {
+      name: 'zerostep-authenticated',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'e2e/.auth/user.json',
+      },
+      testMatch: /zerostep\/.*\.zerostep\.authenticated\.spec\.ts/,
       dependencies: ['setup'],
     },
 

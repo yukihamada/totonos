@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
-import { BrowserRouter } from "react-router-dom";
+import { render, screen } from "@/test/test-utils";
 import { NavLink } from "@/components/NavLink";
 
 describe("NavLink", () => {

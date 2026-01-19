@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SettingsProvider } from "@/contexts/SettingsContext";
+import { AuthProvider } from "@/hooks/useAuth";
 
 const createTestQueryClient = () =>
   new QueryClient({
@@ -23,11 +24,13 @@ const AllTheProviders = ({ children }: AllTheProvidersProps) => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SettingsProvider>
-        <TooltipProvider>
-          <BrowserRouter>{children}</BrowserRouter>
-        </TooltipProvider>
-      </SettingsProvider>
+      <AuthProvider>
+        <SettingsProvider>
+          <TooltipProvider>
+            <BrowserRouter>{children}</BrowserRouter>
+          </TooltipProvider>
+        </SettingsProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 };

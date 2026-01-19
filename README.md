@@ -97,8 +97,52 @@ src/
 ├── lib/            # ユーティリティ
 ├── pages/          # ページコンポーネント
 ├── types/          # TypeScript型定義
+├── test/           # テストファイル
+│   ├── integration/  # インテグレーションテスト
+│   ├── components/   # コンポーネントテスト
+│   ├── hooks/        # フックテスト
+│   └── types/        # 型・ユーティリティテスト
 └── integrations/   # 外部サービス連携
+
+e2e/                # E2Eテスト (Playwright)
+screenshots/        # 自動生成スクリーンショット
+docs/               # ドキュメント
 ```
+
+## テスト
+
+### テストカバレッジ
+
+| カテゴリ | テスト数 | 説明 |
+|---------|---------|------|
+| Unit Tests | ~450 | ビジネスロジック、型、ユーティリティ |
+| Integration Tests | 49 | フォーム入力・反映、状態管理 |
+| E2E Tests | 58 | ユーザーフロー、スクリーンショット |
+| **合計** | **~557** | |
+
+### テスト実行
+
+```bash
+# 全ユニットテスト実行
+npm test
+
+# 特定のテストファイル
+npm test -- src/test/types/hr.test.ts
+
+# インテグレーションテストのみ
+npm test -- src/test/integration/
+
+# E2Eテスト
+npm run test:e2e
+
+# スクリーンショット取得
+npm run test:e2e -- e2e/screenshots.authenticated.spec.ts
+```
+
+### ドキュメント
+
+- [Test Report](docs/TEST_REPORT.md) - テスト一覧と詳細
+- [Screenshots](docs/SCREENSHOTS.md) - 全画面スクリーンショット
 
 ## ライセンス
 
@@ -114,4 +158,4 @@ Issue や Pull Request は歓迎です。
 - Email: support@totonos.jp
 
 ---
-*Last updated: 2026-01-19 - CI/CD configured with Supabase credentials*
+*Last updated: 2026-01-19 - Added comprehensive test coverage (557 tests)*
