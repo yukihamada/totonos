@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
+import { shouldSkipAuthTests, skipAuthMessage } from './test-utils';
 
 test.describe('CRM Module', () => {
+  test.skip(shouldSkipAuthTests, skipAuthMessage);
   test.describe('Deals Page', () => {
     test('should display deals page', async ({ page }) => {
       await page.goto('/deals');

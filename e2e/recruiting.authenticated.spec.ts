@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
+import { shouldSkipAuthTests, skipAuthMessage } from './test-utils';
 
 test.describe('Recruiting Module', () => {
+  test.skip(shouldSkipAuthTests, skipAuthMessage);
   test.describe('Recruiting Page', () => {
     test('should display recruiting page', async ({ page }) => {
       await page.goto('/recruiting');

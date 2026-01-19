@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
+import { shouldSkipAuthTests, skipAuthMessage } from './test-utils';
 
 test.describe('Wiki - Main Page', () => {
+  test.skip(shouldSkipAuthTests, skipAuthMessage);
   test('should display wiki page', async ({ page }) => {
     await page.goto('/wiki');
     await page.waitForLoadState('networkidle');
