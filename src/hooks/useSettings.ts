@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { MobileNavItemConfig, defaultMobileNavItems, industryTemplates } from '@/types/menu-templates';
 
 export interface MenuItemConfig {
   id: string;
@@ -21,6 +22,8 @@ export interface AppSettings {
   fontSize: 'sm' | 'base' | 'lg';
   compactMode: boolean;
   menuGroups: MenuGroupConfig[];
+  mobileNavItems: MobileNavItemConfig[];
+  currentTemplateId?: string;
 }
 
 const defaultMenuGroups: MenuGroupConfig[] = [
@@ -211,6 +214,7 @@ const defaultSettings: AppSettings = {
   fontSize: 'base',
   compactMode: false,
   menuGroups: defaultMenuGroups,
+  mobileNavItems: defaultMobileNavItems,
 };
 
 const SETTINGS_KEY = 'app_settings';
@@ -299,11 +303,29 @@ export function useSettings() {
     setSettings(defaultSettings);
   }, []);
 
+  const updateMobileNavItems = useCallback((items: MobileNavItemConfig[]) => {
+    setSettings(prev => ({ ...prev, mobileNavItems: items }));
+  }, []);
+
+  const applyTemplate = useCallback((templateId: string) => {
+    const template = industryTemplates.find(t => t.id === templateId);
+    if (template) {
+      setSettings(prev => ({
+        ...prev,
+        menuGroups: template.menuGroups,
+        mobileNavItems: template.mobileNavItems,
+        currentTemplateId: templateId,
+      }));
+    }
+  }, []);
+
   return {
     settings,
     updateSettings,
     updateMenuGroup,
     updateMenuItem,
     resetToDefaults,
+    updateMobileNavItems,
+    applyTemplate,
   };
 }
