@@ -124,7 +124,7 @@ describe('useInvoices', () => {
     });
 
     it('does not set paid_date for draft status', () => {
-      const status = 'draft';
+      const status: string = 'draft';
       const updateData: { status: string; paid_date?: string } = { status };
 
       if (status === 'paid') {
@@ -135,7 +135,7 @@ describe('useInvoices', () => {
     });
 
     it('does not set paid_date for sent status', () => {
-      const status = 'sent';
+      const status: string = 'sent';
       const updateData: { status: string; paid_date?: string } = { status };
 
       if (status === 'paid') {

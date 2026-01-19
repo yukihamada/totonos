@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
 import {
   Table,
   TableBody,
@@ -17,7 +16,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -29,8 +27,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { toast } from 'sonner';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Package,
   Plus,
@@ -39,247 +42,89 @@ import {
   Trash2,
   AlertTriangle,
   CheckCircle,
-  BarChart3,
-  TrendingUp,
-  TrendingDown,
-  Archive,
-  Tag,
+  MoreHorizontal,
+  Barcode,
+  ShoppingCart,
 } from 'lucide-react';
-
-interface Product {
-  id: string;
-  sku: string;
-  name: string;
-  description: string;
-  category: string;
-  price: number;
-  cost: number;
-  stock: number;
-  minStock: number;
-  unit: string;
-  status: 'active' | 'inactive' | 'discontinued';
-  createdAt: Date;
-}
-
-const mockProducts: Product[] = [
-  {
-    id: '1',
-    sku: 'PRD-001',
-    name: 'Webサイト制作パッケージ',
-    description: '企業向けWebサイト制作一式',
-    category: 'サービス',
-    price: 500000,
-    cost: 200000,
-    stock: 999,
-    minStock: 1,
-    unit: '件',
-    status: 'active',
-    createdAt: new Date('2024-01-15'),
-  },
-  {
-    id: '2',
-    sku: 'PRD-002',
-    name: 'システム開発（人月）',
-    description: 'カスタムシステム開発',
-    category: 'サービス',
-    price: 800000,
-    cost: 500000,
-    stock: 999,
-    minStock: 1,
-    unit: '人月',
-    status: 'active',
-    createdAt: new Date('2024-02-01'),
-  },
-  {
-    id: '3',
-    sku: 'HW-001',
-    name: 'ノートPC（標準スペック）',
-    description: '業務用ノートパソコン',
-    category: 'ハードウェア',
-    price: 150000,
-    cost: 100000,
-    stock: 15,
-    minStock: 5,
-    unit: '台',
-    status: 'active',
-    createdAt: new Date('2024-03-01'),
-  },
-  {
-    id: '4',
-    sku: 'HW-002',
-    name: '外付けモニター 27インチ',
-    description: '4K対応外付けモニター',
-    category: 'ハードウェア',
-    price: 45000,
-    cost: 30000,
-    stock: 3,
-    minStock: 5,
-    unit: '台',
-    status: 'active',
-    createdAt: new Date('2024-04-01'),
-  },
-  {
-    id: '5',
-    sku: 'SW-001',
-    name: 'クラウドストレージ（年間）',
-    description: '1TB クラウドストレージサービス',
-    category: 'ソフトウェア',
-    price: 12000,
-    cost: 6000,
-    stock: 999,
-    minStock: 1,
-    unit: 'ライセンス',
-    status: 'active',
-    createdAt: new Date('2024-05-01'),
-  },
-  {
-    id: '6',
-    sku: 'CON-001',
-    name: 'コンサルティング（時間）',
-    description: 'IT戦略コンサルティング',
-    category: 'サービス',
-    price: 50000,
-    cost: 20000,
-    stock: 999,
-    minStock: 1,
-    unit: '時間',
-    status: 'active',
-    createdAt: new Date('2024-06-01'),
-  },
-  {
-    id: '7',
-    sku: 'HW-003',
-    name: 'USBハブ 4ポート',
-    description: 'USB 3.0 対応ハブ',
-    category: 'ハードウェア',
-    price: 3500,
-    cost: 2000,
-    stock: 0,
-    minStock: 10,
-    unit: '個',
-    status: 'inactive',
-    createdAt: new Date('2024-07-01'),
-  },
-];
-
-const categories = ['サービス', 'ハードウェア', 'ソフトウェア', '消耗品', 'その他'];
+import { useProducts } from '@/hooks/useProducts';
+import { useClients } from '@/hooks/useClients';
+import { ProductForm } from '@/components/inventory/ProductForm';
+import { InventoryAlertBanner } from '@/components/inventory/InventoryAlertBanner';
+import { PRODUCT_CATEGORIES, type ProductFormData } from '@/types/inventory';
+import { Link } from 'react-router-dom';
 
 export default function Products() {
-  const [products, setProducts] = useState<Product[]>(mockProducts);
+  const { products, isLoading, createProduct, updateProduct, deleteProduct } = useProducts();
+  const clientsQuery = useClients();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
 
-  // Form state
-  const [formData, setFormData] = useState({
-    sku: '',
-    name: '',
-    description: '',
-    category: 'サービス',
-    price: '',
-    cost: '',
-    stock: '',
-    minStock: '',
-    unit: '個',
-  });
+  const suppliers = (clientsQuery.data ?? []).map(c => ({ id: c.id, name: c.name }));
 
   const filteredProducts = products.filter((p) => {
     const matchesSearch =
       p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.sku.toLowerCase().includes(search.toLowerCase());
+      p.sku.toLowerCase().includes(search.toLowerCase()) ||
+      (p.jan_code && p.jan_code.includes(search));
     const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
 
   const activeCount = products.filter((p) => p.status === 'active').length;
-  const lowStockCount = products.filter((p) => p.stock < p.minStock && p.stock > 0).length;
-  const outOfStockCount = products.filter((p) => p.stock === 0).length;
-  const totalValue = products.reduce((sum, p) => sum + p.price * p.stock, 0);
+  const lowStockCount = products.filter((p) => 
+    p.is_inventory_managed && 
+    p.stock_quantity < (p.reorder_point || 0) && 
+    p.stock_quantity > 0
+  ).length;
+  const outOfStockCount = products.filter((p) => 
+    p.is_inventory_managed && 
+    p.stock_quantity === 0
+  ).length;
+  const totalValue = products.reduce((sum, p) => sum + p.price * p.stock_quantity, 0);
 
-  const handleSave = () => {
-    if (!formData.name || !formData.sku) {
-      toast.error('必須項目を入力してください');
-      return;
-    }
-
-    if (editingProduct) {
-      setProducts((prev) =>
-        prev.map((p) =>
-          p.id === editingProduct.id
-            ? {
-                ...p,
-                ...formData,
-                price: Number(formData.price),
-                cost: Number(formData.cost),
-                stock: Number(formData.stock),
-                minStock: Number(formData.minStock),
-              }
-            : p
-        )
-      );
-      toast.success('商品を更新しました');
+  const handleSave = async (formData: ProductFormData) => {
+    if (editingProductId) {
+      await updateProduct.mutateAsync({ id: editingProductId, ...formData });
     } else {
-      const newProduct: Product = {
-        id: crypto.randomUUID(),
-        sku: formData.sku,
-        name: formData.name,
-        description: formData.description,
-        category: formData.category,
-        price: Number(formData.price),
-        cost: Number(formData.cost),
-        stock: Number(formData.stock),
-        minStock: Number(formData.minStock),
-        unit: formData.unit,
-        status: 'active',
-        createdAt: new Date(),
-      };
-      setProducts((prev) => [newProduct, ...prev]);
-      toast.success('商品を追加しました');
+      await createProduct.mutateAsync(formData);
     }
-
     setDialogOpen(false);
-    resetForm();
+    setEditingProductId(null);
   };
 
-  const resetForm = () => {
-    setFormData({
-      sku: '',
-      name: '',
-      description: '',
-      category: 'サービス',
-      price: '',
-      cost: '',
-      stock: '',
-      minStock: '',
-      unit: '個',
-    });
-    setEditingProduct(null);
-  };
-
-  const handleEdit = (product: Product) => {
-    setEditingProduct(product);
-    setFormData({
-      sku: product.sku,
-      name: product.name,
-      description: product.description,
-      category: product.category,
-      price: product.price.toString(),
-      cost: product.cost.toString(),
-      stock: product.stock.toString(),
-      minStock: product.minStock.toString(),
-      unit: product.unit,
-    });
+  const handleEdit = (productId: string) => {
+    setEditingProductId(productId);
     setDialogOpen(true);
   };
 
-  const handleDelete = (product: Product) => {
-    setProducts((prev) => prev.filter((p) => p.id !== product.id));
-    toast.success(`${product.name}を削除しました`);
+  const handleDelete = async (productId: string) => {
+    if (confirm('この商品を削除しますか？')) {
+      await deleteProduct.mutateAsync(productId);
+    }
   };
 
-  const getStockStatus = (product: Product) => {
-    if (product.stock === 0) {
+  const handleDialogClose = (open: boolean) => {
+    setDialogOpen(open);
+    if (!open) {
+      setEditingProductId(null);
+    }
+  };
+
+  const editingProduct = editingProductId 
+    ? products.find(p => p.id === editingProductId) 
+    : null;
+
+  const getStockStatus = (product: typeof products[0]) => {
+    if (!product.is_inventory_managed) {
+      return (
+        <Badge variant="outline" className="gap-1">
+          管理対象外
+        </Badge>
+      );
+    }
+    if (product.stock_quantity === 0) {
       return (
         <Badge variant="destructive" className="gap-1">
           <AlertTriangle className="h-3 w-3" />
@@ -287,16 +132,16 @@ export default function Products() {
         </Badge>
       );
     }
-    if (product.stock < product.minStock) {
+    if (product.stock_quantity < (product.reorder_point || 0)) {
       return (
-        <Badge variant="secondary" className="gap-1 bg-yellow-100 text-yellow-800">
+        <Badge variant="secondary" className="gap-1 bg-warning/20 text-warning-foreground">
           <AlertTriangle className="h-3 w-3" />
           在庫少
         </Badge>
       );
     }
     return (
-      <Badge variant="default" className="gap-1 bg-green-100 text-green-800">
+      <Badge variant="default" className="gap-1 bg-primary/20 text-primary">
         <CheckCircle className="h-3 w-3" />
         適正
       </Badge>
@@ -306,131 +151,74 @@ export default function Products() {
   return (
     <AppLayout>
       <div className="space-y-6">
+        {/* Inventory Alert Banner */}
+        <InventoryAlertBanner />
+
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
               <Package className="h-8 w-8" />
-              商品管理
+              商品・在庫管理
             </h1>
             <p className="text-muted-foreground">
-              {activeCount}商品が有効
+              {activeCount}商品が有効 | JANコード対応
             </p>
           </div>
-          <Dialog open={dialogOpen} onOpenChange={(open) => {
-            setDialogOpen(open);
-            if (!open) resetForm();
-          }}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                商品を追加
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingProduct ? '商品を編集' : '商品を追加'}
-                </DialogTitle>
-                <DialogDescription>
-                  商品情報を入力してください
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>SKU *</Label>
-                    <Input
-                      value={formData.sku}
-                      onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                      placeholder="PRD-001"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>カテゴリ</Label>
-                    <Select
-                      value={formData.category}
-                      onValueChange={(v) => setFormData({ ...formData, category: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((cat) => (
-                          <SelectItem key={cat} value={cat}>
-                            {cat}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>商品名 *</Label>
-                  <Input
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>説明</Label>
-                  <Textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    rows={2}
-                  />
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label>販売価格</Label>
-                    <Input
-                      type="number"
-                      value={formData.price}
-                      onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>原価</Label>
-                    <Input
-                      type="number"
-                      value={formData.cost}
-                      onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>単位</Label>
-                    <Input
-                      value={formData.unit}
-                      onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>在庫数</Label>
-                    <Input
-                      type="number"
-                      value={formData.stock}
-                      onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>最低在庫数</Label>
-                    <Input
-                      type="number"
-                      value={formData.minStock}
-                      onChange={(e) => setFormData({ ...formData, minStock: e.target.value })}
-                    />
-                  </div>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                  キャンセル
+          <div className="flex gap-2">
+            <Button variant="outline" asChild>
+              <Link to="/purchase-orders">
+                <ShoppingCart className="mr-2 h-4 w-4" />
+                発注書
+              </Link>
+            </Button>
+            <Dialog open={dialogOpen} onOpenChange={handleDialogClose}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  商品を追加
                 </Button>
-                <Button onClick={handleSave}>保存</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingProductId ? '商品を編集' : '商品を追加'}
+                  </DialogTitle>
+                  <DialogDescription>
+                    商品情報を入力してください。JANコードを登録すると在庫管理が効率化されます。
+                  </DialogDescription>
+                </DialogHeader>
+                <ProductForm
+                  initialData={editingProduct ? {
+                    sku: editingProduct.sku,
+                    jan_code: editingProduct.jan_code,
+                    name: editingProduct.name,
+                    name_kana: editingProduct.name_kana,
+                    description: editingProduct.description,
+                    category: editingProduct.category,
+                    price: editingProduct.price,
+                    cost: editingProduct.cost,
+                    tax_rate: editingProduct.tax_rate,
+                    stock_quantity: editingProduct.stock_quantity,
+                    min_stock: editingProduct.min_stock,
+                    reorder_point: editingProduct.reorder_point,
+                    reorder_quantity: editingProduct.reorder_quantity,
+                    unit: editingProduct.unit,
+                    location: editingProduct.location,
+                    supplier_id: editingProduct.supplier_id,
+                    supplier_product_code: editingProduct.supplier_product_code,
+                    lead_time_days: editingProduct.lead_time_days,
+                    status: editingProduct.status,
+                    is_inventory_managed: editingProduct.is_inventory_managed,
+                    notes: editingProduct.notes,
+                  } : undefined}
+                  suppliers={suppliers}
+                  onSubmit={handleSave}
+                  onCancel={() => handleDialogClose(false)}
+                  isSubmitting={createProduct.isPending || updateProduct.isPending}
+                />
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         {/* Summary */}
@@ -444,7 +232,7 @@ export default function Products() {
           <Card>
             <CardHeader className="pb-2">
               <CardDescription>在庫少</CardDescription>
-              <CardTitle className="text-2xl text-yellow-600">{lowStockCount}</CardTitle>
+              <CardTitle className="text-2xl text-warning">{lowStockCount}</CardTitle>
             </CardHeader>
           </Card>
           <Card>
@@ -466,7 +254,7 @@ export default function Products() {
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="商品名、SKUで検索..."
+              placeholder="商品名、SKU、JANコードで検索..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-8"
@@ -478,7 +266,7 @@ export default function Products() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">すべて</SelectItem>
-              {categories.map((cat) => (
+              {PRODUCT_CATEGORIES.map((cat) => (
                 <SelectItem key={cat} value={cat}>
                   {cat}
                 </SelectItem>
@@ -493,64 +281,103 @@ export default function Products() {
             <CardTitle>商品一覧</CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>SKU</TableHead>
-                  <TableHead>商品名</TableHead>
-                  <TableHead>カテゴリ</TableHead>
-                  <TableHead className="text-right">販売価格</TableHead>
-                  <TableHead className="text-right">在庫</TableHead>
-                  <TableHead>状態</TableHead>
-                  <TableHead className="w-[100px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredProducts.map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell className="font-mono text-sm">{product.sku}</TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{product.name}</p>
-                        <p className="text-sm text-muted-foreground truncate max-w-xs">
-                          {product.description}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{product.category}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      ¥{product.price.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {product.stock} {product.unit}
-                    </TableCell>
-                    <TableCell>{getStockStatus(product)}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleEdit(product)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive"
-                          onClick={() => handleDelete(product)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+            {isLoading ? (
+              <div className="space-y-2">
+                {[...Array(5)].map((_, i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+            ) : filteredProducts.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                {products.length === 0 ? (
+                  <div>
+                    <Package className="mx-auto h-12 w-12 opacity-50 mb-2" />
+                    <p>商品がありません</p>
+                    <p className="text-sm">「商品を追加」ボタンから登録してください</p>
+                  </div>
+                ) : (
+                  <p>検索条件に一致する商品がありません</p>
+                )}
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>SKU</TableHead>
+                    <TableHead>JANコード</TableHead>
+                    <TableHead>商品名</TableHead>
+                    <TableHead>カテゴリ</TableHead>
+                    <TableHead className="text-right">販売価格</TableHead>
+                    <TableHead className="text-right">在庫</TableHead>
+                    <TableHead>ステータス</TableHead>
+                    <TableHead className="w-12"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredProducts.map((product) => (
+                    <TableRow key={product.id}>
+                      <TableCell className="font-mono text-sm">{product.sku}</TableCell>
+                      <TableCell>
+                        {product.jan_code ? (
+                          <span className="font-mono text-sm flex items-center gap-1">
+                            <Barcode className="h-3 w-3" />
+                            {product.jan_code}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{product.name}</p>
+                          {product.description && (
+                            <p className="text-sm text-muted-foreground line-clamp-1">
+                              {product.description}
+                            </p>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>{product.category || '-'}</TableCell>
+                      <TableCell className="text-right">
+                        ¥{product.price.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {product.is_inventory_managed ? (
+                          <span>
+                            {product.stock_quantity.toLocaleString()} {product.unit || '個'}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>{getStockStatus(product)}</TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEdit(product.id)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              編集
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleDelete(product.id)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              削除
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>
