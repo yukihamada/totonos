@@ -45,13 +45,16 @@ import {
   MoreHorizontal,
   Barcode,
   ShoppingCart,
+  Scan,
 } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useClients } from '@/hooks/useClients';
 import { ProductForm } from '@/components/inventory/ProductForm';
 import { InventoryAlertBanner } from '@/components/inventory/InventoryAlertBanner';
+import { BarcodeScanButton } from '@/components/inventory/BarcodeScanButton';
 import { PRODUCT_CATEGORIES, type ProductFormData } from '@/types/inventory';
 import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
 
 export default function Products() {
   const { products, isLoading, createProduct, updateProduct, deleteProduct } = useProducts();
@@ -109,6 +112,38 @@ export default function Products() {
     setDialogOpen(open);
     if (!open) {
       setEditingProductId(null);
+    }
+  };
+
+  // Handle barcode scan for quick product lookup
+  const handleBarcodeScan = (code: string) => {
+    // Search for product with this JAN code
+    const foundProduct = products.find(p => p.jan_code === code);
+    
+    if (foundProduct) {
+      // Product found - highlight and show info
+      setSearch(code);
+      toast.success(`${foundProduct.name} が見つかりました`, {
+        description: `在庫: ${foundProduct.stock_quantity} ${foundProduct.unit || '個'}`,
+        action: {
+          label: '編集',
+          onClick: () => handleEdit(foundProduct.id),
+        },
+      });
+    } else {
+      // Product not found - offer to create
+      toast.info('未登録のバーコードです', {
+        description: `JANコード: ${code}`,
+        action: {
+          label: '新規登録',
+          onClick: () => {
+            setEditingProductId(null);
+            // Pre-fill the JAN code
+            setSearch(code);
+            setDialogOpen(true);
+          },
+        },
+      });
     }
   };
 
@@ -268,6 +303,14 @@ export default function Products() {
               className="pl-8"
             />
           </div>
+          <BarcodeScanButton
+            onScan={handleBarcodeScan}
+            variant="outline"
+            size="default"
+          >
+            <Scan className="mr-2 h-4 w-4" />
+            スキャン
+          </BarcodeScanButton>
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
             <SelectTrigger className="w-40">
               <SelectValue placeholder="カテゴリ" />
