@@ -122,6 +122,7 @@ import Invite from "./pages/Invite";
 import { ChatWidget } from "./components/chat/ChatWidget";
 // LINE Integration
 import LineSettings from "./pages/LineSettings";
+import Integrations from "./pages/Integrations";
 // Phase 4: Expense Management
 import Expenses from "./pages/Expenses";
 import ExpenseNew from "./pages/ExpenseNew";
@@ -275,8 +276,11 @@ function AppRoutes() {
       <Route path="/settings/ai" element={<ProtectedRoute><AISettings /></ProtectedRoute>} />
       <Route path="/ai-settings" element={<ProtectedRoute><AISettings /></ProtectedRoute>} />
       <Route path="/settings/company" element={<ProtectedRoute><CompanySettings /></ProtectedRoute>} />
+      <Route path="/company-settings" element={<ProtectedRoute><CompanySettings /></ProtectedRoute>} />
       <Route path="/settings/line" element={<ProtectedRoute><LineSettings /></ProtectedRoute>} />
       <Route path="/line-settings" element={<ProtectedRoute><LineSettings /></ProtectedRoute>} />
+      <Route path="/team-members" element={<ProtectedRoute><TeamMembers /></ProtectedRoute>} />
+      <Route path="/integrations" element={<ProtectedRoute><Integrations /></ProtectedRoute>} />
       <Route path="/developer" element={<ProtectedRoute><DeveloperSettings /></ProtectedRoute>} />
       <Route path="/api-docs" element={<ProtectedRoute><ApiDocs /></ProtectedRoute>} />
       <Route path="/mcp-settings" element={<ProtectedRoute><McpSettings /></ProtectedRoute>} />

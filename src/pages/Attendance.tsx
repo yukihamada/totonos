@@ -36,11 +36,11 @@ export default function Attendance() {
   const today = new Date().toISOString().split('T')[0];
   const currentMonth = today.slice(0, 7);
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
-  const [selectedEmployee, setSelectedEmployee] = useState<string>("");
+  const [selectedEmployee, setSelectedEmployee] = useState<string>("all");
 
   const { data: employees = [] } = useEmployees();
   const { data: records = [], isLoading } = useAttendanceRecords(
-    selectedEmployee || undefined,
+    selectedEmployee === "all" ? undefined : selectedEmployee,
     selectedMonth
   );
   const clockIn = useClockIn();
@@ -189,7 +189,7 @@ export default function Attendance() {
               <SelectValue placeholder="全従業員" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">全従業員</SelectItem>
+              <SelectItem value="all">全従業員</SelectItem>
               {employees.map(emp => (
                 <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
               ))}
