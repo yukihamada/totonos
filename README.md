@@ -112,3 +112,6 @@ Issue や Pull Request は歓迎です。
 
 - [GitHub Issues](https://github.com/yukihamada/totonos/issues)
 - Email: support@totonos.jp
+
+---
+*Last updated: 2026-01-19*
