@@ -75,6 +75,7 @@ import BankConnections from "./pages/BankConnections";
 import Workflows from "./pages/Workflows";
 import Products from "./pages/Products";
 import AutoReorder from "./pages/AutoReorder";
+import DeliveryNotes from "./pages/DeliveryNotes";
 import PaymentLinks from "./pages/PaymentLinks";
 import EmailTemplates from "./pages/EmailTemplates";
 import PaymentSuccess from "./pages/PaymentSuccess";
@@ -247,6 +248,7 @@ function AppRoutes() {
       <Route path="/workflows" element={<ProtectedRoute><Workflows /></ProtectedRoute>} />
       <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
       <Route path="/auto-reorder" element={<ProtectedRoute><AutoReorder /></ProtectedRoute>} />
+      <Route path="/delivery-notes" element={<ProtectedRoute><DeliveryNotes /></ProtectedRoute>} />
       <Route path="/payment-links" element={<ProtectedRoute><PaymentLinks /></ProtectedRoute>} />
       <Route path="/email-templates" element={<ProtectedRoute><EmailTemplates /></ProtectedRoute>} />
       {/* Payment */}

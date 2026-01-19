@@ -378,11 +378,15 @@ export function useLowStockProducts() {
         .eq('user_id', user.id)
         .eq('is_inventory_managed', true)
         .eq('status', 'active')
-        .or('stock_quantity.lte.reorder_point,stock_quantity.eq.0')
         .order('stock_quantity', { ascending: true });
 
       if (error) throw error;
-      return data as Product[];
+      
+      // Filter on JS side for accurate comparison
+      // (Supabase .or() with column comparison doesn't work reliably)
+      return (data as Product[]).filter(p => 
+        p.stock_quantity <= (p.reorder_point ?? 0) || p.stock_quantity === 0
+      );
     },
     enabled: !!user?.id,
   });
