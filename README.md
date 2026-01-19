@@ -114,4 +114,4 @@ Issue や Pull Request は歓迎です。
 - Email: support@totonos.jp
 
 ---
-*Last updated: 2026-01-19*
+*Last updated: 2026-01-19 - CI/CD configured with Supabase credentials*
