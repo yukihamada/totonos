@@ -165,6 +165,14 @@ export default function Products() {
             </p>
           </div>
           <div className="flex gap-2">
+            {(lowStockCount > 0 || outOfStockCount > 0) && (
+              <Button variant="outline" className="border-destructive text-destructive" asChild>
+                <Link to="/auto-reorder">
+                  <AlertTriangle className="mr-2 h-4 w-4" />
+                  自動発注 ({lowStockCount + outOfStockCount})
+                </Link>
+              </Button>
+            )}
             <Button variant="outline" asChild>
               <Link to="/purchase-orders">
                 <ShoppingCart className="mr-2 h-4 w-4" />

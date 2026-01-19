@@ -8,6 +8,7 @@ import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { TrustPassportMini } from "@/components/dashboard/TrustPassportMini";
 import { OnboardingGuide } from "@/components/dashboard/OnboardingGuide";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
+import { InventoryAlertWidget } from "@/components/dashboard/InventoryAlertWidget";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { Wallet, FileText, Target, TrendingUp, Users } from "lucide-react";
 import { formatCurrency } from "@/types/database";
@@ -107,13 +108,14 @@ export default function Dashboard() {
         </div>
 
         {/* Alerts and Activity Row */}
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-4">
           <UnpaidInvoicesAlert
             unpaidAmount={stats?.unpaidAmount || 0}
             unpaidCount={stats?.unpaidCount || 0}
             overdueAmount={stats?.overdueAmount || 0}
             overdueCount={stats?.overdueCount || 0}
           />
+          <InventoryAlertWidget />
           <TrustPassportMini score={782} rank="A" previousScore={759} />
           <ActivityFeed limit={5} />
         </div>
