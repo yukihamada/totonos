@@ -1,9 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useCompany } from "@/hooks/useCompany";
+import { useCurrentCompany } from "@/hooks/useCompany";
 import { toast } from "sonner";
 import { EmrPatient } from "./useEmrPatients";
 import { EmrReception } from "./useEmrReceptions";
+import type { Json } from "@/integrations/supabase/types";
 
 export interface VitalSigns {
   temperature?: number;
@@ -58,10 +59,20 @@ export interface EmrMedicalRecord {
 export type EmrMedicalRecordInsert = Omit<EmrMedicalRecord, "id" | "created_at" | "updated_at" | "patient" | "reception">;
 export type EmrMedicalRecordUpdate = Partial<EmrMedicalRecordInsert>;
 
+// Helper to convert JSONB to typed arrays
+function parseRecord(data: any): EmrMedicalRecord {
+  return {
+    ...data,
+    vital_signs: (data.vital_signs as VitalSigns) || {},
+    prescriptions: (data.prescriptions as Prescription[]) || [],
+    procedures: (data.procedures as Procedure[]) || [],
+  };
+}
+
 export function useEmrRecords(patientId?: string) {
-  const { currentCompany } = useCompany();
+  const currentCompanyQuery = useCurrentCompany();
   const queryClient = useQueryClient();
-  const companyId = currentCompany?.id;
+  const companyId = currentCompanyQuery.data?.id;
 
   const recordsQuery = useQuery({
     queryKey: ["emr-records", companyId, patientId],
@@ -83,7 +94,7 @@ export function useEmrRecords(patientId?: string) {
       
       const { data, error } = await query;
       if (error) throw error;
-      return data as EmrMedicalRecord[];
+      return data.map(parseRecord);
     },
     enabled: !!companyId,
   });
@@ -100,9 +111,22 @@ export function useEmrRecords(patientId?: string) {
       const { data, error } = await supabase
         .from("emr_medical_records")
         .insert({
-          ...record,
           company_id: companyId,
           record_number: recordNumber,
+          patient_id: record.patient_id,
+          reception_id: record.reception_id,
+          record_date: record.record_date,
+          doctor_name: record.doctor_name,
+          subjective: record.subjective,
+          objective: record.objective,
+          assessment: record.assessment,
+          plan: record.plan,
+          vital_signs: record.vital_signs as unknown as Json,
+          prescriptions: record.prescriptions as unknown as Json,
+          procedures: record.procedures as unknown as Json,
+          is_signed: record.is_signed,
+          signed_at: record.signed_at,
+          hpki_signature: record.hpki_signature,
         })
         .select(`
           *,
@@ -110,7 +134,7 @@ export function useEmrRecords(patientId?: string) {
         `)
         .single();
       if (error) throw error;
-      return data as EmrMedicalRecord;
+      return parseRecord(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["emr-records", companyId] });
@@ -123,9 +147,22 @@ export function useEmrRecords(patientId?: string) {
 
   const updateRecord = useMutation({
     mutationFn: async ({ id, ...updates }: EmrMedicalRecordUpdate & { id: string }) => {
+      const updateData: Record<string, any> = { ...updates };
+      
+      // Convert typed arrays to JSON for Supabase
+      if (updates.vital_signs) {
+        updateData.vital_signs = updates.vital_signs as unknown as Json;
+      }
+      if (updates.prescriptions) {
+        updateData.prescriptions = updates.prescriptions as unknown as Json;
+      }
+      if (updates.procedures) {
+        updateData.procedures = updates.procedures as unknown as Json;
+      }
+
       const { data, error } = await supabase
         .from("emr_medical_records")
-        .update(updates)
+        .update(updateData)
         .eq("id", id)
         .select(`
           *,
@@ -133,7 +170,7 @@ export function useEmrRecords(patientId?: string) {
         `)
         .single();
       if (error) throw error;
-      return data as EmrMedicalRecord;
+      return parseRecord(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["emr-records", companyId] });
@@ -157,7 +194,7 @@ export function useEmrRecords(patientId?: string) {
         .select()
         .single();
       if (error) throw error;
-      return data as EmrMedicalRecord;
+      return parseRecord(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["emr-records", companyId] });
@@ -198,8 +235,8 @@ export function useEmrRecords(patientId?: string) {
 }
 
 export function useEmrRecord(recordId: string | undefined) {
-  const { currentCompany } = useCompany();
-  const companyId = currentCompany?.id;
+  const currentCompanyQuery = useCurrentCompany();
+  const companyId = currentCompanyQuery.data?.id;
 
   return useQuery({
     queryKey: ["emr-record", recordId],
@@ -215,15 +252,15 @@ export function useEmrRecord(recordId: string | undefined) {
         .eq("id", recordId)
         .single();
       if (error) throw error;
-      return data as EmrMedicalRecord;
+      return parseRecord(data);
     },
     enabled: !!recordId && !!companyId,
   });
 }
 
 export function useTodayRecordStats() {
-  const { currentCompany } = useCompany();
-  const companyId = currentCompany?.id;
+  const currentCompanyQuery = useCurrentCompany();
+  const companyId = currentCompanyQuery.data?.id;
   const today = new Date().toISOString().split("T")[0];
 
   return useQuery({

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useCompany } from "@/hooks/useCompany";
+import { useCurrentCompany } from "@/hooks/useCompany";
 import { toast } from "sonner";
 
 export interface EmrPatient {
@@ -30,9 +30,9 @@ export type EmrPatientInsert = Omit<EmrPatient, "id" | "created_at" | "updated_a
 export type EmrPatientUpdate = Partial<EmrPatientInsert>;
 
 export function useEmrPatients() {
-  const { currentCompany } = useCompany();
+  const currentCompanyQuery = useCurrentCompany();
   const queryClient = useQueryClient();
-  const companyId = currentCompany?.id;
+  const companyId = currentCompanyQuery.data?.id;
 
   const patientsQuery = useQuery({
     queryKey: ["emr-patients", companyId],
@@ -128,8 +128,8 @@ export function useEmrPatients() {
 }
 
 export function useEmrPatient(patientId: string | undefined) {
-  const { currentCompany } = useCompany();
-  const companyId = currentCompany?.id;
+  const currentCompanyQuery = useCurrentCompany();
+  const companyId = currentCompanyQuery.data?.id;
 
   return useQuery({
     queryKey: ["emr-patient", patientId],

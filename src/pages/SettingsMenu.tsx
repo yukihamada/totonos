@@ -88,14 +88,15 @@ export default function SettingsMenu() {
     updateMenuItem, 
     resetToDefaults,
     updateMobileNavItems,
-    applyTemplate 
+    applyTemplate,
+    isProtectedItem,
+    isProtectedGroup,
   } = useAppSettings();
   
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(
     settings.menuGroups.map(g => g.id)
   ));
   const [activeTab, setActiveTab] = useState("menu");
-
   const toggleGroup = (groupId: string) => {
     setExpandedGroups(prev => {
       const next = new Set(prev);
@@ -347,6 +348,7 @@ export default function SettingsMenu() {
                                 </span>
                                 <Switch
                                   checked={group.visible}
+                                  disabled={isProtectedGroup(group.id)}
                                   onCheckedChange={(checked) =>
                                     handleGroupVisibilityChange(group.id, checked)
                                   }
@@ -396,6 +398,7 @@ export default function SettingsMenu() {
                                       )}
                                       <Switch
                                         checked={item.visible}
+                                        disabled={isProtectedItem(item.id)}
                                         onCheckedChange={(checked) =>
                                           handleItemVisibilityChange(group.id, item.id, checked)
                                         }
