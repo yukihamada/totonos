@@ -125,6 +125,9 @@ import { ChatWidget } from "./components/chat/ChatWidget";
 // LINE Integration
 import LineSettings from "./pages/LineSettings";
 import Integrations from "./pages/Integrations";
+// Industry Templates
+import Industries from "./pages/Industries";
+import IndustryLanding from "./pages/lp/IndustryLanding";
 // Phase 4: Expense Management
 import Expenses from "./pages/Expenses";
 import ExpenseNew from "./pages/ExpenseNew";
@@ -300,6 +303,9 @@ function AppRoutes() {
       <Route path="/portal" element={<EmployeePortal />} />
       {/* Showcase (public) */}
       <Route path="/showcase" element={<Showcase />} />
+      {/* Industry Templates */}
+      <Route path="/industries" element={<Industries />} />
+      <Route path="/lp/:template" element={<IndustryLanding />} />
       {/* Invitation */}
       <Route path="/invite" element={<Invite />} />
       {/* Phase 4: Expense Management */}
@@ -329,24 +335,28 @@ function AppRoutes() {
   );
 }
 
+import { HelmetProvider } from 'react-helmet-async';
+
 const App = () => (
   <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <OrganizationProvider>
-          <SettingsProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
-                <AppRoutes />
-                <ChatWidget />
-              </BrowserRouter>
-            </TooltipProvider>
-          </SettingsProvider>
-        </OrganizationProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <HelmetProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <OrganizationProvider>
+            <SettingsProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <BrowserRouter>
+                  <AppRoutes />
+                  <ChatWidget />
+                </BrowserRouter>
+              </TooltipProvider>
+            </SettingsProvider>
+          </OrganizationProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </HelmetProvider>
   </ErrorBoundary>
 );
 
