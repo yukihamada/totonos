@@ -354,6 +354,9 @@ serve(async (req: Request) => {
     let result: { content: string; toolCalls: Array<{ id: string; name: string; input: unknown }> };
     let toolResults: Array<{ toolCallId: string; toolName: string; result: unknown; isError?: boolean }> = [];
 
+    // Track sent content to prevent duplicates (Issue #12 fix)
+    let lastSentContent = "";
+
     // Streaming (SSE): tool status (実行中→完了/失敗) を自然に表現するため
     if (stream) {
       const encoder = new TextEncoder();
@@ -378,11 +381,12 @@ serve(async (req: Request) => {
               let currentResult = await callLovableAI(messages, aiSettings.model, systemPrompt, allTools);
 
               // Initial content (confirmation/questions) if present
-              if (currentResult.content) {
+              if (currentResult.content && currentResult.content !== lastSentContent) {
                 send({
                   type: "content_block_delta",
                   delta: { type: "text_delta", text: currentResult.content },
                 });
+                lastSentContent = currentResult.content;
               }
 
               // Process tool calls in a loop (max 5 rounds for multi-step tasks)
@@ -454,11 +458,13 @@ serve(async (req: Request) => {
                 const nextResult = await callLovableAI(messagesWithToolResults, aiSettings.model, systemPrompt, allTools);
                 
                 // Send any intermediate content
-                if (nextResult.content && nextResult.toolCalls.length > 0) {
+                // Send intermediate content only if different from last sent
+                if (nextResult.content && nextResult.toolCalls.length > 0 && nextResult.content !== lastSentContent) {
                   send({
                     type: "content_block_delta",
                     delta: { type: "text_delta", text: nextResult.content },
                   });
+                  lastSentContent = nextResult.content;
                 }
 
                 // Update for next iteration
@@ -466,8 +472,8 @@ serve(async (req: Request) => {
                 currentResult = nextResult;
               }
 
-              // Send final response content
-              if (currentResult.content) {
+              // Send final response content only if different from last sent
+              if (currentResult.content && currentResult.content !== lastSentContent) {
                 send({
                   type: "content_block_delta",
                   delta: { type: "text_delta", text: currentResult.content },

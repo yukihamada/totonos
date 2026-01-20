@@ -4657,6 +4657,10 @@ export type Database = {
         Args: { p_company_id: string; p_user_id: string }
         Returns: boolean
       }
+      is_company_admin_via_roles: {
+        Args: { p_company_id: string; p_user_id: string }
+        Returns: boolean
+      }
       is_company_member: {
         Args: { p_company_id: string; p_user_id: string }
         Returns: boolean

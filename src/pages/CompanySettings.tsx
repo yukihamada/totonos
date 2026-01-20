@@ -137,19 +137,33 @@ export default function CompanySettings() {
   };
 
   const handleCreateCompany = async () => {
-    if (!newCompanyName.trim()) {
+    const trimmedName = newCompanyName.trim();
+    const trimmedDisplayName = newCompanyDisplayName.trim();
+    
+    if (!trimmedName) {
       toast.error("会社名を入力してください");
       return;
     }
 
-    await createCompany.mutateAsync({
-      name: newCompanyName,
-      display_name: newCompanyDisplayName || newCompanyName,
-    });
+    try {
+      await createCompany.mutateAsync({
+        name: trimmedName,
+        display_name: trimmedDisplayName || trimmedName,
+      });
 
-    setNewCompanyName("");
-    setNewCompanyDisplayName("");
-    setShowNewCompanyDialog(false);
+      setNewCompanyName("");
+      setNewCompanyDisplayName("");
+      setShowNewCompanyDialog(false);
+    } catch (error) {
+      // Issue #5 fix: より詳細なエラーメッセージを表示
+      const message = error instanceof Error ? error.message : "会社の登録に失敗しました";
+      console.error("Company creation error:", error);
+      toast.error("会社登録エラー", { 
+        description: message.includes("duplicate") 
+          ? "同じ名前の会社が既に存在します" 
+          : message 
+      });
+    }
   };
 
   const handleInvite = async () => {
