@@ -2,23 +2,39 @@
 // cost: credits charged to user
 // apiCost: approximate API cost in USD (for internal tracking)
 export const CREDIT_COSTS = {
+  // 基本AI機能
   ai_chat: { cost: 1, apiCost: 0.002, name: "AIチャット" },
   ai_chat_image: { cost: 3, apiCost: 0.01, name: "AI画像解析チャット" },
   ai_chat_pdf: { cost: 5, apiCost: 0.02, name: "AI PDF解析チャット" },
+  
+  // メールAI機能
   ai_email_analysis: { cost: 2, apiCost: 0.005, name: "メールAI分析" },
   ai_email_reply: { cost: 3, apiCost: 0.008, name: "AI返信生成" },
   ai_email_command: { cost: 5, apiCost: 0.015, name: "メールAI指示" },
+  
+  // ドキュメント処理
   ai_document_generate: { cost: 3, apiCost: 0.015, name: "AI文書生成" },
-  ocr: { cost: 2, apiCost: 0.003, name: "OCR処理" },
+  ocr: { cost: 2, apiCost: 0.003, name: "領収書OCR" },
+  ocr_delivery_note: { cost: 3, apiCost: 0.015, name: "納品書OCR" },
   pdf: { cost: 1, apiCost: 0.001, name: "PDF生成" },
+  
+  // メール・エクスポート
   email: { cost: 1, apiCost: 0.0002, name: "メール送信" },
   export: { cost: 2, apiCost: 0.001, name: "データエクスポート" },
+  
+  // 契約管理
   contract_create: { cost: 3, apiCost: 0.002, name: "契約書作成" },
   contract_sign: { cost: 2, apiCost: 0.001, name: "署名依頼" },
   contract_blockchain: { cost: 5, apiCost: 0.05, name: "ブロックチェーン証明" },
-  ai_forecast: { cost: 5, apiCost: 0.02, name: "AI予測" },
+  
+  // AI分析・予測
+  ai_forecast: { cost: 5, apiCost: 0.02, name: "AI売上予測" },
   ai_scoring: { cost: 3, apiCost: 0.01, name: "AIスコアリング" },
+  lead_scoring: { cost: 2, apiCost: 0.005, name: "リードスコアリング" },
+  
+  // その他
   mcp_call: { cost: 1, apiCost: 0.001, name: "MCP呼び出し" },
+  barcode_lookup: { cost: 0, apiCost: 0, name: "バーコード検索" },
 } as const;
 
 export type CreditAction = keyof typeof CREDIT_COSTS;

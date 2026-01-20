@@ -32,26 +32,72 @@ import {
   Users,
   ArrowLeft,
   Calendar,
+  Loader2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
-import { useCredits, type CreditTransaction, CREDIT_COSTS } from '@/hooks/useCredits';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useOrganization } from '@/hooks/useOrganization';
+import { CREDIT_COSTS } from '@/hooks/useCredits';
 
-type TransactionType = CreditTransaction['type'] | 'all';
+type TransactionType = 'grant' | 'consume' | 'charge' | 'refund' | 'referral' | 'all';
+
+interface CreditLog {
+  id: string;
+  type: TransactionType;
+  amount: number;
+  balance: number;
+  reason: string;
+  action?: string;
+  metadata?: Record<string, unknown>;
+  createdAt: Date;
+}
 
 export default function CreditLogs() {
-  const { getLogs, isLoading } = useCredits();
+  const { currentOrganization } = useOrganization();
+  const companyId = currentOrganization?.id;
   const [typeFilter, setTypeFilter] = useState<TransactionType>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
-  const allLogs = getLogs();
+  // DBからクレジット履歴を取得
+  const { data: logs = [], isLoading, refetch } = useQuery({
+    queryKey: ['credit-logs', companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+      
+      const { data, error } = await supabase
+        .from('credit_transactions')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false })
+        .limit(500);
+      
+      if (error) {
+        console.error('Failed to fetch credit logs:', error);
+        throw error;
+      }
+      
+      return (data || []).map(log => ({
+        id: log.id,
+        type: log.transaction_type as CreditLog['type'],
+        amount: log.amount,
+        balance: log.balance_after,
+        reason: log.description || log.action || '',
+        action: log.action,
+        metadata: log.metadata as Record<string, unknown> | undefined,
+        createdAt: new Date(log.created_at),
+      }));
+    },
+    enabled: !!companyId,
+  });
 
   // フィルタリング
   const filteredLogs = useMemo(() => {
-    return allLogs.filter((log) => {
+    return logs.filter((log) => {
       // タイプフィルター
       if (typeFilter !== 'all' && log.type !== typeFilter) return false;
 
@@ -73,7 +119,7 @@ export default function CreditLogs() {
 
       return true;
     });
-  }, [allLogs, typeFilter, searchQuery, dateFrom, dateTo]);
+  }, [logs, typeFilter, searchQuery, dateFrom, dateTo]);
 
   // 統計計算
   const stats = useMemo(() => {
@@ -95,11 +141,12 @@ export default function CreditLogs() {
 
   // CSVエクスポート
   const handleExportCSV = () => {
-    const headers = ['日時', 'タイプ', '説明', '金額', '残高'];
+    const headers = ['日時', 'タイプ', '説明', 'アクション', '金額', '残高'];
     const rows = filteredLogs.map((log) => [
       format(log.createdAt, 'yyyy-MM-dd HH:mm:ss'),
       log.type,
       log.reason,
+      log.action || '',
       log.amount.toString(),
       log.balance.toString(),
     ]);
@@ -133,7 +180,7 @@ export default function CreditLogs() {
     toast.success('JSONをダウンロードしました');
   };
 
-  const getTypeIcon = (type: CreditTransaction['type']) => {
+  const getTypeIcon = (type: CreditLog['type']) => {
     switch (type) {
       case 'grant':
         return <Gift className="h-4 w-4 text-purple-500" />;
@@ -145,26 +192,34 @@ export default function CreditLogs() {
         return <RefreshCw className="h-4 w-4 text-green-500" />;
       case 'referral':
         return <Users className="h-4 w-4 text-pink-500" />;
+      default:
+        return <Zap className="h-4 w-4 text-gray-500" />;
     }
   };
 
-  const getTypeBadge = (type: CreditTransaction['type']) => {
-    const variants: Record<CreditTransaction['type'], { label: string; className: string }> = {
+  const getTypeBadge = (type: CreditLog['type']) => {
+    const variants: Record<string, { label: string; className: string }> = {
       grant: { label: '付与', className: 'bg-purple-100 text-purple-800' },
       consume: { label: '消費', className: 'bg-gray-100 text-gray-800' },
       charge: { label: 'チャージ', className: 'bg-blue-100 text-blue-800' },
       refund: { label: '返金', className: 'bg-green-100 text-green-800' },
       referral: { label: '招待', className: 'bg-pink-100 text-pink-800' },
     };
-    const v = variants[type];
+    const v = variants[type] || variants.consume;
     return <Badge className={v.className}>{v.label}</Badge>;
+  };
+
+  const getActionName = (action?: string) => {
+    if (!action) return null;
+    const cost = CREDIT_COSTS[action as keyof typeof CREDIT_COSTS];
+    return cost?.name || action;
   };
 
   if (isLoading) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </AppLayout>
     );
@@ -192,6 +247,9 @@ export default function CreditLogs() {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
+              <RefreshCw className="h-4 w-4" />
+            </Button>
             <Button variant="outline" onClick={handleExportCSV}>
               <Download className="mr-2 h-4 w-4" />
               CSV
@@ -302,6 +360,7 @@ export default function CreditLogs() {
                 <TableRow>
                   <TableHead>日時</TableHead>
                   <TableHead>タイプ</TableHead>
+                  <TableHead>アクション</TableHead>
                   <TableHead>説明</TableHead>
                   <TableHead className="text-right">金額</TableHead>
                   <TableHead className="text-right">残高</TableHead>
@@ -320,7 +379,16 @@ export default function CreditLogs() {
                           {getTypeBadge(log.type)}
                         </div>
                       </TableCell>
-                      <TableCell>{log.reason}</TableCell>
+                      <TableCell>
+                        {log.action && (
+                          <Badge variant="outline" className="text-xs">
+                            {getActionName(log.action)}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="max-w-[200px] truncate">
+                        {log.reason}
+                      </TableCell>
                       <TableCell className={`text-right font-medium ${
                         log.amount > 0 ? 'text-green-600' : 'text-gray-600'
                       }`}>
@@ -333,7 +401,7 @@ export default function CreditLogs() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       履歴がありません
                     </TableCell>
                   </TableRow>
