@@ -1888,6 +1888,237 @@ export type Database = {
           },
         ]
       }
+      emr_medical_records: {
+        Row: {
+          assessment: string | null
+          company_id: string
+          created_at: string | null
+          doctor_name: string | null
+          hpki_signature: string | null
+          id: string
+          is_signed: boolean | null
+          objective: string | null
+          patient_id: string
+          plan: string | null
+          prescriptions: Json | null
+          procedures: Json | null
+          reception_id: string | null
+          record_date: string | null
+          record_number: string
+          signed_at: string | null
+          subjective: string | null
+          updated_at: string | null
+          vital_signs: Json | null
+        }
+        Insert: {
+          assessment?: string | null
+          company_id: string
+          created_at?: string | null
+          doctor_name?: string | null
+          hpki_signature?: string | null
+          id?: string
+          is_signed?: boolean | null
+          objective?: string | null
+          patient_id: string
+          plan?: string | null
+          prescriptions?: Json | null
+          procedures?: Json | null
+          reception_id?: string | null
+          record_date?: string | null
+          record_number: string
+          signed_at?: string | null
+          subjective?: string | null
+          updated_at?: string | null
+          vital_signs?: Json | null
+        }
+        Update: {
+          assessment?: string | null
+          company_id?: string
+          created_at?: string | null
+          doctor_name?: string | null
+          hpki_signature?: string | null
+          id?: string
+          is_signed?: boolean | null
+          objective?: string | null
+          patient_id?: string
+          plan?: string | null
+          prescriptions?: Json | null
+          procedures?: Json | null
+          reception_id?: string | null
+          record_date?: string | null
+          record_number?: string
+          signed_at?: string | null
+          subjective?: string | null
+          updated_at?: string | null
+          vital_signs?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emr_medical_records_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emr_medical_records_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "emr_patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emr_medical_records_reception_id_fkey"
+            columns: ["reception_id"]
+            isOneToOne: false
+            referencedRelation: "emr_receptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      emr_patients: {
+        Row: {
+          address: string | null
+          allergies: string[] | null
+          birth_date: string | null
+          blood_type: string | null
+          company_id: string
+          created_at: string | null
+          email: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          gender: string | null
+          id: string
+          insurance_number: string | null
+          insurance_type: string | null
+          is_active: boolean | null
+          name: string
+          name_kana: string | null
+          notes: string | null
+          patient_number: string
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          allergies?: string[] | null
+          birth_date?: string | null
+          blood_type?: string | null
+          company_id: string
+          created_at?: string | null
+          email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          gender?: string | null
+          id?: string
+          insurance_number?: string | null
+          insurance_type?: string | null
+          is_active?: boolean | null
+          name: string
+          name_kana?: string | null
+          notes?: string | null
+          patient_number: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          allergies?: string[] | null
+          birth_date?: string | null
+          blood_type?: string | null
+          company_id?: string
+          created_at?: string | null
+          email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          gender?: string | null
+          id?: string
+          insurance_number?: string | null
+          insurance_type?: string | null
+          is_active?: boolean | null
+          name?: string
+          name_kana?: string | null
+          notes?: string | null
+          patient_number?: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emr_patients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      emr_receptions: {
+        Row: {
+          assigned_doctor_name: string | null
+          chief_complaint: string | null
+          company_id: string
+          created_at: string | null
+          department: string | null
+          id: string
+          notes: string | null
+          patient_id: string
+          reception_date: string | null
+          reception_number: string
+          reception_time: string | null
+          status: string | null
+          updated_at: string | null
+          visit_type: string | null
+        }
+        Insert: {
+          assigned_doctor_name?: string | null
+          chief_complaint?: string | null
+          company_id: string
+          created_at?: string | null
+          department?: string | null
+          id?: string
+          notes?: string | null
+          patient_id: string
+          reception_date?: string | null
+          reception_number: string
+          reception_time?: string | null
+          status?: string | null
+          updated_at?: string | null
+          visit_type?: string | null
+        }
+        Update: {
+          assigned_doctor_name?: string | null
+          chief_complaint?: string | null
+          company_id?: string
+          created_at?: string | null
+          department?: string | null
+          id?: string
+          notes?: string | null
+          patient_id?: string
+          reception_date?: string | null
+          reception_number?: string
+          reception_time?: string | null
+          status?: string | null
+          updated_at?: string | null
+          visit_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emr_receptions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emr_receptions_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "emr_patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estimate_items: {
         Row: {
           amount: number
@@ -5366,6 +5597,18 @@ export type Database = {
         Returns: string
       }
       generate_employee_number: { Args: { p_user_id: string }; Returns: string }
+      generate_emr_patient_number: {
+        Args: { p_company_id: string }
+        Returns: string
+      }
+      generate_emr_reception_number: {
+        Args: { p_company_id: string }
+        Returns: string
+      }
+      generate_emr_record_number: {
+        Args: { p_company_id: string }
+        Returns: string
+      }
       generate_product_sku: {
         Args: { p_category?: string; p_user_id: string }
         Returns: string
