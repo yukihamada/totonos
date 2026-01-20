@@ -662,6 +662,7 @@ export type Database = {
           fiscal_year_start_month: number | null
           id: string
           industry: string | null
+          invoice_registration_number: string | null
           logo_url: string | null
           name: string
           phone: string | null
@@ -682,6 +683,7 @@ export type Database = {
           fiscal_year_start_month?: number | null
           id?: string
           industry?: string | null
+          invoice_registration_number?: string | null
           logo_url?: string | null
           name: string
           phone?: string | null
@@ -702,6 +704,7 @@ export type Database = {
           fiscal_year_start_month?: number | null
           id?: string
           industry?: string | null
+          invoice_registration_number?: string | null
           logo_url?: string | null
           name?: string
           phone?: string | null
@@ -2767,6 +2770,7 @@ export type Database = {
           due_date: string
           id: string
           invoice_number: string
+          invoice_registration_number: string | null
           issue_date: string
           paid_date: string | null
           status: Database["public"]["Enums"]["invoice_status"]
@@ -2785,6 +2789,7 @@ export type Database = {
           due_date: string
           id?: string
           invoice_number: string
+          invoice_registration_number?: string | null
           issue_date?: string
           paid_date?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
@@ -2803,6 +2808,7 @@ export type Database = {
           due_date?: string
           id?: string
           invoice_number?: string
+          invoice_registration_number?: string | null
           issue_date?: string
           paid_date?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
