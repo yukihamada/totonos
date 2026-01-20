@@ -17,7 +17,7 @@ export default function Terms() {
 
         <div className="prose prose-gray dark:prose-invert max-w-none">
           <p className="text-muted-foreground mb-6">
-            最終更新日: 2026年1月14日
+            最終更新日: 2026年1月20日
           </p>
 
           <section className="mb-8">

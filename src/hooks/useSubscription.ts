@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { supabase } from '@/integrations/supabase/client';
 
-export type Plan = 'free' | 'pro' | 'enterprise';
+export type Plan = 'free' | 'starter' | 'standard' | 'pro' | 'enterprise';
 
 export interface PlanFeatures {
   maxUsers: number;
@@ -10,6 +10,8 @@ export interface PlanFeatures {
   features: string[];
   price: number;
   priceLabel: string;
+  monthlyCredits: number;
+  slaUptime: string | null;
 }
 
 export const planFeatures: Record<Plan, PlanFeatures> = {
@@ -24,6 +26,39 @@ export const planFeatures: Record<Plan, PlanFeatures> = {
     ],
     price: 0,
     priceLabel: '¥0/月',
+    monthlyCredits: 100,
+    slaUptime: null,
+  },
+  starter: {
+    maxUsers: 5,
+    maxStorage: '10GB',
+    features: [
+      '基本機能',
+      'ユーザー5名まで',
+      '10GB ストレージ',
+      'メールサポート',
+      '請求書・経費管理',
+    ],
+    price: 980,
+    priceLabel: '¥980/月',
+    monthlyCredits: 500,
+    slaUptime: null,
+  },
+  standard: {
+    maxUsers: 20,
+    maxStorage: '50GB',
+    features: [
+      '全機能利用可能',
+      'ユーザー20名まで',
+      '50GB ストレージ',
+      'チャットサポート',
+      'API アクセス',
+      'レポート機能',
+    ],
+    price: 2980,
+    priceLabel: '¥2,980/月',
+    monthlyCredits: 2000,
+    slaUptime: '99.5%',
   },
   pro: {
     maxUsers: -1, // unlimited
@@ -35,9 +70,12 @@ export const planFeatures: Record<Plan, PlanFeatures> = {
       '優先サポート',
       'API アクセス',
       'カスタムレポート',
+      '高度な分析',
     ],
-    price: 2980,
-    priceLabel: '¥2,980/月/ユーザー',
+    price: 4980,
+    priceLabel: '¥4,980/月',
+    monthlyCredits: 5000,
+    slaUptime: '99.9%',
   },
   enterprise: {
     maxUsers: -1,
@@ -52,6 +90,8 @@ export const planFeatures: Record<Plan, PlanFeatures> = {
     ],
     price: -1,
     priceLabel: 'お問い合わせ',
+    monthlyCredits: -1,
+    slaUptime: '99.99%',
   },
 };
 
