@@ -87,20 +87,42 @@ serve(async (req) => {
       });
     }
 
-    // Build system prompt based on document type
+    // Get current date for AI context
+    const today = new Date();
+    const currentDateStr = today.toISOString().split('T')[0];
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth() + 1;
+
+    // Build system prompt based on document type with date context
+    const dateContext = `【重要】現在日時: ${currentDateStr}（${currentYear}年${currentMonth}月）
+日付に関する指示（「来月末」「2月末」など）は、必ず現在日時を基準に計算してください。
+例: 現在が2026年1月の場合、「2月末」は「2026-02-28」を意味します。
+過去の日付を有効期限や支払期限として設定しないでください。`;
+
     const systemPrompts: Record<string, string> = {
-      contract: `あなたは契約書作成のエキスパートです。ユーザーの指示に基づいて、日本の商慣習に沿った契約書データを生成してください。
+      contract: `${dateContext}
+
+あなたは契約書作成のエキスパートです。ユーザーの指示に基づいて、日本の商慣習に沿った契約書データを生成してください。
 必ず generate_contract ツールを使用して構造化されたデータを返してください。`,
-      estimate: `あなたは見積書作成のエキスパートです。ユーザーの指示に基づいて、適切な見積書データを生成してください。
+      estimate: `${dateContext}
+
+あなたは見積書作成のエキスパートです。ユーザーの指示に基づいて、適切な見積書データを生成してください。
+有効期限は現在日より未来の日付を設定してください。
 必ず generate_estimate ツールを使用して構造化されたデータを返してください。`,
-      invoice: `あなたは請求書作成のエキスパートです。ユーザーの指示に基づいて、適切な請求書データを生成してください。
+      invoice: `${dateContext}
+
+あなたは請求書作成のエキスパートです。ユーザーの指示に基づいて、適切な請求書データを生成してください。
+支払期限は現在日より未来の日付を設定してください。
 必ず generate_invoice ツールを使用して構造化されたデータを返してください。`,
-      purchase_order: `あなたは発注書作成のエキスパートです。ユーザーの指示に基づいて、適切な発注書データを生成してください。
+      purchase_order: `${dateContext}
+
+あなたは発注書作成のエキスパートです。ユーザーの指示に基づいて、適切な発注書データを生成してください。
+納品希望日は現在日より未来の日付を設定してください。
 必ず generate_purchase_order ツールを使用して構造化されたデータを返してください。`,
     };
 
-    // Build user prompt
-    let userPrompt = `【指示】\n${prompt}\n`;
+    // Build user prompt with explicit date reference
+    let userPrompt = `【現在日付】${currentDateStr}\n【指示】\n${prompt}\n`;
     
     if (clientInfo) {
       userPrompt += `\n【取引先情報】\n名前: ${clientInfo.name}\nID: ${clientInfo.id}\n`;

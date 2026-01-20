@@ -82,6 +82,16 @@ export function useCreateEstimate() {
     mutationFn: async (input: CreateEstimateInput) => {
       if (!user) throw new Error('ログインが必要です');
 
+      // Validate valid_until is not in the past
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const validUntilDate = new Date(input.valid_until);
+      validUntilDate.setHours(0, 0, 0, 0);
+      
+      if (validUntilDate < today) {
+        throw new Error('有効期限は現在日より未来の日付を指定してください');
+      }
+
       // Calculate totals
       const amount = input.items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
       const taxAmount = Math.floor(amount * 0.1); // 10% tax
