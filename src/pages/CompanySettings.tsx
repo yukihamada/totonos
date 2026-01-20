@@ -80,6 +80,7 @@ export default function CompanySettings() {
   const [editEmail, setEditEmail] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editAddress, setEditAddress] = useState("");
+  const [editInvoiceRegNumber, setEditInvoiceRegNumber] = useState("");
 
   // Invite form
   const [inviteEmail, setInviteEmail] = useState("");
@@ -115,6 +116,7 @@ export default function CompanySettings() {
       setEditEmail(currentCompany.email || "");
       setEditPhone(currentCompany.phone || "");
       setEditAddress(currentCompany.address || "");
+      setEditInvoiceRegNumber((currentCompany as any).invoice_registration_number || "");
     }
   }, [currentCompany]);
 
@@ -133,6 +135,7 @@ export default function CompanySettings() {
       email: editEmail.trim() || null,
       phone: editPhone.trim() || null,
       address: editAddress.trim() || null,
+      invoice_registration_number: editInvoiceRegNumber.trim() || null,
     });
   };
 
@@ -393,6 +396,17 @@ export default function CompanySettings() {
                         onChange={(e) => setEditAddress(e.target.value)}
                         placeholder="東京都渋谷区..."
                       />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label>インボイス登録番号</Label>
+                      <Input
+                        value={editInvoiceRegNumber}
+                        onChange={(e) => setEditInvoiceRegNumber(e.target.value)}
+                        placeholder="T1234567890123"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        適格請求書発行事業者の登録番号（T + 13桁の数字）
+                      </p>
                     </div>
                   </div>
                   <Button 
