@@ -162,6 +162,47 @@ import EmrPatients from "./pages/emr/EmrPatients";
 import EmrRecords from "./pages/emr/EmrRecords";
 import EmrHpkiBridge from "./pages/emr/EmrHpkiBridge";
 import EmrSalesReport from "./pages/emr/EmrSalesReport";
+// Membership
+import MembersDashboard from "./pages/membership/MembersDashboard";
+import MembersList from "./pages/membership/MembersList";
+import MembershipPlans from "./pages/membership/MembershipPlans";
+import ClassSchedules from "./pages/membership/ClassSchedules";
+import ClassBookings from "./pages/membership/ClassBookings";
+import MemberCheckins from "./pages/membership/MemberCheckins";
+import MemberPurchases from "./pages/membership/MemberPurchases";
+// Support/CS
+import Tickets from "./pages/support-cs/Tickets";
+import HelpCenter from "./pages/support-cs/HelpCenter";
+import Chatbot from "./pages/support-cs/Chatbot";
+import CTI from "./pages/support-cs/CTI";
+import CustomerSuccess from "./pages/support-cs/CustomerSuccess";
+import SupportCommunity from "./pages/support-cs/Community";
+// Marketing
+import EmailMarketing from "./pages/marketing/EmailMarketing";
+import Campaigns from "./pages/marketing/Campaigns";
+import LPBuilder from "./pages/marketing/LPBuilder";
+import WebAnalytics from "./pages/marketing/WebAnalytics";
+import AdManagement from "./pages/marketing/AdManagement";
+import SNSManagement from "./pages/marketing/SNSManagement";
+// Retail/EC
+import CloudPOS from "./pages/retail-ec/CloudPOS";
+import ECSite from "./pages/retail-ec/ECSite";
+import OmniInventory from "./pages/retail-ec/OmniInventory";
+import StoreShift from "./pages/retail-ec/StoreShift";
+import MemberApp from "./pages/retail-ec/MemberApp";
+import LoyaltyPoints from "./pages/retail-ec/LoyaltyPoints";
+// LMS
+import Courses from "./pages/lms/Courses";
+import Tests from "./pages/lms/Tests";
+import StudyHistory from "./pages/lms/StudyHistory";
+import SkillMap from "./pages/lms/SkillMap";
+import Certifications from "./pages/lms/Certifications";
+// Legal/Governance
+import ShareholderMeetings from "./pages/legal-governance/ShareholderMeetings";
+import CorporateRegistry from "./pages/legal-governance/CorporateRegistry";
+import Whistleblowing from "./pages/legal-governance/Whistleblowing";
+import AntisocialCheck from "./pages/legal-governance/AntisocialCheck";
+import IPManagement from "./pages/legal-governance/IPManagement";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -355,6 +396,47 @@ function AppRoutes() {
       <Route path="/emr/records" element={<ProtectedRoute><EmrRecords /></ProtectedRoute>} />
       <Route path="/emr/sales" element={<ProtectedRoute><EmrSalesReport /></ProtectedRoute>} />
       <Route path="/emr/hpki" element={<ProtectedRoute><EmrHpkiBridge /></ProtectedRoute>} />
+      {/* Membership */}
+      <Route path="/membership" element={<ProtectedRoute><MembersDashboard /></ProtectedRoute>} />
+      <Route path="/membership/members" element={<ProtectedRoute><MembersList /></ProtectedRoute>} />
+      <Route path="/membership/plans" element={<ProtectedRoute><MembershipPlans /></ProtectedRoute>} />
+      <Route path="/membership/schedules" element={<ProtectedRoute><ClassSchedules /></ProtectedRoute>} />
+      <Route path="/membership/bookings" element={<ProtectedRoute><ClassBookings /></ProtectedRoute>} />
+      <Route path="/membership/checkins" element={<ProtectedRoute><MemberCheckins /></ProtectedRoute>} />
+      <Route path="/membership/purchases" element={<ProtectedRoute><MemberPurchases /></ProtectedRoute>} />
+      {/* Support/CS */}
+      <Route path="/support/tickets" element={<ProtectedRoute><Tickets /></ProtectedRoute>} />
+      <Route path="/support/help-center" element={<ProtectedRoute><HelpCenter /></ProtectedRoute>} />
+      <Route path="/support/chatbot" element={<ProtectedRoute><Chatbot /></ProtectedRoute>} />
+      <Route path="/support/cti" element={<ProtectedRoute><CTI /></ProtectedRoute>} />
+      <Route path="/support/customer-success" element={<ProtectedRoute><CustomerSuccess /></ProtectedRoute>} />
+      <Route path="/support/community" element={<ProtectedRoute><SupportCommunity /></ProtectedRoute>} />
+      {/* Marketing */}
+      <Route path="/marketing/email" element={<ProtectedRoute><EmailMarketing /></ProtectedRoute>} />
+      <Route path="/marketing/campaigns" element={<ProtectedRoute><Campaigns /></ProtectedRoute>} />
+      <Route path="/marketing/lp-builder" element={<ProtectedRoute><LPBuilder /></ProtectedRoute>} />
+      <Route path="/marketing/analytics" element={<ProtectedRoute><WebAnalytics /></ProtectedRoute>} />
+      <Route path="/marketing/ads" element={<ProtectedRoute><AdManagement /></ProtectedRoute>} />
+      <Route path="/marketing/sns" element={<ProtectedRoute><SNSManagement /></ProtectedRoute>} />
+      {/* Retail/EC */}
+      <Route path="/retail/pos" element={<ProtectedRoute><CloudPOS /></ProtectedRoute>} />
+      <Route path="/retail/ec-site" element={<ProtectedRoute><ECSite /></ProtectedRoute>} />
+      <Route path="/retail/inventory" element={<ProtectedRoute><OmniInventory /></ProtectedRoute>} />
+      <Route path="/retail/shift" element={<ProtectedRoute><StoreShift /></ProtectedRoute>} />
+      <Route path="/retail/member-app" element={<ProtectedRoute><MemberApp /></ProtectedRoute>} />
+      <Route path="/retail/points" element={<ProtectedRoute><LoyaltyPoints /></ProtectedRoute>} />
+      {/* LMS */}
+      <Route path="/lms/courses" element={<ProtectedRoute><Courses /></ProtectedRoute>} />
+      <Route path="/lms/tests" element={<ProtectedRoute><Tests /></ProtectedRoute>} />
+      <Route path="/lms/history" element={<ProtectedRoute><StudyHistory /></ProtectedRoute>} />
+      <Route path="/lms/skill-map" element={<ProtectedRoute><SkillMap /></ProtectedRoute>} />
+      <Route path="/lms/certifications" element={<ProtectedRoute><Certifications /></ProtectedRoute>} />
+      {/* Legal/Governance */}
+      <Route path="/legal/shareholder-meetings" element={<ProtectedRoute><ShareholderMeetings /></ProtectedRoute>} />
+      <Route path="/legal/registry" element={<ProtectedRoute><CorporateRegistry /></ProtectedRoute>} />
+      <Route path="/legal/whistleblowing" element={<ProtectedRoute><Whistleblowing /></ProtectedRoute>} />
+      <Route path="/legal/antisocial-check" element={<ProtectedRoute><AntisocialCheck /></ProtectedRoute>} />
+      <Route path="/legal/ip" element={<ProtectedRoute><IPManagement /></ProtectedRoute>} />
       {/* Not Found */}
       <Route path="*" element={<NotFound />} />
     </Routes>

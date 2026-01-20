@@ -74,6 +74,20 @@ import {
   UserRound,
   FileHeart,
   KeySquare,
+  // New category icons
+  Ticket,
+  HelpCircle,
+  Bot,
+  Phone,
+  HeartHandshake,
+  Megaphone,
+  Layout,
+  Share2,
+  Store,
+  Smartphone,
+  Award,
+  Lightbulb,
+  UserCheck,
 } from "lucide-react";
 import { useState } from "react";
 import { NavLink } from "@/components/NavLink";
@@ -195,6 +209,47 @@ const iconMap: Record<string, LucideIcon> = {
   'emr-records': FileHeart,
   'emr-sales': TrendingUp,
   'emr-hpki': KeySquare,
+  // Membership
+  'members-dashboard': Users,
+  'members-list': Users,
+  'membership-plans': CreditCard,
+  'class-schedules': CalendarDays,
+  'class-bookings': CalendarCheck,
+  'member-checkins': UserCheck,
+  'member-purchases': ShoppingCart,
+  // Support/CS
+  'tickets': Ticket,
+  'help-center': HelpCircle,
+  'chatbot': Bot,
+  'cti': Phone,
+  'customer-success': HeartHandshake,
+  'community': Users,
+  // Marketing
+  'email-marketing': Mail,
+  'campaigns': Megaphone,
+  'lp-builder': Layout,
+  'web-analytics': BarChart3,
+  'ad-management': Target,
+  'sns-management': Share2,
+  // Retail/EC
+  'cloud-pos': ShoppingCart,
+  'ec-site': Store,
+  'omni-inventory': Package,
+  'store-shift': CalendarDays,
+  'member-app': Smartphone,
+  'loyalty-points': Gift,
+  // LMS
+  'courses': BookOpen,
+  'tests': ClipboardList,
+  'study-history': History,
+  'skill-map': Map,
+  'certifications': Award,
+  // Legal/Governance
+  'shareholder-meetings': Users,
+  'corporate-registry': FileText,
+  'whistleblowing': AlertTriangle,
+  'antisocial-check': Shield,
+  'ip-management': Lightbulb,
 };
 
 // URL mapping
@@ -290,6 +345,47 @@ const urlMap: Record<string, string> = {
   'emr-records': '/emr/records',
   'emr-sales': '/emr/sales',
   'emr-hpki': '/emr/hpki',
+  // Membership
+  'members-dashboard': '/membership',
+  'members-list': '/membership/members',
+  'membership-plans': '/membership/plans',
+  'class-schedules': '/membership/schedules',
+  'class-bookings': '/membership/bookings',
+  'member-checkins': '/membership/checkins',
+  'member-purchases': '/membership/purchases',
+  // Support/CS
+  'tickets': '/support/tickets',
+  'help-center': '/support/help-center',
+  'chatbot': '/support/chatbot',
+  'cti': '/support/cti',
+  'customer-success': '/support/customer-success',
+  'community': '/support/community',
+  // Marketing
+  'email-marketing': '/marketing/email',
+  'campaigns': '/marketing/campaigns',
+  'lp-builder': '/marketing/lp-builder',
+  'web-analytics': '/marketing/analytics',
+  'ad-management': '/marketing/ads',
+  'sns-management': '/marketing/sns',
+  // Retail/EC
+  'cloud-pos': '/retail/pos',
+  'ec-site': '/retail/ec-site',
+  'omni-inventory': '/retail/inventory',
+  'store-shift': '/retail/shift',
+  'member-app': '/retail/member-app',
+  'loyalty-points': '/retail/points',
+  // LMS
+  'courses': '/lms/courses',
+  'tests': '/lms/tests',
+  'study-history': '/lms/history',
+  'skill-map': '/lms/skill-map',
+  'certifications': '/lms/certifications',
+  // Legal/Governance
+  'shareholder-meetings': '/legal/shareholder-meetings',
+  'corporate-registry': '/legal/registry',
+  'whistleblowing': '/legal/whistleblowing',
+  'antisocial-check': '/legal/antisocial-check',
+  'ip-management': '/legal/ip',
 };
 
 export function AppSidebar({ onChatOpen }: AppSidebarProps) {
