@@ -310,9 +310,51 @@ export function useSettings() {
   const applyTemplate = useCallback((templateId: string) => {
     const template = industryTemplates.find(t => t.id === templateId);
     if (template) {
+      // Build a set of visible item IDs from the template
+      const templateItemIds = new Set<string>();
+      const templateGroupIds = new Set<string>();
+      
+      template.menuGroups.forEach(group => {
+        templateGroupIds.add(group.id);
+        group.items.forEach(item => {
+          if (item.visible) {
+            templateItemIds.add(item.id);
+          }
+        });
+      });
+
+      // Merge with defaultMenuGroups: keep all items but set visibility based on template
+      const mergedMenuGroups = defaultMenuGroups.map(group => {
+        const templateGroup = template.menuGroups.find(tg => tg.id === group.id);
+        
+        return {
+          ...group,
+          visible: templateGroup?.visible ?? false,
+          order: templateGroup?.order ?? group.order,
+          items: group.items.map(item => {
+            const templateItem = templateGroup?.items.find(ti => ti.id === item.id);
+            return {
+              ...item,
+              visible: templateItem?.visible ?? false,
+              order: templateItem?.order ?? item.order,
+            };
+          }),
+        };
+      });
+
+      // Also include any template groups that might not exist in defaults
+      template.menuGroups.forEach(templateGroup => {
+        if (!mergedMenuGroups.find(g => g.id === templateGroup.id)) {
+          mergedMenuGroups.push(templateGroup);
+        }
+      });
+
+      // Sort by order
+      mergedMenuGroups.sort((a, b) => a.order - b.order);
+
       setSettings(prev => ({
         ...prev,
-        menuGroups: template.menuGroups,
+        menuGroups: mergedMenuGroups,
         mobileNavItems: template.mobileNavItems,
         currentTemplateId: templateId,
       }));
