@@ -185,6 +185,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <Landing />} />
       <Route path="/auth" element={user ? <Navigate to="/dashboard" replace /> : <Auth />} />
+      <Route path="/login" element={<Navigate to="/auth" replace />} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/getting-started" element={<ProtectedRoute><GettingStarted /></ProtectedRoute>} />
       {/* Documents */}
