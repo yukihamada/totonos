@@ -14,6 +14,8 @@ import {
   MessageCircle
 } from "lucide-react";
 import { useCompanyEmailAddresses } from "@/hooks/useCompanyEmailAddresses";
+import { useCurrentCompany } from "@/hooks/useCompany";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface AIAgentExamplesProps {
   onChatOpen?: () => void;
@@ -65,12 +67,14 @@ const examples = [
 ];
 
 export function AIAgentExamples({ onChatOpen }: AIAgentExamplesProps) {
-  const { data: emailAddresses = [] } = useCompanyEmailAddresses();
+  const { data: emailAddresses = [], isLoading: emailLoading } = useCompanyEmailAddresses();
+  const { data: currentCompany, isLoading: companyLoading } = useCurrentCompany();
 
-  // 会社のメールアドレスを取得
-  const companyEmail = emailAddresses[0]?.address_prefix 
-    ? `${emailAddresses[0].address_prefix}@totonos.jp`
-    : "読込中...";
+  // 会社のメールアドレスを取得（会社スラッグを含む正しい形式）
+  const isLoading = emailLoading || companyLoading;
+  const companyEmail = emailAddresses[0]?.address_prefix && currentCompany?.slug
+    ? `${emailAddresses[0].address_prefix}@${currentCompany.slug}.totonos.jp`
+    : null;
 
   const handleExampleClick = (prompt: string) => {
     // Open chat and send the prompt
@@ -176,9 +180,17 @@ export function AIAgentExamples({ onChatOpen }: AIAgentExamplesProps) {
               </p>
               <div className="text-xs text-muted-foreground space-y-1">
                 <p className="font-medium text-foreground">送信先アドレス:</p>
-                <code className="block px-2 py-1 bg-muted rounded text-xs break-all">
-                  {companyEmail}
-                </code>
+                {isLoading ? (
+                  <Skeleton className="h-6 w-48" />
+                ) : companyEmail ? (
+                  <code className="block px-2 py-1 bg-muted rounded text-xs break-all">
+                    {companyEmail}
+                  </code>
+                ) : (
+                  <p className="text-muted-foreground italic">
+                    会社設定でメールアドレスを設定してください
+                  </p>
+                )}
                 <p className="mt-2">例: 請求書作成依頼をメールで送信</p>
               </div>
             </div>

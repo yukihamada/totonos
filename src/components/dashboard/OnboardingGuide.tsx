@@ -18,6 +18,8 @@ import {
 import { Link } from "react-router-dom";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useCompanyEmailAddresses } from "@/hooks/useCompanyEmailAddresses";
+import { useCurrentCompany } from "@/hooks/useCompany";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface OnboardingGuideProps {
   onChatOpen?: () => void;
@@ -42,12 +44,14 @@ export function OnboardingGuide({ onChatOpen }: OnboardingGuideProps) {
   const [dismissed, setDismissed] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
   const [isExpanded, setIsExpanded] = useState(true);
-  const { data: emailAddresses = [] } = useCompanyEmailAddresses();
+  const { data: emailAddresses = [], isLoading: emailLoading } = useCompanyEmailAddresses();
+  const { data: currentCompany, isLoading: companyLoading } = useCurrentCompany();
 
-  // 会社のメールアドレスを取得
-  const companyEmail = emailAddresses[0]?.address_prefix 
-    ? `${emailAddresses[0].address_prefix}@totonos.jp`
-    : "読込中...";
+  // 会社のメールアドレスを取得（会社スラッグを含む正しい形式）
+  const isLoading = emailLoading || companyLoading;
+  const companyEmail = emailAddresses[0]?.address_prefix && currentCompany?.slug
+    ? `${emailAddresses[0].address_prefix}@${currentCompany.slug}.totonos.jp`
+    : null;
 
   useEffect(() => {
     const isDismissed = localStorage.getItem(ONBOARDING_DISMISSED_KEY);
@@ -82,11 +86,15 @@ export function OnboardingGuide({ onChatOpen }: OnboardingGuideProps) {
     {
       id: "email",
       title: "メールでAIを使う",
-      description: `${companyEmail} にメールを送るだけで自動処理`,
+      description: isLoading 
+        ? "メールアドレスを読み込み中..." 
+        : companyEmail 
+          ? `${companyEmail} にメールを送るだけで自動処理`
+          : "メールアドレスを設定してAIで自動処理",
       icon: Mail,
       color: "text-chart-2",
       actionLabel: "メール設定",
-      actionLink: "/email-integration",
+      actionLink: "/company-settings",
       checkKey: "email"
     },
     {
