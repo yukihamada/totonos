@@ -29,6 +29,21 @@ import {
   ArrowUp,
   ArrowDown,
   LucideIcon,
+  Scale,
+  Palette,
+  Warehouse,
+  Utensils,
+  Scissors,
+  HardHat,
+  Globe,
+  Stethoscope,
+  Heart,
+  GraduationCap,
+  HeartHandshake,
+  Truck,
+  Building,
+  Rocket,
+  User,
 } from 'lucide-react';
 import { useAppSettings } from '@/contexts/SettingsContext';
 import { type MenuItemConfig } from '@/hooks/useSettings';
@@ -47,6 +62,21 @@ const templateIconMap: Record<string, LucideIcon> = {
   Factory,
   Code,
   Calculator,
+  Scale,
+  Palette,
+  Warehouse,
+  Utensils,
+  Scissors,
+  HardHat,
+  Globe,
+  Stethoscope,
+  Heart,
+  GraduationCap,
+  HeartHandshake,
+  Truck,
+  Building,
+  Rocket,
+  User,
 };
 
 export default function SettingsMenu() {
