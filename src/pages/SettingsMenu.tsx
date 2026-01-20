@@ -45,6 +45,9 @@ import {
   Rocket,
   User,
   Download,
+  Power,
+  PowerOff,
+  Lock,
 } from 'lucide-react';
 import { HpkiBridgeDownload } from '@/components/emr/HpkiBridgeDownload';
 import { useAppSettings } from '@/contexts/SettingsContext';
@@ -114,8 +117,17 @@ export default function SettingsMenu() {
     toast.success(visible ? 'グループを表示しました' : 'グループを非表示にしました');
   };
 
+  const handleGroupEnabledChange = (groupId: string, enabled: boolean) => {
+    updateMenuGroup(groupId, { enabled });
+    toast.success(enabled ? '機能を有効化しました' : '機能を無効化しました');
+  };
+
   const handleItemVisibilityChange = (groupId: string, itemId: string, visible: boolean) => {
     updateMenuItem(groupId, itemId, { visible });
+  };
+
+  const handleItemEnabledChange = (groupId: string, itemId: string, enabled: boolean) => {
+    updateMenuItem(groupId, itemId, { enabled });
   };
 
   const handleReset = () => {
@@ -281,7 +293,12 @@ export default function SettingsMenu() {
               <CardHeader>
                 <CardTitle>メニューグループ</CardTitle>
                 <CardDescription>
-                  グループの表示/非表示を切り替え、項目を並び替えできます
+                  グループの表示/非表示と機能の有効/無効を切り替えできます。
+                  <br />
+                  <span className="text-xs">
+                    <Power className="h-3 w-3 inline mr-1" />機能ON：エージェントから利用可能
+                    <Eye className="h-3 w-3 inline ml-3 mr-1" />表示ON：メニューに表示
+                  </span>
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -291,6 +308,7 @@ export default function SettingsMenu() {
                       const sortedItems = [...group.items].sort((a, b) => a.order - b.order);
                       const isExpanded = expandedGroups.has(group.id);
                       const visibleCount = group.items.filter(i => i.visible).length;
+                      const enabledCount = group.items.filter(i => i.enabled).length;
 
                       return (
                         <Collapsible
@@ -298,7 +316,7 @@ export default function SettingsMenu() {
                           open={isExpanded}
                           onOpenChange={() => toggleGroup(group.id)}
                         >
-                          <div className={`border rounded-lg ${!group.visible ? 'opacity-50' : ''}`}>
+                          <div className={`border rounded-lg ${!group.enabled ? 'opacity-40' : !group.visible ? 'opacity-60' : ''}`}>
                             <div className="flex items-center justify-between p-4">
                               <div className="flex items-center gap-3">
                                 <div className="flex flex-col gap-1">
@@ -338,21 +356,43 @@ export default function SettingsMenu() {
                                     <span className="font-medium">{group.label}</span>
                                   </Button>
                                 </CollapsibleTrigger>
-                                <Badge variant="secondary">
-                                  {visibleCount}/{group.items.length}
+                                <Badge variant="secondary" className="text-xs">
+                                  {visibleCount}/{group.items.length}表示
                                 </Badge>
+                                {!group.enabled && (
+                                  <Badge variant="outline" className="text-xs text-muted-foreground">
+                                    <PowerOff className="h-3 w-3 mr-1" />
+                                    機能OFF
+                                  </Badge>
+                                )}
                               </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm text-muted-foreground">
-                                  {group.visible ? '表示' : '非表示'}
-                                </span>
-                                <Switch
-                                  checked={group.visible}
-                                  disabled={isProtectedGroup(group.id)}
-                                  onCheckedChange={(checked) =>
-                                    handleGroupVisibilityChange(group.id, checked)
-                                  }
-                                />
+                              <div className="flex items-center gap-4">
+                                {/* 機能の有効/無効 */}
+                                <div className="flex items-center gap-2">
+                                  <Power className={`h-4 w-4 ${group.enabled ? 'text-primary' : 'text-muted-foreground'}`} />
+                                  <Switch
+                                    checked={group.enabled}
+                                    disabled={isProtectedGroup(group.id)}
+                                    onCheckedChange={(checked) =>
+                                      handleGroupEnabledChange(group.id, checked)
+                                    }
+                                  />
+                                </div>
+                                {/* 表示の有効/無効 */}
+                                <div className="flex items-center gap-2">
+                                  {group.visible ? (
+                                    <Eye className="h-4 w-4 text-primary" />
+                                  ) : (
+                                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                  )}
+                                  <Switch
+                                    checked={group.visible}
+                                    disabled={isProtectedGroup(group.id) || !group.enabled}
+                                    onCheckedChange={(checked) =>
+                                      handleGroupVisibilityChange(group.id, checked)
+                                    }
+                                  />
+                                </div>
                               </div>
                             </div>
 
@@ -363,7 +403,7 @@ export default function SettingsMenu() {
                                   <div
                                     key={item.id}
                                     className={`flex items-center justify-between p-3 bg-background rounded-md border ${
-                                      !item.visible ? 'opacity-50' : ''
+                                      !item.enabled ? 'opacity-40' : !item.visible ? 'opacity-60' : ''
                                     }`}
                                   >
                                     <div className="flex items-center gap-3">
@@ -389,20 +429,37 @@ export default function SettingsMenu() {
                                       </div>
                                       <GripVertical className="h-4 w-4 text-muted-foreground cursor-move" />
                                       <span className="text-sm">{item.title}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      {item.visible ? (
-                                        <Eye className="h-4 w-4 text-muted-foreground" />
-                                      ) : (
-                                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                      {isProtectedItem(item.id) && (
+                                        <Lock className="h-3 w-3 text-muted-foreground" />
                                       )}
-                                      <Switch
-                                        checked={item.visible}
-                                        disabled={isProtectedItem(item.id)}
-                                        onCheckedChange={(checked) =>
-                                          handleItemVisibilityChange(group.id, item.id, checked)
-                                        }
-                                      />
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                      {/* 機能の有効/無効 */}
+                                      <div className="flex items-center gap-1">
+                                        <Power className={`h-3 w-3 ${item.enabled ? 'text-primary' : 'text-muted-foreground'}`} />
+                                        <Switch
+                                          checked={item.enabled}
+                                          disabled={isProtectedItem(item.id)}
+                                          onCheckedChange={(checked) =>
+                                            handleItemEnabledChange(group.id, item.id, checked)
+                                          }
+                                        />
+                                      </div>
+                                      {/* 表示の有効/無効 */}
+                                      <div className="flex items-center gap-1">
+                                        {item.visible ? (
+                                          <Eye className="h-3 w-3 text-primary" />
+                                        ) : (
+                                          <EyeOff className="h-3 w-3 text-muted-foreground" />
+                                        )}
+                                        <Switch
+                                          checked={item.visible}
+                                          disabled={isProtectedItem(item.id) || !item.enabled}
+                                          onCheckedChange={(checked) =>
+                                            handleItemVisibilityChange(group.id, item.id, checked)
+                                          }
+                                        />
+                                      </div>
                                     </div>
                                   </div>
                                 ))}
