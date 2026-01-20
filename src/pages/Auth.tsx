@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
-import { Mail, ArrowRight, CheckCircle, Github } from "lucide-react";
+import { Mail, ArrowRight, CheckCircle } from "lucide-react";
 
 const emailSchema = z.object({
   email: z.string().email("有効なメールアドレスを入力してください"),
@@ -39,7 +39,7 @@ const GoogleIcon = () => (
 export default function Auth() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [oauthLoading, setOauthLoading] = useState<'google' | 'github' | null>(null);
+  const [oauthLoading, setOauthLoading] = useState<'google' | null>(null);
   const [emailSent, setEmailSent] = useState(false);
   const { signInWithMagicLink, signInWithOAuth, user } = useAuth();
   const { toast } = useToast();
@@ -88,10 +88,10 @@ export default function Auth() {
     }
   };
 
-  const handleOAuthLogin = async (provider: 'google' | 'github') => {
-    setOauthLoading(provider);
+  const handleGoogleLogin = async () => {
+    setOauthLoading('google');
     try {
-      const { error } = await signInWithOAuth(provider);
+      const { error } = await signInWithOAuth('google');
       if (error) {
         toast({
           title: "エラー",
@@ -186,49 +186,7 @@ export default function Auth() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* OAuth Buttons */}
-          <div className="space-y-3">
-            <Button
-              variant="outline"
-              className="w-full border-2 h-11"
-              onClick={() => handleOAuthLogin('google')}
-              disabled={oauthLoading !== null}
-            >
-              {oauthLoading === 'google' ? (
-                <span className="animate-spin mr-2">...</span>
-              ) : (
-                <GoogleIcon />
-              )}
-              <span className="ml-2">Googleでログイン</span>
-            </Button>
-
-            <Button
-              variant="outline"
-              className="w-full border-2 h-11"
-              onClick={() => handleOAuthLogin('github')}
-              disabled={oauthLoading !== null}
-            >
-              {oauthLoading === 'github' ? (
-                <span className="animate-spin mr-2">...</span>
-              ) : (
-                <Github className="h-4 w-4" />
-              )}
-              <span className="ml-2">GitHubでログイン</span>
-            </Button>
-          </div>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <Separator className="w-full" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
-                または
-              </span>
-            </div>
-          </div>
-
-          {/* Magic Link Form */}
+          {/* Magic Link Form - メールログインを優先表示 */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">メールアドレス</Label>
@@ -261,6 +219,32 @@ export default function Auth() {
               )}
             </Button>
           </form>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <Separator className="w-full" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">
+                または
+              </span>
+            </div>
+          </div>
+
+          {/* Google OAuth Button */}
+          <Button
+            variant="outline"
+            className="w-full border-2 h-11"
+            onClick={handleGoogleLogin}
+            disabled={oauthLoading !== null}
+          >
+            {oauthLoading === 'google' ? (
+              <span className="animate-spin mr-2">...</span>
+            ) : (
+              <GoogleIcon />
+            )}
+            <span className="ml-2">Googleでログイン</span>
+          </Button>
 
           <p className="text-xs text-muted-foreground text-center">
             アカウントをお持ちでない場合は自動的に作成されます。
