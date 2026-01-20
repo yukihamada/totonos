@@ -481,6 +481,140 @@ export type Database = {
           },
         ]
       }
+      class_bookings: {
+        Row: {
+          booked_at: string
+          booking_date: string
+          cancelled_at: string | null
+          checked_in_at: string | null
+          class_schedule_id: string
+          created_at: string
+          id: string
+          member_id: string
+          notes: string | null
+          status: string
+        }
+        Insert: {
+          booked_at?: string
+          booking_date: string
+          cancelled_at?: string | null
+          checked_in_at?: string | null
+          class_schedule_id: string
+          created_at?: string
+          id?: string
+          member_id: string
+          notes?: string | null
+          status?: string
+        }
+        Update: {
+          booked_at?: string
+          booking_date?: string
+          cancelled_at?: string | null
+          checked_in_at?: string | null
+          class_schedule_id?: string
+          created_at?: string
+          id?: string
+          member_id?: string
+          notes?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_bookings_class_schedule_id_fkey"
+            columns: ["class_schedule_id"]
+            isOneToOne: false
+            referencedRelation: "class_schedules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_bookings_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_schedules: {
+        Row: {
+          capacity: number | null
+          class_type: string
+          color: string | null
+          company_id: string
+          created_at: string
+          current_bookings: number
+          day_of_week: number | null
+          description: string | null
+          end_time: string
+          id: string
+          instructor_id: string | null
+          instructor_name: string | null
+          is_active: boolean
+          is_recurring: boolean
+          location: string | null
+          price: number | null
+          requires_booking: boolean
+          specific_date: string | null
+          start_time: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          capacity?: number | null
+          class_type?: string
+          color?: string | null
+          company_id: string
+          created_at?: string
+          current_bookings?: number
+          day_of_week?: number | null
+          description?: string | null
+          end_time: string
+          id?: string
+          instructor_id?: string | null
+          instructor_name?: string | null
+          is_active?: boolean
+          is_recurring?: boolean
+          location?: string | null
+          price?: number | null
+          requires_booking?: boolean
+          specific_date?: string | null
+          start_time: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          capacity?: number | null
+          class_type?: string
+          color?: string | null
+          company_id?: string
+          created_at?: string
+          current_bookings?: number
+          day_of_week?: number | null
+          description?: string | null
+          end_time?: string
+          id?: string
+          instructor_id?: string | null
+          instructor_name?: string | null
+          is_active?: boolean
+          is_recurring?: boolean
+          location?: string | null
+          price?: number | null
+          requires_booking?: boolean
+          specific_date?: string | null
+          start_time?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_schedules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           address: string | null
@@ -3008,6 +3142,64 @@ export type Database = {
           },
         ]
       }
+      member_checkins: {
+        Row: {
+          booking_id: string | null
+          checkin_time: string
+          checkout_time: string | null
+          company_id: string
+          created_at: string
+          id: string
+          location: string | null
+          member_id: string
+          method: string
+        }
+        Insert: {
+          booking_id?: string | null
+          checkin_time?: string
+          checkout_time?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          location?: string | null
+          member_id: string
+          method?: string
+        }
+        Update: {
+          booking_id?: string | null
+          checkin_time?: string
+          checkout_time?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          location?: string | null
+          member_id?: string
+          method?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_checkins_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "class_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_checkins_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_checkins_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       member_permissions: {
         Row: {
           granted_at: string
@@ -3036,6 +3228,287 @@ export type Database = {
             columns: ["member_id"]
             isOneToOne: false
             referencedRelation: "company_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_purchases: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          member_id: string
+          notes: string | null
+          payment_method: string | null
+          payment_status: string
+          product_id: string | null
+          product_name: string
+          purchased_at: string
+          quantity: number
+          stripe_payment_intent_id: string | null
+          total_amount: number
+          unit_price: number
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          member_id: string
+          notes?: string | null
+          payment_method?: string | null
+          payment_status?: string
+          product_id?: string | null
+          product_name: string
+          purchased_at?: string
+          quantity?: number
+          stripe_payment_intent_id?: string | null
+          total_amount: number
+          unit_price: number
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          member_id?: string
+          notes?: string | null
+          payment_method?: string | null
+          payment_status?: string
+          product_id?: string | null
+          product_name?: string
+          purchased_at?: string
+          quantity?: number
+          stripe_payment_intent_id?: string | null
+          total_amount?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_purchases_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_purchases_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_purchases_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_subscriptions: {
+        Row: {
+          auto_renew: boolean
+          created_at: string
+          end_date: string | null
+          id: string
+          member_id: string
+          next_billing_date: string | null
+          pause_end: string | null
+          pause_start: string | null
+          plan_id: string | null
+          remaining_classes: number | null
+          start_date: string
+          status: string
+          stripe_subscription_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          auto_renew?: boolean
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          member_id: string
+          next_billing_date?: string | null
+          pause_end?: string | null
+          pause_start?: string | null
+          plan_id?: string | null
+          remaining_classes?: number | null
+          start_date?: string
+          status?: string
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          auto_renew?: boolean
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          member_id?: string
+          next_billing_date?: string | null
+          pause_end?: string | null
+          pause_start?: string | null
+          plan_id?: string | null
+          remaining_classes?: number | null
+          start_date?: string
+          status?: string
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_subscriptions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "membership_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      members: {
+        Row: {
+          address: string | null
+          birth_date: string | null
+          company_id: string
+          created_at: string
+          email: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          expire_date: string | null
+          gender: string | null
+          id: string
+          join_date: string
+          member_number: string
+          membership_type: string
+          metadata: Json | null
+          name: string
+          name_kana: string | null
+          notes: string | null
+          phone: string | null
+          photo_url: string | null
+          status: string
+          stripe_customer_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          birth_date?: string | null
+          company_id: string
+          created_at?: string
+          email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          expire_date?: string | null
+          gender?: string | null
+          id?: string
+          join_date?: string
+          member_number: string
+          membership_type?: string
+          metadata?: Json | null
+          name: string
+          name_kana?: string | null
+          notes?: string | null
+          phone?: string | null
+          photo_url?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          birth_date?: string | null
+          company_id?: string
+          created_at?: string
+          email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          expire_date?: string | null
+          gender?: string | null
+          id?: string
+          join_date?: string
+          member_number?: string
+          membership_type?: string
+          metadata?: Json | null
+          name?: string
+          name_kana?: string | null
+          notes?: string | null
+          phone?: string | null
+          photo_url?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "members_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      membership_plans: {
+        Row: {
+          billing_cycle: string | null
+          company_id: string
+          created_at: string
+          description: string | null
+          features: Json | null
+          id: string
+          included_classes: number | null
+          is_active: boolean
+          name: string
+          plan_type: string
+          price: number
+          sort_order: number | null
+          stripe_price_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          billing_cycle?: string | null
+          company_id: string
+          created_at?: string
+          description?: string | null
+          features?: Json | null
+          id?: string
+          included_classes?: number | null
+          is_active?: boolean
+          name: string
+          plan_type: string
+          price?: number
+          sort_order?: number | null
+          stripe_price_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          billing_cycle?: string | null
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          features?: Json | null
+          id?: string
+          included_classes?: number | null
+          is_active?: boolean
+          name?: string
+          plan_type?: string
+          price?: number
+          sort_order?: number | null
+          stripe_price_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "membership_plans_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
