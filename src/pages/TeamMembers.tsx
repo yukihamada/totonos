@@ -45,6 +45,7 @@ import {
   XCircle,
   Copy,
   Link,
+  Key,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -66,6 +67,7 @@ import type { MemberRole } from '@/types/company';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
+import { MemberPermissionsDialog } from '@/components/MemberPermissionsDialog';
 
 const roleLabels: Record<MemberRole, string> = {
   owner: 'オーナー',
@@ -100,6 +102,8 @@ export default function TeamMembers() {
   const [newRole, setNewRole] = useState<MemberRole>('member');
   const [lastInviteUrl, setLastInviteUrl] = useState<string | null>(null);
   const [showInviteUrlDialog, setShowInviteUrlDialog] = useState(false);
+  const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false);
+  const [permissionsMember, setPermissionsMember] = useState<typeof members[0] | null>(null);
 
   const isLoading = companyLoading || membersLoading || invitationsLoading;
 
@@ -179,6 +183,11 @@ export default function TeamMembers() {
     setSelectedMember(member);
     setNewRole(member.role);
     setRoleDialogOpen(true);
+  };
+
+  const openPermissionsDialog = (member: typeof members[0]) => {
+    setPermissionsMember(member);
+    setPermissionsDialogOpen(true);
   };
 
   const getInitials = (userId: string) => {
@@ -483,6 +492,10 @@ export default function TeamMembers() {
                                 <Shield className="mr-2 h-4 w-4" />
                                 役割を変更
                               </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openPermissionsDialog(member)}>
+                                <Key className="mr-2 h-4 w-4" />
+                                権限を設定
+                              </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 className="text-destructive"
@@ -571,6 +584,17 @@ export default function TeamMembers() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Permissions Dialog */}
+        {permissionsMember && (
+          <MemberPermissionsDialog
+            open={permissionsDialogOpen}
+            onOpenChange={setPermissionsDialogOpen}
+            memberId={permissionsMember.id}
+            memberName={`ユーザー ${permissionsMember.user_id.slice(0, 8)}...`}
+            currentRole={permissionsMember.role}
+          />
+        )}
       </div>
     </AppLayout>
   );
