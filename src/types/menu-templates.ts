@@ -1,4 +1,21 @@
-import { MenuGroupConfig } from '@/hooks/useSettings';
+// Template item config - enabled is optional (defaults to true when not specified)
+export interface TemplateMenuItemConfig {
+  id: string;
+  title: string;
+  visible: boolean;
+  enabled?: boolean; // Optional in templates, defaults to true
+  order: number;
+}
+
+// Template group config - enabled is optional (defaults to true when not specified)
+export interface TemplateMenuGroupConfig {
+  id: string;
+  label: string;
+  visible: boolean;
+  enabled?: boolean; // Optional in templates, defaults to true
+  order: number;
+  items: TemplateMenuItemConfig[];
+}
 
 export interface MobileNavItemConfig {
   id: string;
@@ -11,7 +28,7 @@ export interface IndustryTemplate {
   name: string;
   description: string;
   icon: string;
-  menuGroups: MenuGroupConfig[];
+  menuGroups: TemplateMenuGroupConfig[];
   mobileNavItems: MobileNavItemConfig[];
 }
 
