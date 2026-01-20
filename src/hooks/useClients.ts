@@ -50,6 +50,71 @@ interface CreateClientInput {
   phone?: string | null;
   address?: string | null;
   notes?: string | null;
+  force?: boolean; // Skip duplicate check
+}
+
+export interface DuplicateClientInfo {
+  id: string;
+  name: string;
+  email: string | null;
+  matchType: 'name' | 'email' | 'both';
+}
+
+export async function checkDuplicateClients(
+  userId: string, 
+  name: string, 
+  email?: string | null
+): Promise<DuplicateClientInfo[]> {
+  const conditions: string[] = [];
+  
+  // Exact name match (case-insensitive)
+  conditions.push(`name.ilike.${name}`);
+  
+  // Email match if provided
+  if (email) {
+    conditions.push(`email.eq.${email}`);
+  }
+
+  const { data, error } = await supabase
+    .from('clients')
+    .select('id, name, email')
+    .eq('user_id', userId)
+    .or(conditions.join(','))
+    .limit(5);
+
+  if (error || !data) return [];
+
+  return data.map(client => {
+    const nameMatch = client.name.toLowerCase() === name.toLowerCase();
+    const emailMatch = email && client.email && client.email.toLowerCase() === email.toLowerCase();
+    
+    let matchType: 'name' | 'email' | 'both';
+    if (nameMatch && emailMatch) {
+      matchType = 'both';
+    } else if (nameMatch) {
+      matchType = 'name';
+    } else {
+      matchType = 'email';
+    }
+
+    return {
+      id: client.id,
+      name: client.name,
+      email: client.email,
+      matchType,
+    };
+  }).filter(c => c.matchType);
+}
+
+export function useCheckDuplicateClients() {
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ name, email }: { name: string; email?: string | null }) => {
+      if (!user) throw new Error('ログインが必要です');
+      return checkDuplicateClients(user.id, name, email);
+    },
+  });
 }
 
 export function useCreateClient() {
@@ -60,11 +125,22 @@ export function useCreateClient() {
     mutationFn: async (input: CreateClientInput) => {
       if (!user) throw new Error('ログインが必要です');
 
+      // Check for duplicates unless force is true
+      if (!input.force) {
+        const duplicates = await checkDuplicateClients(user.id, input.name, input.email);
+        if (duplicates.length > 0) {
+          const error = new Error('重複の可能性がある取引先が見つかりました') as Error & { duplicates: DuplicateClientInfo[] };
+          error.duplicates = duplicates;
+          throw error;
+        }
+      }
+
+      const { force, ...clientData } = input;
       const { data, error } = await supabase
         .from('clients')
         .insert({
           user_id: user.id,
-          ...input,
+          ...clientData,
         })
         .select()
         .single();
@@ -76,8 +152,11 @@ export function useCreateClient() {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       toast.success('取引先を追加しました');
     },
-    onError: (error) => {
-      toast.error('取引先の追加に失敗しました: ' + error.message);
+    onError: (error: Error & { duplicates?: DuplicateClientInfo[] }) => {
+      // Don't show toast for duplicate errors - let the UI handle it
+      if (!error.duplicates) {
+        toast.error('取引先の追加に失敗しました: ' + error.message);
+      }
     },
   });
 }
