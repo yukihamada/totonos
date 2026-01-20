@@ -131,6 +131,134 @@ export type Database = {
           },
         ]
       }
+      ai_automation_drafts: {
+        Row: {
+          action_type: string | null
+          collected_data: Json
+          company_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          missing_fields: string[]
+          original_instruction: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          action_type?: string | null
+          collected_data?: Json
+          company_id: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          missing_fields?: string[]
+          original_instruction: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          action_type?: string | null
+          collected_data?: Json
+          company_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          missing_fields?: string[]
+          original_instruction?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_automation_drafts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_automations: {
+        Row: {
+          action_config: Json
+          action_type: string
+          client_id: string | null
+          company_id: string
+          created_at: string
+          description: string | null
+          event_type: string | null
+          id: string
+          is_active: boolean
+          last_error: string | null
+          last_run_at: string | null
+          name: string
+          next_run_at: string | null
+          run_count: number
+          schedule_cron: string | null
+          schedule_description: string | null
+          trigger_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_config?: Json
+          action_type: string
+          client_id?: string | null
+          company_id: string
+          created_at?: string
+          description?: string | null
+          event_type?: string | null
+          id?: string
+          is_active?: boolean
+          last_error?: string | null
+          last_run_at?: string | null
+          name: string
+          next_run_at?: string | null
+          run_count?: number
+          schedule_cron?: string | null
+          schedule_description?: string | null
+          trigger_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_config?: Json
+          action_type?: string
+          client_id?: string | null
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          event_type?: string | null
+          id?: string
+          is_active?: boolean
+          last_error?: string | null
+          last_run_at?: string | null
+          name?: string
+          next_run_at?: string | null
+          run_count?: number
+          schedule_cron?: string | null
+          schedule_description?: string | null
+          trigger_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_automations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_automations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       api_key_audit_log: {
         Row: {
           action: string

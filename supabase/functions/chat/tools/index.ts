@@ -11,6 +11,7 @@ import { estimateTools, executeEstimateTool } from "./estimates.ts";
 import { projectTools, executeProjectTool } from "./projects.ts";
 import { purchaseOrderTools, executePurchaseOrderTool } from "./purchase-orders.ts";
 import { emailTools, executeEmailTool } from "./emails.ts";
+import { automationTools, executeAutomationTool } from "./automations.ts";
 
 // Combine all tools
 export const allTools = [
@@ -26,6 +27,7 @@ export const allTools = [
   ...projectTools,
   ...purchaseOrderTools,
   ...emailTools,
+  ...automationTools,
 ];
 
 // Tool execution router
@@ -99,6 +101,11 @@ export async function executeToolCall(
   // Email tools
   if (toolName.startsWith("email_") || toolName === "list_emails") {
     return executeEmailTool(toolName, input, userId, supabase);
+  }
+
+  // Automation tools
+  if (toolName.startsWith("automation_")) {
+    return executeAutomationTool(toolName, input, userId, supabase);
   }
 
   throw new Error(`Unknown tool: ${toolName}`);

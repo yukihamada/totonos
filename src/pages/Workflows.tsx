@@ -4,8 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
   TableBody,
@@ -15,208 +14,64 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { toast } from 'sonner';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Workflow,
-  Plus,
   Play,
-  Pause,
-  Settings,
   Trash2,
   FileText,
   Mail,
-  Bell,
   Clock,
   CheckCircle,
   AlertCircle,
-  ArrowRight,
   Zap,
   Users,
   DollarSign,
   Calendar,
-  Edit,
+  MessageSquare,
+  Bot,
+  Sparkles,
 } from 'lucide-react';
+import { useAutomations, useToggleAutomation, useDeleteAutomation, ACTION_TYPE_LABELS, type Automation } from '@/hooks/useAutomations';
+import { formatDistanceToNow } from 'date-fns';
+import { ja } from 'date-fns/locale';
 
-interface WorkflowItem {
-  id: string;
-  name: string;
-  description: string;
-  trigger: {
-    type: 'invoice_created' | 'payment_received' | 'contract_signed' | 'deal_won' | 'leave_request' | 'schedule';
-    config?: Record<string, unknown>;
-  };
-  actions: {
-    type: 'send_email' | 'create_notification' | 'update_status' | 'assign_task' | 'webhook';
-    config: Record<string, unknown>;
-  }[];
-  enabled: boolean;
-  lastRun?: Date;
-  runCount: number;
-  createdAt: Date;
-}
-
-const triggerLabels: Record<WorkflowItem['trigger']['type'], { label: string; icon: typeof FileText }> = {
-  invoice_created: { label: '請求書作成時', icon: FileText },
-  payment_received: { label: '入金確認時', icon: DollarSign },
-  contract_signed: { label: '契約署名完了時', icon: FileText },
-  deal_won: { label: '商談成約時', icon: CheckCircle },
-  leave_request: { label: '休暇申請時', icon: Calendar },
-  schedule: { label: 'スケジュール', icon: Clock },
+const actionIcons: Record<string, typeof FileText> = {
+  create_invoice: FileText,
+  create_contract: FileText,
+  send_email: Mail,
+  create_lead: Users,
+  create_expense: DollarSign,
+  custom: Zap,
 };
-
-const actionLabels: Record<string, string> = {
-  send_email: 'メール送信',
-  create_notification: '通知作成',
-  update_status: 'ステータス更新',
-  assign_task: 'タスク割当',
-  webhook: 'Webhook',
-};
-
-const mockWorkflows: WorkflowItem[] = [
-  {
-    id: '1',
-    name: '請求書送付通知',
-    description: '請求書作成時に担当者へメール通知',
-    trigger: { type: 'invoice_created' },
-    actions: [
-      { type: 'send_email', config: { template: 'invoice_created', to: 'sales' } },
-      { type: 'create_notification', config: { type: 'info' } },
-    ],
-    enabled: true,
-    lastRun: new Date(Date.now() - 1000 * 60 * 60 * 2),
-    runCount: 156,
-    createdAt: new Date('2024-06-01'),
-  },
-  {
-    id: '2',
-    name: '入金完了通知',
-    description: '入金確認時に経理と営業に通知',
-    trigger: { type: 'payment_received' },
-    actions: [
-      { type: 'send_email', config: { template: 'payment_received', to: 'accountant' } },
-      { type: 'update_status', config: { status: 'paid' } },
-      { type: 'create_notification', config: { type: 'success' } },
-    ],
-    enabled: true,
-    lastRun: new Date(Date.now() - 1000 * 60 * 30),
-    runCount: 89,
-    createdAt: new Date('2024-07-15'),
-  },
-  {
-    id: '3',
-    name: '商談成約時アクション',
-    description: '商談成約時に契約書作成と通知',
-    trigger: { type: 'deal_won' },
-    actions: [
-      { type: 'create_notification', config: { type: 'success' } },
-      { type: 'assign_task', config: { task: 'create_contract' } },
-    ],
-    enabled: true,
-    lastRun: new Date(Date.now() - 1000 * 60 * 60 * 24),
-    runCount: 23,
-    createdAt: new Date('2024-09-01'),
-  },
-  {
-    id: '4',
-    name: '休暇申請承認フロー',
-    description: '休暇申請時にマネージャーへ承認依頼',
-    trigger: { type: 'leave_request' },
-    actions: [
-      { type: 'send_email', config: { template: 'leave_approval', to: 'manager' } },
-      { type: 'create_notification', config: { type: 'info' } },
-    ],
-    enabled: false,
-    runCount: 45,
-    createdAt: new Date('2024-10-01'),
-  },
-  {
-    id: '5',
-    name: '週次レポート生成',
-    description: '毎週月曜日に週次サマリーを送信',
-    trigger: { type: 'schedule', config: { cron: '0 9 * * 1' } },
-    actions: [
-      { type: 'send_email', config: { template: 'weekly_report', to: 'all_managers' } },
-    ],
-    enabled: true,
-    lastRun: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3),
-    runCount: 12,
-    createdAt: new Date('2024-11-01'),
-  },
-];
 
 export default function Workflows() {
-  const [workflows, setWorkflows] = useState<WorkflowItem[]>(mockWorkflows);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [newWorkflowName, setNewWorkflowName] = useState('');
-  const [newWorkflowTrigger, setNewWorkflowTrigger] = useState<WorkflowItem['trigger']['type']>('invoice_created');
+  const { data: automations, isLoading } = useAutomations();
+  const toggleAutomation = useToggleAutomation();
+  const deleteAutomation = useDeleteAutomation();
+  
+  const [deleteTarget, setDeleteTarget] = useState<Automation | null>(null);
 
-  const activeCount = workflows.filter((w) => w.enabled).length;
-  const totalRuns = workflows.reduce((sum, w) => sum + w.runCount, 0);
+  const activeCount = automations?.filter((a) => a.is_active).length || 0;
+  const totalRuns = automations?.reduce((sum, a) => sum + (a.run_count || 0), 0) || 0;
 
-  const handleToggle = (id: string) => {
-    setWorkflows((prev) =>
-      prev.map((w) => (w.id === id ? { ...w, enabled: !w.enabled } : w))
-    );
-    const workflow = workflows.find((w) => w.id === id);
-    if (workflow) {
-      toast.success(
-        workflow.enabled
-          ? `${workflow.name}を無効化しました`
-          : `${workflow.name}を有効化しました`
-      );
+  const handleToggle = (automation: Automation) => {
+    toggleAutomation.mutate({ id: automation.id, is_active: !automation.is_active });
+  };
+
+  const handleDelete = () => {
+    if (deleteTarget) {
+      deleteAutomation.mutate(deleteTarget.id);
+      setDeleteTarget(null);
     }
-  };
-
-  const handleDelete = (workflow: WorkflowItem) => {
-    setWorkflows((prev) => prev.filter((w) => w.id !== workflow.id));
-    toast.success(`${workflow.name}を削除しました`);
-  };
-
-  const handleCreate = () => {
-    if (!newWorkflowName) {
-      toast.error('ワークフロー名を入力してください');
-      return;
-    }
-    const newWorkflow: WorkflowItem = {
-      id: crypto.randomUUID(),
-      name: newWorkflowName,
-      description: '',
-      trigger: { type: newWorkflowTrigger },
-      actions: [],
-      enabled: false,
-      runCount: 0,
-      createdAt: new Date(),
-    };
-    setWorkflows((prev) => [newWorkflow, ...prev]);
-    setCreateDialogOpen(false);
-    setNewWorkflowName('');
-    toast.success('ワークフローを作成しました');
-  };
-
-  const handleRunManually = (workflow: WorkflowItem) => {
-    setWorkflows((prev) =>
-      prev.map((w) =>
-        w.id === workflow.id
-          ? { ...w, lastRun: new Date(), runCount: w.runCount + 1 }
-          : w
-      )
-    );
-    toast.success(`${workflow.name}を実行しました`);
   };
 
   return (
@@ -229,235 +84,288 @@ export default function Workflows() {
               ワークフロー自動化
             </h1>
             <p className="text-muted-foreground">
-              {activeCount}個のワークフローが有効
+              AIエージェントで登録した自動タスク
             </p>
           </div>
-          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                新規作成
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>ワークフローを作成</DialogTitle>
-                <DialogDescription>
-                  トリガーとアクションを設定して自動化
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label>ワークフロー名</Label>
-                  <Input
-                    placeholder="例: 請求書送付通知"
-                    value={newWorkflowName}
-                    onChange={(e) => setNewWorkflowName(e.target.value)}
-                  />
+        </div>
+
+        {/* AI Agent Guide */}
+        <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Bot className="h-5 w-5 text-primary" />
+              AIエージェントで自動化を登録
+            </CardTitle>
+            <CardDescription>
+              チャットやメール、LINEでAIに指示するだけで自動タスクを登録できます
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="p-4 rounded-lg bg-background border">
+                <div className="flex items-center gap-2 mb-2">
+                  <MessageSquare className="h-4 w-4 text-primary" />
+                  <span className="font-medium">チャットで指示</span>
                 </div>
-                <div className="space-y-2">
-                  <Label>トリガー</Label>
-                  <Select
-                    value={newWorkflowTrigger}
-                    onValueChange={(v) => setNewWorkflowTrigger(v as WorkflowItem['trigger']['type'])}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(triggerLabels).map(([key, { label }]) => (
-                        <SelectItem key={key} value={key}>
-                          {label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <p className="text-sm text-muted-foreground mb-2">
+                  「毎月15日にA社へ10万円の請求書を送って」
+                </p>
+                <Badge variant="secondary" className="text-xs">
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  AIが不足情報を確認
+                </Badge>
+              </div>
+              <div className="p-4 rounded-lg bg-background border">
+                <div className="flex items-center gap-2 mb-2">
+                  <Mail className="h-4 w-4 text-primary" />
+                  <span className="font-medium">メールで指示</span>
+                </div>
+                <p className="text-sm text-muted-foreground mb-2">
+                  会社メールに送るだけで自動登録
+                </p>
+                <Badge variant="secondary" className="text-xs">
+                  会社設定からメール確認
+                </Badge>
+              </div>
+              <div className="p-4 rounded-lg bg-background border">
+                <div className="flex items-center gap-2 mb-2">
+                  <Zap className="h-4 w-4 text-primary" />
+                  <span className="font-medium">対応アクション</span>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  <Badge variant="outline" className="text-xs">請求書</Badge>
+                  <Badge variant="outline" className="text-xs">契約書</Badge>
+                  <Badge variant="outline" className="text-xs">メール</Badge>
+                  <Badge variant="outline" className="text-xs">経費</Badge>
                 </div>
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                  キャンセル
-                </Button>
-                <Button onClick={handleCreate}>作成</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Summary */}
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>総ワークフロー数</CardDescription>
-              <CardTitle className="text-2xl">{workflows.length}</CardTitle>
+              <CardDescription>登録数</CardDescription>
+              <CardTitle className="text-2xl">
+                {isLoading ? <Skeleton className="h-8 w-12" /> : automations?.length || 0}
+              </CardTitle>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="pb-2">
               <CardDescription>有効</CardDescription>
-              <CardTitle className="text-2xl text-green-600">{activeCount}</CardTitle>
+              <CardTitle className="text-2xl text-green-600">
+                {isLoading ? <Skeleton className="h-8 w-12" /> : activeCount}
+              </CardTitle>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="pb-2">
               <CardDescription>総実行回数</CardDescription>
-              <CardTitle className="text-2xl">{totalRuns}</CardTitle>
+              <CardTitle className="text-2xl">
+                {isLoading ? <Skeleton className="h-8 w-12" /> : totalRuns}
+              </CardTitle>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>今月の実行</CardDescription>
+              <CardDescription>次回実行予定</CardDescription>
               <CardTitle className="text-2xl">
-                {workflows.filter(
-                  (w) =>
-                    w.lastRun &&
-                    w.lastRun.getMonth() === new Date().getMonth()
-                ).length}
+                {isLoading ? (
+                  <Skeleton className="h-8 w-20" />
+                ) : (
+                  (() => {
+                    const nextRun = automations
+                      ?.filter((a) => a.is_active && a.next_run_at)
+                      .sort((a, b) => 
+                        new Date(a.next_run_at!).getTime() - new Date(b.next_run_at!).getTime()
+                      )[0];
+                    return nextRun?.next_run_at
+                      ? new Date(nextRun.next_run_at).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })
+                      : '-';
+                  })()
+                )}
               </CardTitle>
             </CardHeader>
           </Card>
         </div>
 
-        {/* Workflow Templates */}
+        {/* Example Prompts */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Zap className="h-5 w-5" />
-              クイックテンプレート
+              <Sparkles className="h-5 w-5" />
+              使い方の例
             </CardTitle>
-            <CardDescription>よく使われるワークフローを簡単に追加</CardDescription>
+            <CardDescription>AIにこのように指示してください</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-2">
               {[
                 {
-                  name: '支払期限リマインダー',
-                  description: '期限3日前に自動リマインド',
-                  icon: Clock,
+                  prompt: '毎月1日にA社へ月額10万円の請求書を自動発行して',
+                  action: '請求書',
+                  icon: FileText,
                 },
                 {
-                  name: '新規リード通知',
-                  description: '新規リード登録時に営業へ通知',
-                  icon: Users,
+                  prompt: 'B社との清掃契約を毎年4月1日に自動更新して',
+                  action: '契約書',
+                  icon: FileText,
                 },
                 {
-                  name: '月次レポート自動生成',
-                  description: '毎月1日に前月サマリーを送信',
-                  icon: Calendar,
+                  prompt: '毎週月曜日に週次レポートをmanager@example.comに送って',
+                  action: 'メール',
+                  icon: Mail,
                 },
-              ].map((template) => (
-                <Card key={template.name} className="cursor-pointer hover:border-primary transition-colors">
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 rounded-lg bg-primary/10">
-                        <template.icon className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <h4 className="font-medium">{template.name}</h4>
-                        <p className="text-sm text-muted-foreground">{template.description}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                {
+                  prompt: '毎月25日に家賃15万円の経費を自動登録して',
+                  action: '経費',
+                  icon: DollarSign,
+                },
+              ].map((example, i) => (
+                <div key={i} className="flex items-start gap-3 p-3 rounded-lg border bg-muted/30">
+                  <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+                    <example.icon className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">&ldquo;{example.prompt}&rdquo;</p>
+                    <Badge variant="secondary" className="mt-1 text-xs">
+                      {example.action}
+                    </Badge>
+                  </div>
+                </div>
               ))}
             </div>
           </CardContent>
         </Card>
 
-        {/* Workflows List */}
+        {/* Automations List */}
         <Card>
           <CardHeader>
-            <CardTitle>ワークフロー一覧</CardTitle>
+            <CardTitle>登録済み自動化</CardTitle>
+            <CardDescription>
+              AIエージェントで登録した自動タスクの一覧
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ワークフロー</TableHead>
-                  <TableHead>トリガー</TableHead>
-                  <TableHead>アクション数</TableHead>
-                  <TableHead>実行回数</TableHead>
-                  <TableHead>最終実行</TableHead>
-                  <TableHead>状態</TableHead>
-                  <TableHead className="w-[100px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {workflows.map((workflow) => {
-                  const TriggerIcon = triggerLabels[workflow.trigger.type].icon;
-                  return (
-                    <TableRow key={workflow.id}>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{workflow.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {workflow.description || '説明なし'}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="gap-1">
-                          <TriggerIcon className="h-3 w-3" />
-                          {triggerLabels[workflow.trigger.type].label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          {workflow.actions.slice(0, 3).map((action, i) => (
-                            <Badge key={i} variant="secondary" className="text-xs">
-                              {actionLabels[action.type]}
-                            </Badge>
-                          ))}
-                          {workflow.actions.length > 3 && (
-                            <span className="text-xs text-muted-foreground">
-                              +{workflow.actions.length - 3}
+            {isLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-16 w-full" />
+                ))}
+              </div>
+            ) : !automations || automations.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="text-lg font-medium mb-2">まだ自動化がありません</p>
+                <p className="text-sm">
+                  AIチャットで「毎月15日にA社へ請求書を送って」のように指示してください
+                </p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>自動化</TableHead>
+                    <TableHead>アクション</TableHead>
+                    <TableHead>スケジュール</TableHead>
+                    <TableHead>クライアント</TableHead>
+                    <TableHead>実行回数</TableHead>
+                    <TableHead>次回実行</TableHead>
+                    <TableHead>状態</TableHead>
+                    <TableHead className="w-[80px]"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {automations.map((automation) => {
+                    const ActionIcon = actionIcons[automation.action_type] || Zap;
+                    const actionLabel = ACTION_TYPE_LABELS[automation.action_type]?.label || automation.action_type;
+                    
+                    return (
+                      <TableRow key={automation.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{automation.name}</p>
+                            {automation.description && (
+                              <p className="text-sm text-muted-foreground line-clamp-1">
+                                {automation.description}
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="gap-1">
+                            <ActionIcon className="h-3 w-3" />
+                            {actionLabel}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1 text-sm">
+                            <Clock className="h-3 w-3 text-muted-foreground" />
+                            {automation.schedule_description || '-'}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {automation.clients?.name || '-'}
+                        </TableCell>
+                        <TableCell>{automation.run_count}</TableCell>
+                        <TableCell>
+                          {automation.next_run_at ? (
+                            <span className="text-sm">
+                              {new Date(automation.next_run_at).toLocaleDateString('ja-JP')}
                             </span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>{workflow.runCount}</TableCell>
-                      <TableCell>
-                        {workflow.lastRun
-                          ? workflow.lastRun.toLocaleDateString('ja-JP')
-                          : '-'}
-                      </TableCell>
-                      <TableCell>
-                        <Switch
-                          checked={workflow.enabled}
-                          onCheckedChange={() => handleToggle(workflow.id)}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleRunManually(workflow)}
-                          >
-                            <Play className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <Edit className="h-4 w-4" />
-                          </Button>
+                          ) : '-'}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={automation.is_active}
+                              onCheckedChange={() => handleToggle(automation)}
+                            />
+                            {automation.last_error && (
+                              <AlertCircle className="h-4 w-4 text-destructive" />
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
                           <Button
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 text-destructive"
-                            onClick={() => handleDelete(workflow)}
+                            onClick={() => setDeleteTarget(automation)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>自動化を削除しますか？</AlertDialogTitle>
+            <AlertDialogDescription>
+              「{deleteTarget?.name}」を削除します。この操作は取り消せません。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+              削除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }
