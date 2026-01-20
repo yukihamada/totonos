@@ -1170,9 +1170,8 @@ serve(async (req) => {
       if (imageAttachments.length > 0) {
         console.log(`Found ${imageAttachments.length} image attachments, processing as receipts`);
         
-        // 並列でOCR処理
+        // 並列でOCR処理（エラーをキャッチしてログ出力）
         for (const att of imageAttachments) {
-          // 非同期で処理（await しない）
           processReceiptAttachment(
             supabase, 
             att, 
@@ -1181,7 +1180,9 @@ serve(async (req) => {
             notifyMode,
             assignedTo,
             fromEmail
-          );
+          ).catch(err => {
+            console.error(`Failed to process receipt attachment ${att.filename}:`, err);
+          });
         }
       }
     } else {
@@ -1215,19 +1216,21 @@ serve(async (req) => {
 
     // AI処理（認証済み送信者のみ）
     if (isVerifiedSender && emailAddressConfig?.ai_processing_enabled !== false) {
-      // AI分析をトリガー（非同期）
+      // AI分析をトリガー（非同期、エラーをキャッチ）
       triggerAIAnalysis(
         supabase,
         savedEmail.id,
         emailData.text || emailData.html || "",
         emailData.subject || null,
         spreadsheetDataList.length > 0 ? spreadsheetDataList : undefined
-      );
+      ).catch(err => {
+        console.error(`Failed to trigger AI analysis for email ${savedEmail.id}:`, err);
+      });
       
       // AIコマンド処理を自動実行（件名や本文にコマンドがある場合）
       const commandText = emailData.subject || emailData.text || emailData.html || "";
       if (commandText && companyId) {
-        // コマンド処理を非同期で実行
+        // コマンド処理を非同期で実行（エラーをキャッチ）
         triggerAICommandProcessing(
           supabase,
           savedEmail.id,
@@ -1235,10 +1238,12 @@ serve(async (req) => {
           emailData.subject || null,
           emailData.text || emailData.html || "",
           assignedTo,
-          emailData.from,
-          emailData.fromName || null,
+          fromEmail,
+          fromName || null,
           spreadsheetDataList.length > 0 ? spreadsheetDataList : undefined
-        );
+        ).catch(err => {
+          console.error(`Failed to trigger AI command processing for email ${savedEmail.id}:`, err);
+        });
       }
     }
 

@@ -240,7 +240,47 @@ LINEの文字数制限があるため、回答は簡潔にまとめてくださ�
   if (!response.ok) {
     const text = await response.text();
     console.error("Chat API error:", response.status, text);
-    throw new Error("Chat API error");
+    throw new Error(`Chat API error: ${response.status} - ${text}`);
+  }
+
+  // Check if response is streaming or JSON
+  const contentType = response.headers.get("content-type") || "";
+  
+  if (contentType.includes("text/event-stream")) {
+    // Handle streaming response - collect all content
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error("No response body");
+    }
+    
+    let fullContent = "";
+    const decoder = new TextDecoder();
+    
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split("\n");
+      
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") continue;
+          
+          try {
+            const parsed = JSON.parse(jsonStr);
+            if (parsed.type === "content_block_delta" && parsed.delta?.text) {
+              fullContent += parsed.delta.text;
+            }
+          } catch {
+            // Skip invalid JSON
+          }
+        }
+      }
+    }
+    
+    return fullContent || "申し訳ありません。応答を生成できませんでした。";
   }
 
   const data = await response.json();

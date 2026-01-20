@@ -131,25 +131,34 @@ async function executeToolCall(
   supabase: any,
   toolName: string,
   args: Record<string, unknown>,
-  _companyId: string,
+  companyId: string,
   spreadsheetContent?: string
 ): Promise<string> {
-  console.log(`Executing tool: ${toolName}`, args);
+  console.log(`Executing tool: ${toolName} for company: ${companyId}`, args);
 
   switch (toolName) {
     case "search_leads": {
-      const { data } = await supabase
+      const query = args.query as string || "";
+      const { data, error } = await supabase
         .from("leads")
         .select("id, company_name, contact_name, email, status")
-        .or(`company_name.ilike.%${args.query}%,contact_name.ilike.%${args.query}%`)
+        .eq("company_id", companyId)
+        .or(`company_name.ilike.%${query}%,contact_name.ilike.%${query}%`)
         .limit(10);
+      
+      if (error) {
+        console.error("search_leads error:", error);
+        return JSON.stringify({ error: error.message });
+      }
       return JSON.stringify(data || []);
     }
 
     case "create_lead": {
       const insertData: Record<string, unknown> = {
+        company_id: companyId,
         company_name: args.company_name as string,
         status: "new",
+        source: "email",
       };
       if (args.contact_name) insertData.contact_name = args.contact_name;
       if (args.email) insertData.email = args.email;
@@ -162,7 +171,10 @@ async function executeToolCall(
         .select()
         .single();
       
-      if (error) return JSON.stringify({ error: error.message });
+      if (error) {
+        console.error("create_lead error:", error);
+        return JSON.stringify({ error: error.message });
+      }
       return JSON.stringify({ success: true, lead: data });
     }
 
@@ -172,7 +184,11 @@ async function executeToolCall(
         return JSON.stringify({ error: "リードデータがありません" });
       }
 
-      const insertData = leads.map(lead => ({
+      // Limit bulk insert to 100 leads at a time
+      const maxLeads = leads.slice(0, 100);
+      
+      const insertData = maxLeads.map(lead => ({
+        company_id: companyId,
         company_name: lead.company_name as string,
         contact_name: lead.contact_name as string || null,
         email: lead.email as string || null,
@@ -187,20 +203,35 @@ async function executeToolCall(
         .insert(insertData)
         .select();
       
-      if (error) return JSON.stringify({ error: error.message });
+      if (error) {
+        console.error("bulk_create_leads error:", error);
+        return JSON.stringify({ error: error.message });
+      }
+      
+      const message = leads.length > 100 
+        ? `${data.length}件のリードを登録しました（上限100件のため、残り${leads.length - 100}件は未登録）`
+        : `${data.length}件のリードを登録しました`;
+      
       return JSON.stringify({ 
         success: true, 
-        message: `${data.length}件のリードを登録しました`,
+        message,
         leads: data 
       });
     }
 
     case "search_clients": {
-      const { data } = await supabase
+      const query = args.query as string || "";
+      const { data, error } = await supabase
         .from("clients")
         .select("id, name, email, phone")
-        .ilike("name", `%${args.query}%`)
+        .eq("company_id", companyId)
+        .ilike("name", `%${query}%`)
         .limit(10);
+      
+      if (error) {
+        console.error("search_clients error:", error);
+        return JSON.stringify({ error: error.message });
+      }
       return JSON.stringify(data || []);
     }
 
@@ -208,21 +239,26 @@ async function executeToolCall(
       let query = supabase
         .from("invoices")
         .select("id, invoice_number, title, amount, status, due_date")
+        .eq("company_id", companyId)
         .limit(10);
       
       if (args.status) {
         query = query.eq("status", args.status);
       }
       
-      const { data } = await query;
+      const { data, error } = await query;
+      if (error) {
+        console.error("search_invoices error:", error);
+        return JSON.stringify({ error: error.message });
+      }
       return JSON.stringify(data || []);
     }
 
     case "get_stats": {
       const [leadsResult, invoicesResult, clientsResult] = await Promise.all([
-        supabase.from("leads").select("id", { count: "exact" }),
-        supabase.from("invoices").select("id, amount, status"),
-        supabase.from("clients").select("id", { count: "exact" }),
+        supabase.from("leads").select("id", { count: "exact" }).eq("company_id", companyId),
+        supabase.from("invoices").select("id, amount, status").eq("company_id", companyId),
+        supabase.from("clients").select("id", { count: "exact" }).eq("company_id", companyId),
       ]);
 
       // Calculate unpaid amount manually
