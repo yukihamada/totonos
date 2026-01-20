@@ -418,19 +418,25 @@ serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Verify LINE signature
+    // Verify LINE signature - MANDATORY for security
     const signature = req.headers.get("x-line-signature");
     const bodyText = await req.text();
 
-    if (signature) {
-      const isValid = await verifyLineSignature(bodyText, signature, LINE_CHANNEL_SECRET);
-      if (!isValid) {
-        console.error("Invalid LINE signature");
-        return new Response(
-          JSON.stringify({ error: "Invalid signature" }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
+    if (!signature) {
+      console.error("Missing LINE signature header");
+      return new Response(
+        JSON.stringify({ error: "Missing signature" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const isValid = await verifyLineSignature(bodyText, signature, LINE_CHANNEL_SECRET);
+    if (!isValid) {
+      console.error("Invalid LINE signature");
+      return new Response(
+        JSON.stringify({ error: "Invalid signature" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const body: LineWebhookBody = JSON.parse(bodyText);

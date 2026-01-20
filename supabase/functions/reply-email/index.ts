@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { consumeCompanyCredits, canUseCredits, CREDIT_COSTS } from "../_shared/credits.ts";
+import { fetchWithRetry, getUserFriendlyError } from "../_shared/fetch-utils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -51,7 +52,7 @@ ${body.substring(0, 2000)}
 【回答形式】
 返信メールの本文のみを出力してください。件名や署名は不要です。`;
 
-  const response = await fetch("https://api.lovable.dev/v1/chat/completions", {
+  const response = await fetchWithRetry("https://api.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -65,11 +66,14 @@ ${body.substring(0, 2000)}
       temperature: 0.7,
       max_tokens: 1000,
     }),
+    maxRetries: 3,
+    retryDelayMs: 1000,
+    timeoutMs: 30000,
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("AI API error:", errorText);
+    console.error("AI API error:", response.status, errorText);
     throw new Error(`AI API failed: ${response.status}`);
   }
 
@@ -156,9 +160,9 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Error generating reply:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const userFriendlyError = getUserFriendlyError(error);
     return new Response(
-      JSON.stringify({ success: false, error: errorMessage }),
+      JSON.stringify({ success: false, error: userFriendlyError }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

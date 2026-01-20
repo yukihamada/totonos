@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { consumeCompanyCredits, canUseCredits, CREDIT_COSTS } from "../_shared/credits.ts";
+import { fetchWithRetry, getUserFriendlyError } from "../_shared/fetch-utils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -326,7 +327,7 @@ ${spreadsheetContent ? `添付されたCSV/Excelデータがある場合:
 ツールの実行結果に基づいて、分かりやすく報告してください。`;
 
   // First call to determine which tools to use
-  const response = await fetch("https://api.lovable.dev/v1/chat/completions", {
+  const response = await fetchWithRetry("https://api.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -346,11 +347,14 @@ ${spreadsheetContent ? `添付されたCSV/Excelデータがある場合:
       temperature: 0.3,
       max_tokens: 2000,
     }),
+    maxRetries: 3,
+    retryDelayMs: 1000,
+    timeoutMs: 30000,
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("AI API error:", errorText);
+    console.error("AI API error:", response.status, errorText);
     throw new Error(`AI API failed: ${response.status}`);
   }
 
@@ -379,7 +383,7 @@ ${spreadsheetContent ? `添付されたCSV/Excelデータがある場合:
   }
 
   // Second call to summarize results
-  const summaryResponse = await fetch("https://api.lovable.dev/v1/chat/completions", {
+  const summaryResponse = await fetchWithRetry("https://api.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -400,11 +404,14 @@ ${spreadsheetContent ? `添付されたCSV/Excelデータがある場合:
       temperature: 0.3,
       max_tokens: 1000,
     }),
+    maxRetries: 3,
+    retryDelayMs: 1000,
+    timeoutMs: 30000,
   });
 
   if (!summaryResponse.ok) {
     const errorText = await summaryResponse.text();
-    console.error("AI summary error:", errorText);
+    console.error("AI summary error:", response.status, errorText);
     throw new Error(`AI summary failed: ${summaryResponse.status}`);
   }
 
@@ -506,9 +513,9 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Error processing command:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const userFriendlyError = getUserFriendlyError(error);
     return new Response(
-      JSON.stringify({ success: false, error: errorMessage }),
+      JSON.stringify({ success: false, error: userFriendlyError }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

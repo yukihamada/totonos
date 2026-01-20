@@ -1,5 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import * as XLSX from "https://esm.sh/xlsx@0.18.5";
+
+// Configurable FROM address - defaults to Resend test address
+const FROM_EMAIL = Deno.env.get("FROM_EMAIL") || "Totonos <onboarding@resend.dev>";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -368,7 +372,7 @@ async function sendReplyEmail(
         "Authorization": `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "Totonos <onboarding@resend.dev>",
+        from: FROM_EMAIL,
         to: [toEmail],
         subject,
         html,
@@ -675,23 +679,73 @@ async function processSpreadsheetAttachment(
       };
     }
 
-    // Excelの場合（基本的なXLSX解析）
+    // Excelの場合 - SheetJSを使用して実際にパース
     if (
       mimeType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
       mimeType === "application/vnd.ms-excel" ||
       filename.endsWith(".xlsx") ||
       filename.endsWith(".xls")
     ) {
-      // Excel files require a library for full parsing
-      // For now, return metadata only
-      console.log(`Excel file detected: ${attachment.filename}, size: ${attachment.content.length}`);
-      return {
-        filename: attachment.filename,
-        headers: [],
-        rows: [],
-        rowCount: 0,
-        formattedContent: `[Excelファイル: ${attachment.filename}]\n※Excelファイルは詳細解析が必要です。CSV形式での送信をお勧めします。`,
-      };
+      try {
+        console.log(`Parsing Excel file: ${attachment.filename}`);
+        
+        // Base64からバイナリに変換
+        const binaryString = atob(attachment.content);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        
+        // SheetJSでパース
+        const workbook = XLSX.read(bytes, { type: "array" });
+        const sheetName = workbook.SheetNames[0];
+        
+        if (!sheetName) {
+          console.log("No sheets found in Excel file");
+          return {
+            filename: attachment.filename,
+            headers: [],
+            rows: [],
+            rowCount: 0,
+            formattedContent: `[Excelファイル: ${attachment.filename}]\n※シートが見つかりません。`,
+          };
+        }
+        
+        const sheet = workbook.Sheets[sheetName];
+        const data = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as string[][];
+        
+        if (data.length === 0) {
+          return {
+            filename: attachment.filename,
+            headers: [],
+            rows: [],
+            rowCount: 0,
+            formattedContent: `[Excelファイル: ${attachment.filename}]\n※データが空です。`,
+          };
+        }
+        
+        const headers = (data[0] || []).map(h => String(h || ""));
+        const rows = data.slice(1).map(row => row.map(cell => String(cell || "")));
+        
+        console.log(`Excel parsed: ${headers.length} columns, ${rows.length} rows`);
+        
+        return {
+          filename: attachment.filename,
+          headers,
+          rows,
+          rowCount: rows.length,
+          formattedContent: formatSpreadsheetForAI(headers, rows),
+        };
+      } catch (excelError) {
+        console.error("Failed to parse Excel file:", excelError);
+        return {
+          filename: attachment.filename,
+          headers: [],
+          rows: [],
+          rowCount: 0,
+          formattedContent: `[Excelファイル: ${attachment.filename}]\n※ファイルの解析に失敗しました。CSV形式での送信をお勧めします。`,
+        };
+      }
     }
 
     return null;
@@ -1071,6 +1125,28 @@ serve(async (req) => {
 
     // メールのステータスを決定
     const emailStatus = requiresVerification ? "pending_verification" : "received";
+
+    // 重複メールチェック（message_idがある場合）
+    if (emailData.messageId) {
+      const { data: existingEmail } = await supabase
+        .from("inbound_emails")
+        .select("id")
+        .eq("message_id", emailData.messageId)
+        .maybeSingle();
+
+      if (existingEmail) {
+        console.log(`Duplicate email detected: ${emailData.messageId}, existing id: ${existingEmail.id}`);
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            duplicate: true,
+            id: existingEmail.id,
+            message: "Email already processed"
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
 
     // DBに保存
     const { data: savedEmail, error } = await supabase
