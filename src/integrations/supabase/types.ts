@@ -5628,6 +5628,10 @@ export type Database = {
         Args: { p_company_id?: string }
         Returns: boolean
       }
+      has_medical_permission: {
+        Args: { p_company_id: string; p_user_id: string }
+        Returns: boolean
+      }
       has_permission: {
         Args: {
           p_company_id: string
