@@ -33,8 +33,15 @@ export interface AppSettings {
 }
 
 // Protected menu items that should never be hidden or disabled
-export const PROTECTED_ITEM_IDS = ['settings', 'settings-menu'];
-export const PROTECTED_GROUP_IDS = ['system'];
+// システム管理系のアイテムはオフにできないようにする
+export const PROTECTED_ITEM_IDS = [
+  'settings', 
+  'settings-menu', 
+  'company-settings', 
+  'team',
+  'dashboard',
+];
+export const PROTECTED_GROUP_IDS = ['system', 'main'];
 
 const defaultMenuGroups: MenuGroupConfig[] = [
   {
