@@ -159,3 +159,40 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* 印刷用スタイル */
+@media print {
+  .print-hidden,
+  button,
+  nav,
+  .sticky {
+    display: none !important;
+  }
+
+  body,
+  .bg-background {
+    background: white !important;
+    color: black !important;
+  }
+
+  section {
+    page-break-inside: avoid;
+  }
+
+  h2 {
+    page-break-after: avoid;
+  }
+
+  table {
+    page-break-inside: avoid;
+  }
+
+  a {
+    color: black !important;
+    text-decoration: none !important;
+  }
+
+  .prose {
+    max-width: none !important;
+  }
+}

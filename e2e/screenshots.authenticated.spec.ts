@@ -80,6 +80,16 @@ const pages = [
   // Reports
   { path: '/reports', name: '110-reports', description: 'レポート' },
   { path: '/trust-passport', name: '111-trust-passport', description: 'トラストパスポート' },
+
+  // Blog v2 - New Features
+  { path: '/delivery-notes', name: 'blog-01-delivery-notes', description: '納品書OCR' },
+  { path: '/auto-reorder', name: 'blog-02-auto-reorder', description: '自動発注' },
+  { path: '/line-settings', name: 'blog-03-line-settings', description: 'LINE連携' },
+  { path: '/slack-integration', name: 'blog-04-slack-integration', description: 'Slack連携' },
+  { path: '/inbound-emails', name: 'blog-05-inbound-emails', description: '受信メール' },
+  { path: '/settings-menu', name: 'blog-06-settings-menu', description: 'メニュー設定' },
+  { path: '/credits', name: 'blog-07-credits', description: 'クレジット' },
+  { path: '/usage-dashboard', name: 'blog-08-usage-dashboard', description: '使用量ダッシュボード' },
 ];
 
 test.describe('Screenshot Capture', () => {

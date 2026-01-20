@@ -101,16 +101,20 @@ import Credits from "./pages/Credits";
 import CreditLogs from "./pages/CreditLogs";
 import Pricing from "./pages/Pricing";
 import Referrals from "./pages/Referrals";
+import { UsageDashboard } from "./pages/UsageDashboard";
 // Developer & Settings
 import SettingsMenu from "./pages/SettingsMenu";
 import DeveloperSettings from "./pages/DeveloperSettings";
 import ApiDocs from "./pages/ApiDocs";
 import McpSettings from "./pages/McpSettings";
 import AISettings from "./pages/AISettings";
+import AIAgents from "./pages/AIAgents";
 import CompanySettings from "./pages/CompanySettings";
 // Legal
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
+import ServiceGuide from "./pages/ServiceGuide";
+import ServiceAgreement from "./pages/ServiceAgreement";
 // Data Import
 import DataImport from "./pages/DataImport";
 // Organization
@@ -125,9 +129,7 @@ import { ChatWidget } from "./components/chat/ChatWidget";
 // LINE Integration
 import LineSettings from "./pages/LineSettings";
 import Integrations from "./pages/Integrations";
-// Industry Templates
-import Industries from "./pages/Industries";
-import IndustryLanding from "./pages/lp/IndustryLanding";
+import GoogleChatIntegration from "./pages/GoogleChatIntegration";
 // Phase 4: Expense Management
 import Expenses from "./pages/Expenses";
 import ExpenseNew from "./pages/ExpenseNew";
@@ -267,6 +269,7 @@ function AppRoutes() {
       <Route path="/my-number" element={<ProtectedRoute><MyNumberManagement /></ProtectedRoute>} />
       <Route path="/email-integration" element={<ProtectedRoute><EmailIntegration /></ProtectedRoute>} />
       <Route path="/slack-integration" element={<ProtectedRoute><SlackIntegration /></ProtectedRoute>} />
+      <Route path="/google-chat-integration" element={<ProtectedRoute><GoogleChatIntegration /></ProtectedRoute>} />
       {/* Phase 2 Features (Differentiation) */}
       <Route path="/wiki-hierarchy" element={<ProtectedRoute><WikiHierarchy /></ProtectedRoute>} />
       <Route path="/sales-forecast" element={<ProtectedRoute><SalesForecast /></ProtectedRoute>} />
@@ -279,10 +282,12 @@ function AppRoutes() {
       <Route path="/credit-logs" element={<ProtectedRoute><CreditLogs /></ProtectedRoute>} />
       <Route path="/pricing" element={<ProtectedRoute><Pricing /></ProtectedRoute>} />
       <Route path="/referrals" element={<ProtectedRoute><Referrals /></ProtectedRoute>} />
+      <Route path="/usage" element={<ProtectedRoute><UsageDashboard /></ProtectedRoute>} />
       {/* Developer & Settings */}
       <Route path="/settings/menu" element={<ProtectedRoute><SettingsMenu /></ProtectedRoute>} />
       <Route path="/settings/ai" element={<ProtectedRoute><AISettings /></ProtectedRoute>} />
       <Route path="/ai-settings" element={<ProtectedRoute><AISettings /></ProtectedRoute>} />
+      <Route path="/ai-agents" element={<ProtectedRoute><AIAgents /></ProtectedRoute>} />
       <Route path="/settings/company" element={<ProtectedRoute><CompanySettings /></ProtectedRoute>} />
       <Route path="/company-settings" element={<ProtectedRoute><CompanySettings /></ProtectedRoute>} />
       <Route path="/settings/line" element={<ProtectedRoute><LineSettings /></ProtectedRoute>} />
@@ -297,6 +302,8 @@ function AppRoutes() {
       {/* Legal */}
       <Route path="/terms" element={<Terms />} />
       <Route path="/privacy" element={<Privacy />} />
+      <Route path="/service-guide" element={<ServiceGuide />} />
+      <Route path="/service-agreement" element={<ServiceAgreement />} />
       {/* Organization */}
       <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
       <Route path="/organization" element={<ProtectedRoute><OrganizationSettings /></ProtectedRoute>} />
@@ -304,9 +311,6 @@ function AppRoutes() {
       <Route path="/portal" element={<EmployeePortal />} />
       {/* Showcase (public) */}
       <Route path="/showcase" element={<Showcase />} />
-      {/* Industry Templates */}
-      <Route path="/industries" element={<Industries />} />
-      <Route path="/lp/:template" element={<IndustryLanding />} />
       {/* Invitation */}
       <Route path="/invite" element={<Invite />} />
       {/* Phase 4: Expense Management */}
@@ -336,28 +340,24 @@ function AppRoutes() {
   );
 }
 
-import { HelmetProvider } from 'react-helmet-async';
-
 const App = () => (
   <ErrorBoundary>
-    <HelmetProvider>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <OrganizationProvider>
-            <SettingsProvider>
-              <TooltipProvider>
-                <Toaster />
-                <Sonner />
-                <BrowserRouter>
-                  <AppRoutes />
-                  <ChatWidget />
-                </BrowserRouter>
-              </TooltipProvider>
-            </SettingsProvider>
-          </OrganizationProvider>
-        </AuthProvider>
-      </QueryClientProvider>
-    </HelmetProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <OrganizationProvider>
+          <SettingsProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <AppRoutes />
+                <ChatWidget />
+              </BrowserRouter>
+            </TooltipProvider>
+          </SettingsProvider>
+        </OrganizationProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   </ErrorBoundary>
 );
 

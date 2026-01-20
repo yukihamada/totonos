@@ -6,12 +6,14 @@ import { supabase } from '@/integrations/supabase/client';
 const E2E_TEST_KEY = import.meta.env.VITE_E2E_TEST_KEY;
 const IS_PRODUCTION = import.meta.env.PROD;
 
+type OAuthProvider = 'google' | 'github';
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
   signInWithMagicLink: (email: string) => Promise<{ error: Error | null }>;
-  signInWithGoogle: () => Promise<{ error: Error | null }>;
+  signInWithOAuth: (provider: OAuthProvider) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null; isNewUser?: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -150,11 +152,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         emailRedirectTo: redirectUrl,
       },
     });
-    
+
     // Note: Supabase handles the OTP email internally
     // If you want to fully customize, you'd need to use a custom SMTP setup
     // The edge function is available for additional welcome/notification emails
-    
+
+    return { error: error as Error | null };
+  };
+
+  const signInWithOAuth = async (provider: OAuthProvider) => {
+    const redirectUrl = `${window.location.origin}/dashboard`;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: redirectUrl,
+      },
+    });
     return { error: error as Error | null };
   };
 
@@ -211,16 +224,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error as Error | null };
   };
 
-  const signInWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/dashboard`,
-      },
-    });
-    return { error: error as Error | null };
-  };
-
   const signOut = async () => {
     // Clear E2E test session if exists
     localStorage.removeItem('e2e_test_session');
@@ -230,15 +233,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      session, 
-      loading, 
+    <AuthContext.Provider value={{
+      user,
+      session,
+      loading,
       signInWithMagicLink,
-      signInWithGoogle,
+      signInWithOAuth,
       signUp,
       signIn,
-      signOut 
+      signOut
     }}>
       {children}
     </AuthContext.Provider>
