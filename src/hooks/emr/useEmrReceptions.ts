@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useCompany } from "@/hooks/useCompany";
+import { useCurrentCompany } from "@/hooks/useCompany";
 import { toast } from "sonner";
 import { EmrPatient } from "./useEmrPatients";
 
@@ -27,9 +27,9 @@ export type EmrReceptionInsert = Omit<EmrReception, "id" | "created_at" | "updat
 export type EmrReceptionUpdate = Partial<EmrReceptionInsert>;
 
 export function useEmrReceptions(date?: string) {
-  const { currentCompany } = useCompany();
+  const currentCompanyQuery = useCurrentCompany();
   const queryClient = useQueryClient();
-  const companyId = currentCompany?.id;
+  const companyId = currentCompanyQuery.data?.id;
   const targetDate = date || new Date().toISOString().split("T")[0];
 
   const receptionsQuery = useQuery({
@@ -46,7 +46,7 @@ export function useEmrReceptions(date?: string) {
         .eq("reception_date", targetDate)
         .order("reception_time", { ascending: true });
       if (error) throw error;
-      return data as EmrReception[];
+      return data as unknown as EmrReception[];
     },
     enabled: !!companyId,
   });
@@ -73,7 +73,7 @@ export function useEmrReceptions(date?: string) {
         `)
         .single();
       if (error) throw error;
-      return data as EmrReception;
+      return data as unknown as EmrReception;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["emr-receptions", companyId] });
@@ -96,7 +96,7 @@ export function useEmrReceptions(date?: string) {
         `)
         .single();
       if (error) throw error;
-      return data as EmrReception;
+      return data as unknown as EmrReception;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["emr-receptions", companyId] });
@@ -116,7 +116,7 @@ export function useEmrReceptions(date?: string) {
         .select()
         .single();
       if (error) throw error;
-      return data as EmrReception;
+      return data as unknown as EmrReception;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["emr-receptions", companyId] });
@@ -163,8 +163,8 @@ export function useEmrReceptions(date?: string) {
 }
 
 export function useTodayReceptionStats() {
-  const { currentCompany } = useCompany();
-  const companyId = currentCompany?.id;
+  const currentCompanyQuery = useCurrentCompany();
+  const companyId = currentCompanyQuery.data?.id;
   const today = new Date().toISOString().split("T")[0];
 
   return useQuery({

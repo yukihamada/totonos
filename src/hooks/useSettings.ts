@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { MobileNavItemConfig, defaultMobileNavItems, industryTemplates, dbTemplateKeyToMenuTemplateId } from '@/types/menu-templates';
+import { UIStyleType, BorderRadiusType, borderRadiusMap } from '@/types/design-templates';
 
 export interface MenuItemConfig {
   id: string;
@@ -21,10 +22,17 @@ export interface AppSettings {
   accentColor: string;
   fontSize: 'sm' | 'base' | 'lg';
   compactMode: boolean;
+  uiStyle: UIStyleType;
+  borderRadius: BorderRadiusType;
   menuGroups: MenuGroupConfig[];
   mobileNavItems: MobileNavItemConfig[];
   currentTemplateId?: string;
+  currentDesignTemplateId?: string;
 }
+
+// Protected menu items that should never be hidden
+export const PROTECTED_ITEM_IDS = ['settings', 'settings-menu'];
+export const PROTECTED_GROUP_IDS = ['system'];
 
 const defaultMenuGroups: MenuGroupConfig[] = [
   {
@@ -243,6 +251,21 @@ const defaultMenuGroups: MenuGroupConfig[] = [
       { id: 'emr-hpki', title: 'HPKI署名', visible: false, order: 5 },
     ],
   },
+  {
+    id: 'membership',
+    label: '会員管理',
+    visible: false,
+    order: 15,
+    items: [
+      { id: 'members-dashboard', title: '会員ダッシュボード', visible: false, order: 0 },
+      { id: 'members-list', title: '会員一覧', visible: false, order: 1 },
+      { id: 'membership-plans', title: 'プラン管理', visible: false, order: 2 },
+      { id: 'class-schedules', title: 'スケジュール', visible: false, order: 3 },
+      { id: 'class-bookings', title: '予約', visible: false, order: 4 },
+      { id: 'member-checkins', title: 'チェックイン', visible: false, order: 5 },
+      { id: 'member-purchases', title: '物販', visible: false, order: 6 },
+    ],
+  },
 ];
 
 const defaultSettings: AppSettings = {
@@ -250,6 +273,8 @@ const defaultSettings: AppSettings = {
   accentColor: 'default',
   fontSize: 'base',
   compactMode: false,
+  uiStyle: 'default',
+  borderRadius: 'md',
   menuGroups: defaultMenuGroups,
   mobileNavItems: defaultMobileNavItems,
 };
@@ -302,6 +327,17 @@ export function useSettings() {
     root.classList.add(`text-${settings.fontSize}`);
   }, [settings.fontSize]);
 
+  // Apply UI style and border radius
+  useEffect(() => {
+    const root = document.documentElement;
+    
+    // Set UI style attribute
+    root.setAttribute('data-ui-style', settings.uiStyle);
+    
+    // Set border radius CSS variable
+    root.style.setProperty('--radius', borderRadiusMap[settings.borderRadius]);
+  }, [settings.uiStyle, settings.borderRadius]);
+
   // Save to localStorage
   useEffect(() => {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
@@ -312,6 +348,11 @@ export function useSettings() {
   }, []);
 
   const updateMenuGroup = useCallback((groupId: string, updates: Partial<MenuGroupConfig>) => {
+    // Protect system group from being hidden
+    if (PROTECTED_GROUP_IDS.includes(groupId) && updates.visible === false) {
+      return; // Prevent hiding protected groups
+    }
+    
     setSettings(prev => ({
       ...prev,
       menuGroups: prev.menuGroups.map(group =>
@@ -321,6 +362,11 @@ export function useSettings() {
   }, []);
 
   const updateMenuItem = useCallback((groupId: string, itemId: string, updates: Partial<MenuItemConfig>) => {
+    // Protect settings menu from being hidden
+    if (PROTECTED_ITEM_IDS.includes(itemId) && updates.visible === false) {
+      return; // Prevent hiding protected items
+    }
+    
     setSettings(prev => ({
       ...prev,
       menuGroups: prev.menuGroups.map(group =>
@@ -363,16 +409,21 @@ export function useSettings() {
       // Merge with defaultMenuGroups: keep all items but set visibility based on template
       const mergedMenuGroups = defaultMenuGroups.map(group => {
         const templateGroup = template.menuGroups.find(tg => tg.id === group.id);
+        
+        // Protected groups stay visible
+        const isProtectedGroup = PROTECTED_GROUP_IDS.includes(group.id);
 
         return {
           ...group,
-          visible: templateGroup?.visible ?? false,
+          visible: isProtectedGroup || (templateGroup?.visible ?? false),
           order: templateGroup?.order ?? group.order,
           items: group.items.map(item => {
             const templateItem = templateGroup?.items.find(ti => ti.id === item.id);
+            // Protected items stay visible
+            const isProtectedItem = PROTECTED_ITEM_IDS.includes(item.id);
             return {
               ...item,
-              visible: templateItem?.visible ?? false,
+              visible: isProtectedItem || (templateItem?.visible ?? false),
               order: templateItem?.order ?? item.order,
             };
           }),
@@ -408,6 +459,16 @@ export function useSettings() {
     return false;
   }, [applyTemplate]);
 
+  // Check if an item is protected
+  const isProtectedItem = useCallback((itemId: string): boolean => {
+    return PROTECTED_ITEM_IDS.includes(itemId);
+  }, []);
+
+  // Check if a group is protected
+  const isProtectedGroup = useCallback((groupId: string): boolean => {
+    return PROTECTED_GROUP_IDS.includes(groupId);
+  }, []);
+
   return {
     settings,
     updateSettings,
@@ -417,5 +478,7 @@ export function useSettings() {
     updateMobileNavItems,
     applyTemplate,
     applyTemplateByDbKey,
+    isProtectedItem,
+    isProtectedGroup,
   };
 }
