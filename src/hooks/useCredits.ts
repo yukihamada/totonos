@@ -12,17 +12,41 @@ export const PLANS = {
 
 export type PlanType = keyof typeof PLANS;
 
-// クレジット消費単価
+// クレジット消費単価（Edge Function側と同期）
 export const CREDIT_COSTS = {
+  // 基本AI機能
   ai_chat: { name: 'AIチャット', cost: 1 },
-  ai_forecast: { name: 'AI売上予測', cost: 5 },
-  ai_scoring: { name: 'AIリードスコアリング', cost: 3 },
+  ai_chat_image: { name: 'AI画像解析', cost: 3 },
+  ai_chat_pdf: { name: 'AI PDF解析', cost: 5 },
+  
+  // メールAI機能
+  ai_email_analysis: { name: 'メールAI分析', cost: 2 },
+  ai_email_reply: { name: 'AI返信生成', cost: 3 },
+  ai_email_command: { name: 'メールAI指示', cost: 5 },
+  
+  // ドキュメント処理
+  ai_document_generate: { name: 'AI文書生成', cost: 3 },
   ocr: { name: '領収書OCR', cost: 2 },
+  ocr_delivery_note: { name: '納品書OCR', cost: 3 },
   pdf: { name: 'PDF生成', cost: 1 },
+  
+  // メール・エクスポート
   email: { name: 'メール送信', cost: 1 },
   export: { name: 'データエクスポート', cost: 2 },
+  
+  // 契約管理
   contract_create: { name: '契約書作成', cost: 3 },
   contract_sign: { name: '電子署名', cost: 2 },
+  contract_blockchain: { name: 'ブロックチェーン証明', cost: 5 },
+  
+  // AI分析・予測
+  ai_forecast: { name: 'AI売上予測', cost: 5 },
+  ai_scoring: { name: 'AIスコアリング', cost: 3 },
+  lead_scoring: { name: 'リードスコアリング', cost: 2 },
+  
+  // その他
+  mcp_call: { name: 'MCP呼び出し', cost: 1 },
+  barcode_lookup: { name: 'バーコード検索', cost: 0 },
 } as const;
 
 export type CreditAction = keyof typeof CREDIT_COSTS;

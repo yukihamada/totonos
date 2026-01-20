@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { consumeCompanyCredits, getCompanyIdForUser } from "../_shared/credits.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -56,6 +57,24 @@ serve(async (req) => {
     }
 
     const { leadId, organizationId } = await req.json();
+
+    // クレジット消費
+    const companyId = await getCompanyIdForUser(supabaseClient, user.id);
+    if (companyId) {
+      const creditResult = await consumeCompanyCredits(
+        supabaseClient,
+        companyId,
+        "lead_scoring",
+        "リードスコアリング"
+      );
+      if (!creditResult.success) {
+        return new Response(JSON.stringify({ error: creditResult.error }), {
+          status: 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      console.log(`Credits consumed: ${creditResult.creditsUsed}, new balance: ${creditResult.newBalance}`);
+    }
 
     // Fetch lead data
     const { data: lead, error: leadError } = await supabaseClient

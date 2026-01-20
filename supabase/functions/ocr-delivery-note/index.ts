@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { consumeCompanyCredits, getCompanyIdForUser } from "../_shared/credits.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -60,6 +61,26 @@ serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // クレジット消費
+    if (userId) {
+      const companyId = await getCompanyIdForUser(supabaseClient, userId);
+      if (companyId) {
+        const creditResult = await consumeCompanyCredits(
+          supabaseClient,
+          companyId,
+          "ocr_delivery_note",
+          "納品書OCR処理"
+        );
+        if (!creditResult.success) {
+          return new Response(JSON.stringify({ error: creditResult.error }), {
+            status: 402,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        console.log(`Credits consumed: ${creditResult.creditsUsed}, new balance: ${creditResult.newBalance}`);
+      }
     }
 
     console.log("Processing delivery note OCR...");
