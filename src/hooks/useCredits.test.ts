@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   PLANS,
   CREDIT_COSTS,
@@ -31,10 +31,24 @@ describe('PLANS', () => {
       expect(typeof plan.monthlyCredits).toBe('number');
     });
   });
+
+  it('should have enterprise plan with unlimited credits', () => {
+    expect(PLANS.enterprise.monthlyCredits).toBe(Infinity);
+  });
+
+  it('should have free plan with no cost', () => {
+    expect(PLANS.free.price).toBe(0);
+  });
+
+  it('should have increasing credits with higher tier plans', () => {
+    expect(PLANS.starter.monthlyCredits).toBeGreaterThan(PLANS.free.monthlyCredits);
+    expect(PLANS.standard.monthlyCredits).toBeGreaterThan(PLANS.starter.monthlyCredits);
+    expect(PLANS.pro.monthlyCredits).toBeGreaterThan(PLANS.standard.monthlyCredits);
+  });
 });
 
 describe('CREDIT_COSTS', () => {
-  it('should have correct cost definitions', () => {
+  it('should have correct cost definitions for basic actions', () => {
     expect(CREDIT_COSTS.ai_chat.cost).toBe(1);
     expect(CREDIT_COSTS.ai_forecast.cost).toBe(5);
     expect(CREDIT_COSTS.ai_scoring.cost).toBe(3);
@@ -43,29 +57,81 @@ describe('CREDIT_COSTS', () => {
     expect(CREDIT_COSTS.email.cost).toBe(1);
   });
 
+  it('should have correct cost definitions for new actions', () => {
+    expect(CREDIT_COSTS.ocr_delivery_note.cost).toBe(3);
+    expect(CREDIT_COSTS.lead_scoring.cost).toBe(2);
+    expect(CREDIT_COSTS.barcode_lookup.cost).toBe(0);
+  });
+
+  it('should have correct cost definitions for AI chat variants', () => {
+    expect(CREDIT_COSTS.ai_chat.cost).toBe(1);
+    expect(CREDIT_COSTS.ai_chat_image.cost).toBe(3);
+    expect(CREDIT_COSTS.ai_chat_pdf.cost).toBe(5);
+  });
+
+  it('should have correct cost definitions for email actions', () => {
+    expect(CREDIT_COSTS.ai_email_analysis.cost).toBe(2);
+    expect(CREDIT_COSTS.ai_email_reply.cost).toBe(3);
+    expect(CREDIT_COSTS.ai_email_command.cost).toBe(5);
+  });
+
+  it('should have correct cost definitions for contract actions', () => {
+    expect(CREDIT_COSTS.contract_create.cost).toBe(3);
+    expect(CREDIT_COSTS.contract_sign.cost).toBe(2);
+    expect(CREDIT_COSTS.contract_blockchain.cost).toBe(5);
+  });
+
   it('should have names for all actions', () => {
     Object.values(CREDIT_COSTS).forEach((action) => {
       expect(action.name).toBeTruthy();
       expect(typeof action.cost).toBe('number');
-      expect(action.cost).toBeGreaterThan(0);
+      // barcode_lookup is free, so cost >= 0
+      expect(action.cost).toBeGreaterThanOrEqual(0);
     });
   });
 
   it('should have all expected action types', () => {
     const expectedActions = [
+      // Basic
       'ai_chat',
-      'ai_forecast',
-      'ai_scoring',
+      'ai_chat_image',
+      'ai_chat_pdf',
+      // Email
+      'ai_email_analysis',
+      'ai_email_reply',
+      'ai_email_command',
+      // Documents
+      'ai_document_generate',
       'ocr',
+      'ocr_delivery_note',
       'pdf',
+      // Email & Export
       'email',
       'export',
+      // Contracts
       'contract_create',
       'contract_sign',
+      'contract_blockchain',
+      // AI Analysis
+      'ai_forecast',
+      'ai_scoring',
+      'lead_scoring',
+      // Others
+      'mcp_call',
+      'barcode_lookup',
     ];
     expectedActions.forEach((action) => {
       expect(CREDIT_COSTS).toHaveProperty(action);
     });
+  });
+
+  it('should have barcode_lookup as free action', () => {
+    expect(CREDIT_COSTS.barcode_lookup.cost).toBe(0);
+    expect(CREDIT_COSTS.barcode_lookup.name).toBe('バーコード検索');
+  });
+
+  it('should have total of 20 action types', () => {
+    expect(Object.keys(CREDIT_COSTS).length).toBe(20);
   });
 });
 
@@ -119,9 +185,7 @@ describe('CHARGE_PACKS', () => {
       expect(pack).toHaveProperty('discount');
     });
   });
-});
 
-describe('Credit calculations', () => {
   it('should calculate price per credit correctly', () => {
     CHARGE_PACKS.forEach((pack) => {
       const calculatedPricePerCredit = pack.price / pack.credits;
@@ -134,21 +198,5 @@ describe('Credit calculations', () => {
       expect(pack.discount).toBeGreaterThanOrEqual(0);
       expect(pack.discount).toBeLessThanOrEqual(100);
     });
-  });
-});
-
-describe('Plan features', () => {
-  it('should have enterprise plan with unlimited credits', () => {
-    expect(PLANS.enterprise.monthlyCredits).toBe(Infinity);
-  });
-
-  it('should have free plan with no cost', () => {
-    expect(PLANS.free.price).toBe(0);
-  });
-
-  it('should have increasing credits with higher tier plans', () => {
-    expect(PLANS.starter.monthlyCredits).toBeGreaterThan(PLANS.free.monthlyCredits);
-    expect(PLANS.standard.monthlyCredits).toBeGreaterThan(PLANS.starter.monthlyCredits);
-    expect(PLANS.pro.monthlyCredits).toBeGreaterThan(PLANS.standard.monthlyCredits);
   });
 });
