@@ -404,6 +404,8 @@ export type Database = {
           name: string
           phone: string | null
           slug: string | null
+          template_applied_at: string | null
+          template_id: string | null
           updated_at: string
           verified_email_addresses: string[] | null
           website: string | null
@@ -422,6 +424,8 @@ export type Database = {
           name: string
           phone?: string | null
           slug?: string | null
+          template_applied_at?: string | null
+          template_id?: string | null
           updated_at?: string
           verified_email_addresses?: string[] | null
           website?: string | null
@@ -440,11 +444,21 @@ export type Database = {
           name?: string
           phone?: string | null
           slug?: string | null
+          template_applied_at?: string | null
+          template_id?: string | null
           updated_at?: string
           verified_email_addresses?: string[] | null
           website?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "companies_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "industry_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       company_credits: {
         Row: {
@@ -2245,6 +2259,60 @@ export type Database = {
           },
         ]
       }
+      industry_templates: {
+        Row: {
+          category: string
+          color: string | null
+          created_at: string | null
+          description: string | null
+          hero_image_url: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          is_featured: boolean | null
+          keywords: string[] | null
+          name: string
+          name_en: string | null
+          sort_order: number | null
+          template_key: string
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          hero_image_url?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          keywords?: string[] | null
+          name: string
+          name_en?: string | null
+          sort_order?: number | null
+          template_key: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          hero_image_url?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          keywords?: string[] | null
+          name?: string
+          name_en?: string | null
+          sort_order?: number | null
+          template_key?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       inventory_alerts: {
         Row: {
           acknowledged_at: string | null
@@ -3773,6 +3841,188 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      template_accounts: {
+        Row: {
+          account_code: string
+          account_description: string | null
+          account_name: string
+          account_type: string
+          created_at: string | null
+          id: string
+          is_common: boolean | null
+          parent_code: string | null
+          sort_order: number | null
+          tax_category: string | null
+          template_id: string | null
+        }
+        Insert: {
+          account_code: string
+          account_description?: string | null
+          account_name: string
+          account_type: string
+          created_at?: string | null
+          id?: string
+          is_common?: boolean | null
+          parent_code?: string | null
+          sort_order?: number | null
+          tax_category?: string | null
+          template_id?: string | null
+        }
+        Update: {
+          account_code?: string
+          account_description?: string | null
+          account_name?: string
+          account_type?: string
+          created_at?: string | null
+          id?: string
+          is_common?: boolean | null
+          parent_code?: string | null
+          sort_order?: number | null
+          tax_category?: string | null
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_accounts_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "industry_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_landing_content: {
+        Row: {
+          created_at: string | null
+          cta_text: string | null
+          faq: Json | null
+          features: Json | null
+          hero_subtitle: string | null
+          hero_title: string
+          id: string
+          pain_points: Json | null
+          solutions: Json | null
+          template_id: string | null
+          testimonials: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          cta_text?: string | null
+          faq?: Json | null
+          features?: Json | null
+          hero_subtitle?: string | null
+          hero_title: string
+          id?: string
+          pain_points?: Json | null
+          solutions?: Json | null
+          template_id?: string | null
+          testimonials?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          cta_text?: string | null
+          faq?: Json | null
+          features?: Json | null
+          hero_subtitle?: string | null
+          hero_title?: string
+          id?: string
+          pain_points?: Json | null
+          solutions?: Json | null
+          template_id?: string | null
+          testimonials?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_landing_content_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "industry_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_menu_config: {
+        Row: {
+          created_at: string | null
+          dashboard_widgets: Json | null
+          emphasized_features: string[] | null
+          hidden_features: string[] | null
+          id: string
+          menu_groups: Json
+          mobile_nav_items: Json | null
+          template_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          dashboard_widgets?: Json | null
+          emphasized_features?: string[] | null
+          hidden_features?: string[] | null
+          id?: string
+          menu_groups?: Json
+          mobile_nav_items?: Json | null
+          template_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          dashboard_widgets?: Json | null
+          emphasized_features?: string[] | null
+          hidden_features?: string[] | null
+          id?: string
+          menu_groups?: Json
+          mobile_nav_items?: Json | null
+          template_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_menu_config_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "industry_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_sample_data: {
+        Row: {
+          created_at: string | null
+          data: Json
+          data_type: string
+          id: string
+          is_active: boolean | null
+          template_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data?: Json
+          data_type: string
+          id?: string
+          is_active?: boolean | null
+          template_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data?: Json
+          data_type?: string
+          id?: string
+          is_active?: boolean | null
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_sample_data_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "industry_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       trust_passports: {
         Row: {
