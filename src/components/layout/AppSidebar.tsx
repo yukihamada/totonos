@@ -58,6 +58,7 @@ import {
   Plug,
   MessageCircle,
   MessageSquare,
+  MessageSquarePlus,
   // Phase 4 icons
   CircleDollarSign,
   FolderKanban,
@@ -68,6 +69,7 @@ import {
   CalendarCheck,
   FileBarChart,
 } from "lucide-react";
+import { useState } from "react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
 import { useAppSettings } from "@/contexts/SettingsContext";
@@ -87,6 +89,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { FeedbackDialog } from "@/components/FeedbackDialog";
 
 interface AppSidebarProps {
   onChatOpen?: () => void;
@@ -273,6 +277,7 @@ export function AppSidebar({ onChatOpen }: AppSidebarProps) {
   const { settings } = useAppSettings();
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   // Sort and filter menu groups based on settings
   const visibleGroups = settings.menuGroups
@@ -368,7 +373,27 @@ export function AppSidebar({ onChatOpen }: AppSidebarProps) {
             <LogOut className="h-4 w-4" />
             {!collapsed && <span>ログアウト</span>}
           </Button>
+          
+          {/* Feedback & Beta - Below logout */}
+          <div className="pt-2 border-t border-border mt-2">
+            <div className="flex items-center gap-2 mb-2">
+              <Badge variant="secondary" className="bg-amber-500/90 text-amber-950 hover:bg-amber-500 border-0 font-semibold px-2 py-0.5 text-[10px] leading-tight">
+                🚧 ベータ版
+              </Badge>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setFeedbackOpen(true)}
+              className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+            >
+              <MessageSquarePlus className="h-4 w-4" />
+              {!collapsed && <span>バグ報告・機能要望</span>}
+            </Button>
+          </div>
         </div>
+        
+        <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />
       </SidebarFooter>
     </Sidebar>
   );
