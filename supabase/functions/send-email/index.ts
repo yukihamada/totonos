@@ -4,6 +4,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
+// Configurable FROM address - defaults to Resend test address
+const FROM_EMAIL = Deno.env.get("FROM_EMAIL") || "Totonos <onboarding@resend.dev>";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -303,7 +306,7 @@ serve(async (req) => {
 
     // Send email via Resend
     const emailResponse = await resend.emails.send({
-      from: "Totonos <onboarding@resend.dev>",
+      from: FROM_EMAIL,
       to: [recipientEmail],
       subject,
       html,
