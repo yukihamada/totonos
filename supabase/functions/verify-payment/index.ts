@@ -16,8 +16,6 @@ serve(async (req) => {
   try {
     const { sessionId, invoiceId } = await req.json();
 
-    console.log("Verifying payment for session:", sessionId, "invoice:", invoiceId);
-
     // Initialize Stripe
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
@@ -25,8 +23,6 @@ serve(async (req) => {
 
     // Retrieve the Checkout Session
     const session = await stripe.checkout.sessions.retrieve(sessionId);
-
-    console.log("Session status:", session.payment_status);
 
     if (session.payment_status === "paid") {
       // Create Supabase client
@@ -47,8 +43,6 @@ serve(async (req) => {
         console.error("Error updating invoice:", updateError);
         throw new Error("請求書のステータス更新に失敗しました");
       }
-
-      console.log("Invoice updated to paid:", invoiceId);
 
       return new Response(
         JSON.stringify({
