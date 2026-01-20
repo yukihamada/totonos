@@ -193,6 +193,7 @@ const iconMap: Record<string, LucideIcon> = {
   'emr-reception': ClipboardCheck,
   'emr-patients': UserRound,
   'emr-records': FileHeart,
+  'emr-sales': TrendingUp,
   'emr-hpki': KeySquare,
 };
 
@@ -287,6 +288,7 @@ const urlMap: Record<string, string> = {
   'emr-reception': '/emr/reception',
   'emr-patients': '/emr/patients',
   'emr-records': '/emr/records',
+  'emr-sales': '/emr/sales',
   'emr-hpki': '/emr/hpki',
 };
 

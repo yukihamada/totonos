@@ -22,6 +22,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -33,10 +40,13 @@ import {
   XCircle,
   RefreshCw,
   ArrowLeft,
+  UserRoundPlus,
+  RotateCw,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import type { ReceptionEntry, ReceptionStatus, Patient } from "@/types/emr";
+import type { ReceptionEntry, ReceptionStatus, Patient, VisitType } from "@/types/emr";
+import { VisitTypeIndicator } from "@/components/emr/VisitTypeIndicator";
 
 // Mock data
 const mockReceptions: ReceptionEntry[] = [
@@ -56,6 +66,7 @@ const mockReceptions: ReceptionEntry[] = [
     reception_date: new Date().toISOString(),
     reception_number: 1,
     status: "waiting",
+    visit_type: "first_visit",
     chief_complaint: "頭痛、めまい",
     scheduled_time: "09:00",
     created_at: "",
@@ -77,6 +88,7 @@ const mockReceptions: ReceptionEntry[] = [
     reception_date: new Date().toISOString(),
     reception_number: 2,
     status: "in_progress",
+    visit_type: "return_visit",
     chief_complaint: "発熱、咳",
     scheduled_time: "09:30",
     created_at: "",
@@ -98,6 +110,7 @@ const mockReceptions: ReceptionEntry[] = [
     reception_date: new Date().toISOString(),
     reception_number: 3,
     status: "waiting",
+    visit_type: "return_visit",
     chief_complaint: "腹痛",
     scheduled_time: "10:00",
     created_at: "",
@@ -119,6 +132,7 @@ const mockReceptions: ReceptionEntry[] = [
     reception_date: new Date().toISOString(),
     reception_number: 4,
     status: "completed",
+    visit_type: "first_visit",
     chief_complaint: "定期検診",
     scheduled_time: "08:30",
     created_at: "",
@@ -148,6 +162,8 @@ export default function EmrReception() {
 
   const waitingCount = receptions.filter((r) => r.status === "waiting").length;
   const inProgressCount = receptions.filter((r) => r.status === "in_progress").length;
+  const firstVisitCount = receptions.filter((r) => r.visit_type === "first_visit").length;
+  const returnVisitCount = receptions.filter((r) => r.visit_type === "return_visit").length;
 
   const updateStatus = (id: string, newStatus: ReceptionStatus) => {
     setReceptions((prev) =>
@@ -196,6 +212,28 @@ export default function EmrReception() {
                   <Input placeholder="患者番号または氏名で検索..." />
                 </div>
                 <div className="space-y-2">
+                  <Label>来院区分</Label>
+                  <Select defaultValue="first_visit">
+                    <SelectTrigger>
+                      <SelectValue placeholder="来院区分を選択" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="first_visit">
+                        <div className="flex items-center gap-2">
+                          <UserRoundPlus className="h-4 w-4 text-blue-500" />
+                          <span>新患（初診）</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="return_visit">
+                        <div className="flex items-center gap-2">
+                          <RotateCw className="h-4 w-4 text-green-500" />
+                          <span>再診</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
                   <Label>主訴</Label>
                   <Textarea placeholder="来院理由・症状を入力..." />
                 </div>
@@ -211,7 +249,7 @@ export default function EmrReception() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-5">
           <Card>
             <CardContent className="flex items-center gap-4 pt-6">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900">
@@ -247,6 +285,28 @@ export default function EmrReception() {
               </div>
             </CardContent>
           </Card>
+          <Card>
+            <CardContent className="flex items-center gap-4 pt-6">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
+                <UserRoundPlus className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">新患</p>
+                <p className="text-lg font-semibold">{firstVisitCount}名</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center gap-4 pt-6">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900">
+                <RotateCw className="h-5 w-5 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">再診</p>
+                <p className="text-lg font-semibold">{returnVisitCount}名</p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Reception List */}
@@ -279,6 +339,7 @@ export default function EmrReception() {
                 <TableRow>
                   <TableHead className="w-16">番号</TableHead>
                   <TableHead>患者</TableHead>
+                  <TableHead className="w-20">区分</TableHead>
                   <TableHead>予約時刻</TableHead>
                   <TableHead>主訴</TableHead>
                   <TableHead>ステータス</TableHead>
@@ -304,6 +365,11 @@ export default function EmrReception() {
                           {reception.patient?.name_kana}
                         </p>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {reception.visit_type && (
+                        <VisitTypeIndicator visitType={reception.visit_type} size="sm" />
+                      )}
                     </TableCell>
                     <TableCell>{reception.scheduled_time || "-"}</TableCell>
                     <TableCell className="max-w-[200px] truncate">

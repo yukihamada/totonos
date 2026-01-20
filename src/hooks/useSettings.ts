@@ -239,7 +239,8 @@ const defaultMenuGroups: MenuGroupConfig[] = [
       { id: 'emr-reception', title: '受付', visible: false, order: 1 },
       { id: 'emr-patients', title: '患者管理', visible: false, order: 2 },
       { id: 'emr-records', title: 'カルテ', visible: false, order: 3 },
-      { id: 'emr-hpki', title: 'HPKI署名', visible: false, order: 4 },
+      { id: 'emr-sales', title: '売上レポート', visible: false, order: 4 },
+      { id: 'emr-hpki', title: 'HPKI署名', visible: false, order: 5 },
     ],
   },
 ];

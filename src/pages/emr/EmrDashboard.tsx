@@ -5,6 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Stethoscope,
   Users,
   ClipboardCheck,
@@ -13,18 +20,62 @@ import {
   Clock,
   ArrowRight,
   AlertTriangle,
+  TrendingUp,
+  UserRoundPlus,
+  RotateCw,
+  BarChart3,
+  Percent,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import type { ReceptionEntry, ReceptionStatus } from "@/types/emr";
+import type { ReceptionEntry, ReceptionStatus, VisitType, InsuranceType } from "@/types/emr";
+import { VisitTypeIndicator } from "@/components/emr/VisitTypeIndicator";
+import { KpiCard } from "@/components/emr/KpiCard";
+import { InsuranceTypePieChart } from "@/components/emr/InsuranceTypePieChart";
 
-// Mock data
+// Mock data - extended with visit_type
 const mockStats = {
   todayPatients: 24,
   waiting: 5,
   inProgress: 2,
   completed: 17,
+  firstVisit: 6,
+  returnVisit: 18,
 };
+
+// Mock analytics data
+const mockAnalytics = {
+  today: {
+    firstVisit: 6,
+    returnVisit: 18,
+    totalPatients: 24,
+    returnRate: 75,
+    avgAge: 48,
+  },
+  week: {
+    firstVisit: 32,
+    returnVisit: 115,
+    totalPatients: 147,
+    returnRate: 78,
+    avgAge: 52,
+  },
+  month: {
+    firstVisit: 124,
+    returnVisit: 512,
+    totalPatients: 636,
+    returnRate: 81,
+    avgAge: 50,
+  },
+};
+
+// Mock insurance type distribution
+const mockInsuranceDistribution = [
+  { type: "employee_health" as InsuranceType, count: 10, amount: 125000 },
+  { type: "national_health" as InsuranceType, count: 6, amount: 72000 },
+  { type: "late_elderly" as InsuranceType, count: 5, amount: 68000 },
+  { type: "welfare" as InsuranceType, count: 1, amount: 12000 },
+  { type: "self_pay" as InsuranceType, count: 2, amount: 35000 },
+];
 
 const mockRecentReceptions: ReceptionEntry[] = [
   {
@@ -43,6 +94,7 @@ const mockRecentReceptions: ReceptionEntry[] = [
     reception_date: new Date().toISOString(),
     reception_number: 1,
     status: "waiting",
+    visit_type: "first_visit",
     chief_complaint: "頭痛",
     created_at: "",
     updated_at: "",
@@ -63,6 +115,7 @@ const mockRecentReceptions: ReceptionEntry[] = [
     reception_date: new Date().toISOString(),
     reception_number: 2,
     status: "in_progress",
+    visit_type: "return_visit",
     chief_complaint: "発熱",
     created_at: "",
     updated_at: "",
@@ -83,6 +136,7 @@ const mockRecentReceptions: ReceptionEntry[] = [
     reception_date: new Date().toISOString(),
     reception_number: 3,
     status: "waiting",
+    visit_type: "return_visit",
     chief_complaint: "腹痛",
     created_at: "",
     updated_at: "",
@@ -97,7 +151,13 @@ const statusConfig: Record<ReceptionStatus, { label: string; color: string }> = 
   cancelled: { label: "キャンセル", color: "bg-red-500" },
 };
 
+type AnalyticsPeriod = "today" | "week" | "month";
+
 export default function EmrDashboard() {
+  const [analyticsPeriod, setAnalyticsPeriod] = useState<AnalyticsPeriod>("today");
+
+  const currentAnalytics = mockAnalytics[analyticsPeriod];
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -113,6 +173,12 @@ export default function EmrDashboard() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="outline" asChild>
+              <Link to="/emr/sales">
+                <TrendingUp className="h-4 w-4 mr-2" />
+                売上レポート
+              </Link>
+            </Button>
             <Button variant="outline" asChild>
               <Link to="/emr/hpki">
                 <KeySquare className="h-4 w-4 mr-2" />
@@ -198,6 +264,61 @@ export default function EmrDashboard() {
           </Card>
         </div>
 
+        {/* KPI Analytics Section */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                患者統計・KPI
+              </CardTitle>
+              <CardDescription>来院状況の分析</CardDescription>
+            </div>
+            <Select value={analyticsPeriod} onValueChange={(v) => setAnalyticsPeriod(v as AnalyticsPeriod)}>
+              <SelectTrigger className="w-28">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="today">本日</SelectItem>
+                <SelectItem value="week">今週</SelectItem>
+                <SelectItem value="month">今月</SelectItem>
+              </SelectContent>
+            </Select>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-4">
+              <KpiCard
+                title="新患数"
+                value={currentAnalytics.firstVisit}
+                subtitle={`総来院数: ${currentAnalytics.totalPatients}名`}
+                icon={UserRoundPlus}
+                iconColor="text-blue-600"
+              />
+              <KpiCard
+                title="再診数"
+                value={currentAnalytics.returnVisit}
+                icon={RotateCw}
+                iconColor="text-green-600"
+              />
+              <KpiCard
+                title="再診率"
+                value={`${currentAnalytics.returnRate}%`}
+                subtitle="リピート率"
+                icon={Percent}
+                iconColor="text-purple-600"
+                variant="highlight"
+              />
+              <KpiCard
+                title="平均年齢"
+                value={`${currentAnalytics.avgAge}歳`}
+                subtitle="来院患者"
+                icon={Users}
+                iconColor="text-muted-foreground"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Current Queue */}
           <Card>
@@ -225,7 +346,12 @@ export default function EmrDashboard() {
                         {reception.reception_number}
                       </div>
                       <div>
-                        <p className="font-medium">{reception.patient?.name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{reception.patient?.name}</p>
+                          {reception.visit_type && (
+                            <VisitTypeIndicator visitType={reception.visit_type} size="sm" />
+                          )}
+                        </div>
                         <p className="text-sm text-muted-foreground">
                           {reception.chief_complaint}
                         </p>
@@ -243,62 +369,80 @@ export default function EmrDashboard() {
             </CardContent>
           </Card>
 
-          {/* Quick Links */}
-          <Card>
-            <CardHeader>
-              <CardTitle>クイックアクセス</CardTitle>
-              <CardDescription>
-                よく使う機能へのショートカット
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-3">
-              <Button variant="outline" className="justify-start h-auto py-4" asChild>
-                <Link to="/emr/reception">
-                  <ClipboardCheck className="h-5 w-5 mr-3 text-blue-500" />
-                  <div className="text-left">
-                    <p className="font-medium">受付</p>
-                    <p className="text-xs text-muted-foreground">
-                      患者の受付処理と待ち順管理
-                    </p>
-                  </div>
-                </Link>
-              </Button>
-              <Button variant="outline" className="justify-start h-auto py-4" asChild>
-                <Link to="/emr/patients">
-                  <Users className="h-5 w-5 mr-3 text-green-500" />
-                  <div className="text-left">
-                    <p className="font-medium">患者管理</p>
-                    <p className="text-xs text-muted-foreground">
-                      患者情報の登録・検索
-                    </p>
-                  </div>
-                </Link>
-              </Button>
-              <Button variant="outline" className="justify-start h-auto py-4" asChild>
-                <Link to="/emr/records">
-                  <FileHeart className="h-5 w-5 mr-3 text-purple-500" />
-                  <div className="text-left">
-                    <p className="font-medium">カルテ</p>
-                    <p className="text-xs text-muted-foreground">
-                      診療記録の作成・閲覧
-                    </p>
-                  </div>
-                </Link>
-              </Button>
-              <Button variant="outline" className="justify-start h-auto py-4" asChild>
-                <Link to="/emr/hpki">
-                  <KeySquare className="h-5 w-5 mr-3 text-amber-500" />
-                  <div className="text-left">
-                    <p className="font-medium">HPKI署名</p>
-                    <p className="text-xs text-muted-foreground">
-                      電子署名の確認・テスト
-                    </p>
-                  </div>
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
+          {/* Insurance Distribution */}
+          <InsuranceTypePieChart
+            data={mockInsuranceDistribution}
+            title="保険種別分布（本日）"
+            showAmount={false}
+          />
         </div>
+
+        {/* Quick Links */}
+        <Card>
+          <CardHeader>
+            <CardTitle>クイックアクセス</CardTitle>
+            <CardDescription>
+              よく使う機能へのショートカット
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <Button variant="outline" className="justify-start h-auto py-4" asChild>
+              <Link to="/emr/reception">
+                <ClipboardCheck className="h-5 w-5 mr-3 text-blue-500" />
+                <div className="text-left">
+                  <p className="font-medium">受付</p>
+                  <p className="text-xs text-muted-foreground">
+                    待ち順管理
+                  </p>
+                </div>
+              </Link>
+            </Button>
+            <Button variant="outline" className="justify-start h-auto py-4" asChild>
+              <Link to="/emr/patients">
+                <Users className="h-5 w-5 mr-3 text-green-500" />
+                <div className="text-left">
+                  <p className="font-medium">患者管理</p>
+                  <p className="text-xs text-muted-foreground">
+                    登録・検索
+                  </p>
+                </div>
+              </Link>
+            </Button>
+            <Button variant="outline" className="justify-start h-auto py-4" asChild>
+              <Link to="/emr/records">
+                <FileHeart className="h-5 w-5 mr-3 text-purple-500" />
+                <div className="text-left">
+                  <p className="font-medium">カルテ</p>
+                  <p className="text-xs text-muted-foreground">
+                    作成・閲覧
+                  </p>
+                </div>
+              </Link>
+            </Button>
+            <Button variant="outline" className="justify-start h-auto py-4" asChild>
+              <Link to="/emr/sales">
+                <TrendingUp className="h-5 w-5 mr-3 text-emerald-500" />
+                <div className="text-left">
+                  <p className="font-medium">売上レポート</p>
+                  <p className="text-xs text-muted-foreground">
+                    経営分析
+                  </p>
+                </div>
+              </Link>
+            </Button>
+            <Button variant="outline" className="justify-start h-auto py-4" asChild>
+              <Link to="/emr/hpki">
+                <KeySquare className="h-5 w-5 mr-3 text-amber-500" />
+                <div className="text-left">
+                  <p className="font-medium">HPKI署名</p>
+                  <p className="text-xs text-muted-foreground">
+                    電子署名
+                  </p>
+                </div>
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </AppLayout>
   );

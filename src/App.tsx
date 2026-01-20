@@ -161,6 +161,7 @@ import EmrReception from "./pages/emr/EmrReception";
 import EmrPatients from "./pages/emr/EmrPatients";
 import EmrRecords from "./pages/emr/EmrRecords";
 import EmrHpkiBridge from "./pages/emr/EmrHpkiBridge";
+import EmrSalesReport from "./pages/emr/EmrSalesReport";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -352,6 +353,7 @@ function AppRoutes() {
       <Route path="/emr/reception" element={<ProtectedRoute><EmrReception /></ProtectedRoute>} />
       <Route path="/emr/patients" element={<ProtectedRoute><EmrPatients /></ProtectedRoute>} />
       <Route path="/emr/records" element={<ProtectedRoute><EmrRecords /></ProtectedRoute>} />
+      <Route path="/emr/sales" element={<ProtectedRoute><EmrSalesReport /></ProtectedRoute>} />
       <Route path="/emr/hpki" element={<ProtectedRoute><EmrHpkiBridge /></ProtectedRoute>} />
       {/* Not Found */}
       <Route path="*" element={<NotFound />} />
