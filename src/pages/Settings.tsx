@@ -288,13 +288,27 @@ export default function Settings() {
                     </CardTitle>
                     <CardDescription>サイドバーメニューの表示項目を設定</CardDescription>
                   </div>
-                  <Button variant="outline" size="sm" onClick={handleResetMenu}>
-                    <RotateCcw className="mr-2 h-4 w-4" />
-                    リセット
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={handleResetMenu}>
+                      <RotateCcw className="mr-2 h-4 w-4" />
+                      リセット
+                    </Button>
+                    <Button size="sm" onClick={() => window.location.href = '/settings/menu'}>
+                      高度な設定
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
+                <div className="bg-muted/50 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-muted-foreground">
+                    より詳細なメニューカスタマイズ（並び替え、モバイル設定、業種テンプレート）は
+                    <a href="/settings/menu" className="text-primary hover:underline ml-1">
+                      高度なメニュー設定
+                    </a>
+                    をご利用ください。
+                  </p>
+                </div>
                 {settings.menuGroups.map((group) => (
                   <div key={group.id} className="space-y-3">
                     <div className="flex items-center justify-between">
