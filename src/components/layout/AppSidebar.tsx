@@ -68,6 +68,12 @@ import {
   UserSearch,
   CalendarCheck,
   FileBarChart,
+  // EMR icons
+  Stethoscope,
+  ClipboardCheck,
+  UserRound,
+  FileHeart,
+  KeySquare,
 } from "lucide-react";
 import { useState } from "react";
 import { NavLink } from "@/components/NavLink";
@@ -182,6 +188,12 @@ const iconMap: Record<string, LucideIcon> = {
   candidates: UserSearch,
   interviews: CalendarCheck,
   'recruiting-reports': FileBarChart,
+  // EMR
+  'emr-dashboard': Stethoscope,
+  'emr-reception': ClipboardCheck,
+  'emr-patients': UserRound,
+  'emr-records': FileHeart,
+  'emr-hpki': KeySquare,
 };
 
 // URL mapping
@@ -270,6 +282,12 @@ const urlMap: Record<string, string> = {
   candidates: '/candidates',
   interviews: '/interviews',
   'recruiting-reports': '/recruiting/reports',
+  // EMR
+  'emr-dashboard': '/emr',
+  'emr-reception': '/emr/reception',
+  'emr-patients': '/emr/patients',
+  'emr-records': '/emr/records',
+  'emr-hpki': '/emr/hpki',
 };
 
 export function AppSidebar({ onChatOpen }: AppSidebarProps) {

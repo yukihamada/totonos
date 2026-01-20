@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { OrganizationProvider } from "@/contexts/OrganizationContext";
@@ -124,6 +125,9 @@ import EmployeePortal from "./pages/EmployeePortal";
 import Showcase from "./pages/Showcase";
 import GettingStarted from "./pages/GettingStarted";
 import Invite from "./pages/Invite";
+// Industry LP
+import Industries from "./pages/Industries";
+import IndustryLanding from "./pages/lp/IndustryLanding";
 // Chat
 import { ChatWidget } from "./components/chat/ChatWidget";
 // LINE Integration
@@ -151,6 +155,12 @@ import Candidates from "./pages/Candidates";
 import CandidateDetail from "./pages/CandidateDetail";
 import InterviewSchedule from "./pages/InterviewSchedule";
 import RecruitingReports from "./pages/RecruitingReports";
+// EMR (Electronic Medical Records)
+import EmrDashboard from "./pages/emr/EmrDashboard";
+import EmrReception from "./pages/emr/EmrReception";
+import EmrPatients from "./pages/emr/EmrPatients";
+import EmrRecords from "./pages/emr/EmrRecords";
+import EmrHpkiBridge from "./pages/emr/EmrHpkiBridge";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -313,6 +323,9 @@ function AppRoutes() {
       <Route path="/showcase" element={<Showcase />} />
       {/* Invitation */}
       <Route path="/invite" element={<Invite />} />
+      {/* Industry Landing Pages */}
+      <Route path="/industries" element={<Industries />} />
+      <Route path="/lp/:template" element={<IndustryLanding />} />
       {/* Phase 4: Expense Management */}
       <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
       <Route path="/expenses/new" element={<ProtectedRoute><ExpenseNew /></ProtectedRoute>} />
@@ -334,6 +347,12 @@ function AppRoutes() {
       <Route path="/candidates/:id" element={<ProtectedRoute><CandidateDetail /></ProtectedRoute>} />
       <Route path="/interviews" element={<ProtectedRoute><InterviewSchedule /></ProtectedRoute>} />
       <Route path="/recruiting/reports" element={<ProtectedRoute><RecruitingReports /></ProtectedRoute>} />
+      {/* EMR (Electronic Medical Records) */}
+      <Route path="/emr" element={<ProtectedRoute><EmrDashboard /></ProtectedRoute>} />
+      <Route path="/emr/reception" element={<ProtectedRoute><EmrReception /></ProtectedRoute>} />
+      <Route path="/emr/patients" element={<ProtectedRoute><EmrPatients /></ProtectedRoute>} />
+      <Route path="/emr/records" element={<ProtectedRoute><EmrRecords /></ProtectedRoute>} />
+      <Route path="/emr/hpki" element={<ProtectedRoute><EmrHpkiBridge /></ProtectedRoute>} />
       {/* Not Found */}
       <Route path="*" element={<NotFound />} />
     </Routes>
@@ -342,22 +361,24 @@ function AppRoutes() {
 
 const App = () => (
   <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <OrganizationProvider>
-          <SettingsProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
-                <AppRoutes />
-                <ChatWidget />
-              </BrowserRouter>
-            </TooltipProvider>
-          </SettingsProvider>
-        </OrganizationProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <HelmetProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <OrganizationProvider>
+            <SettingsProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <BrowserRouter>
+                  <AppRoutes />
+                  <ChatWidget />
+                </BrowserRouter>
+              </TooltipProvider>
+            </SettingsProvider>
+          </OrganizationProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </HelmetProvider>
   </ErrorBoundary>
 );
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { MobileNavItemConfig, defaultMobileNavItems, industryTemplates } from '@/types/menu-templates';
+import { MobileNavItemConfig, defaultMobileNavItems, industryTemplates, dbTemplateKeyToMenuTemplateId } from '@/types/menu-templates';
 
 export interface MenuItemConfig {
   id: string;
@@ -229,6 +229,19 @@ const defaultMenuGroups: MenuGroupConfig[] = [
       { id: 'pages', title: 'ページ一覧', visible: true, order: 4 },
     ],
   },
+  {
+    id: 'emr',
+    label: '電子カルテ',
+    visible: false,
+    order: 14,
+    items: [
+      { id: 'emr-dashboard', title: '電子カルテ', visible: false, order: 0 },
+      { id: 'emr-reception', title: '受付', visible: false, order: 1 },
+      { id: 'emr-patients', title: '患者管理', visible: false, order: 2 },
+      { id: 'emr-records', title: 'カルテ', visible: false, order: 3 },
+      { id: 'emr-hpki', title: 'HPKI署名', visible: false, order: 4 },
+    ],
+  },
 ];
 
 const defaultSettings: AppSettings = {
@@ -336,7 +349,7 @@ export function useSettings() {
       // Build a set of visible item IDs from the template
       const templateItemIds = new Set<string>();
       const templateGroupIds = new Set<string>();
-      
+
       template.menuGroups.forEach(group => {
         templateGroupIds.add(group.id);
         group.items.forEach(item => {
@@ -349,7 +362,7 @@ export function useSettings() {
       // Merge with defaultMenuGroups: keep all items but set visibility based on template
       const mergedMenuGroups = defaultMenuGroups.map(group => {
         const templateGroup = template.menuGroups.find(tg => tg.id === group.id);
-        
+
         return {
           ...group,
           visible: templateGroup?.visible ?? false,
@@ -384,6 +397,16 @@ export function useSettings() {
     }
   }, []);
 
+  // Apply template using DB template_key (e.g., from industry LP)
+  const applyTemplateByDbKey = useCallback((dbTemplateKey: string): boolean => {
+    const menuTemplateId = dbTemplateKeyToMenuTemplateId[dbTemplateKey];
+    if (menuTemplateId) {
+      applyTemplate(menuTemplateId);
+      return true;
+    }
+    return false;
+  }, [applyTemplate]);
+
   return {
     settings,
     updateSettings,
@@ -392,5 +415,6 @@ export function useSettings() {
     resetToDefaults,
     updateMobileNavItems,
     applyTemplate,
+    applyTemplateByDbKey,
   };
 }

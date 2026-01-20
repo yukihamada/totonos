@@ -44,7 +44,9 @@ import {
   Building,
   Rocket,
   User,
+  Download,
 } from 'lucide-react';
+import { HpkiBridgeDownload } from '@/components/emr/HpkiBridgeDownload';
 import { useAppSettings } from '@/contexts/SettingsContext';
 import { type MenuItemConfig } from '@/hooks/useSettings';
 import { industryTemplates, availableMobileNavItems } from '@/types/menu-templates';
@@ -411,6 +413,24 @@ export default function SettingsMenu() {
                 </ScrollArea>
               </CardContent>
             </Card>
+
+            {/* EMR HPKI Bridge Download Section - shown when EMR group is visible */}
+            {settings.menuGroups.find(g => g.id === 'emr')?.visible && (
+              <Card className="border-green-200 bg-green-50/50 dark:bg-green-950/20 dark:border-green-900">
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <Download className="h-5 w-5 text-green-600" />
+                    <CardTitle>電子カルテ用アプリ</CardTitle>
+                  </div>
+                  <CardDescription>
+                    HPKI電子署名機能を使用するには、ローカルブリッジアプリのインストールが必要です。
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <HpkiBridgeDownload showTitle={false} />
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="mobile" className="space-y-4">

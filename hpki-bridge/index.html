@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HPKI Bridge Test</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .card h2 {
+            margin-top: 0;
+            color: #555;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-connected { background: #28a745; }
+        .status-disconnected { background: #dc3545; }
+        .status-unknown { background: #ffc107; }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        textarea, input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        textarea {
+            height: 150px;
+            font-family: monospace;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        button.secondary {
+            background: #6c757d;
+        }
+        button.secondary:hover {
+            background: #545b62;
+        }
+        .result {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 15px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .result.error {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .result.success {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .reader-list {
+            list-style: none;
+            padding: 0;
+        }
+        .reader-list li {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .reader-list li:last-child {
+            border-bottom: none;
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+        .badge-success { background: #28a745; color: white; }
+        .badge-secondary { background: #6c757d; color: white; }
+    </style>
+</head>
+<body>
+    <h1>HPKI Bridge Server Test</h1>
+
+    <div class="card">
+        <h2>Server Status</h2>
+        <p>
+            <span id="status-indicator" class="status-indicator status-unknown"></span>
+            <span id="status-text">Checking...</span>
+        </p>
+        <button onclick="checkHealth()">Refresh Status</button>
+    </div>
+
+    <div class="card">
+        <h2>Card Readers</h2>
+        <ul id="reader-list" class="reader-list">
+            <li>Loading...</li>
+        </ul>
+        <button onclick="listReaders()">Refresh Readers</button>
+    </div>
+
+    <div class="card">
+        <h2>Signature Test</h2>
+        <label for="text-data">Text to Sign:</label>
+        <textarea id="text-data">This is a test message for HPKI electronic signature.
+This text will be signed using your HPKI smart card.
+Date: 2024-01-16</textarea>
+
+        <label for="pin">IC Card PIN:</label>
+        <input type="password" id="pin" placeholder="Enter your PIN" maxlength="8">
+
+        <button onclick="signData()" id="sign-btn">Sign</button>
+        <button onclick="clearResult()" class="secondary">Clear</button>
+
+        <div id="sign-result" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+
+        async function checkHealth() {
+            const indicator = document.getElementById('status-indicator');
+            const text = document.getElementById('status-text');
+
+            indicator.className = 'status-indicator status-unknown';
+            text.textContent = 'Checking...';
+
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.status === 'ok') {
+                        indicator.className = 'status-indicator status-connected';
+                        text.textContent = 'Connected';
+                    }
+                } else {
+                    throw new Error('Server error');
+                }
+            } catch (e) {
+                indicator.className = 'status-indicator status-disconnected';
+                text.textContent = 'Not connected - Is the server running?';
+            }
+        }
+
+        async function listReaders() {
+            const list = document.getElementById('reader-list');
+            list.innerHTML = '<li>Loading...</li>';
+
+            try {
+                const response = await fetch(`${API_BASE}/readers`);
+                if (!response.ok) throw new Error('Failed to fetch readers');
+
+                const data = await response.json();
+
+                if (data.readers.length === 0) {
+                    list.innerHTML = '<li>No readers found</li>';
+                    return;
+                }
+
+                list.innerHTML = data.readers.map(reader => `
+                    <li>
+                        ${reader.name}
+                        <span class="badge ${reader.hasCard ? 'badge-success' : 'badge-secondary'}">
+                            ${reader.hasCard ? 'Card Inserted' : 'No Card'}
+                        </span>
+                    </li>
+                `).join('');
+            } catch (e) {
+                list.innerHTML = `<li style="color: #dc3545;">Error: ${e.message}</li>`;
+            }
+        }
+
+        async function signData() {
+            const textData = document.getElementById('text-data').value;
+            const pin = document.getElementById('pin').value;
+            const resultDiv = document.getElementById('sign-result');
+            const signBtn = document.getElementById('sign-btn');
+
+            if (!textData.trim()) {
+                resultDiv.style.display = 'block';
+                resultDiv.className = 'result error';
+                resultDiv.textContent = 'Please enter text to sign';
+                return;
+            }
+
+            if (!pin) {
+                resultDiv.style.display = 'block';
+                resultDiv.className = 'result error';
+                resultDiv.textContent = 'Please enter your PIN';
+                return;
+            }
+
+            signBtn.disabled = true;
+            signBtn.textContent = 'Signing...';
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result';
+            resultDiv.textContent = 'Processing...';
+
+            try {
+                const response = await fetch(`${API_BASE}/sign`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text_data: textData,
+                        pin: pin
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Signing failed');
+                }
+
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    <strong>Signature (hex):</strong><br>
+                    ${data.signature_hex}
+                `;
+            } catch (e) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `Error: ${e.message}`;
+            } finally {
+                signBtn.disabled = false;
+                signBtn.textContent = 'Sign';
+                document.getElementById('pin').value = ''; // Clear PIN
+            }
+        }
+
+        function clearResult() {
+            const resultDiv = document.getElementById('sign-result');
+            resultDiv.style.display = 'none';
+            resultDiv.textContent = '';
+        }
+
+        // Initial checks
+        checkHealth();
+        listReaders();
+    </script>
+</body>
+</html>

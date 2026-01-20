@@ -1,14 +1,18 @@
-import { 
-  FileText, 
-  Receipt, 
-  Calculator, 
-  Users, 
-  BarChart3, 
+import {
+  FileText,
+  Receipt,
+  Calculator,
+  Users,
+  BarChart3,
   FileCheck,
   Package,
   Truck,
   Calendar,
-  MessageSquare 
+  MessageSquare,
+  Stethoscope,
+  ClipboardCheck,
+  FileHeart,
+  KeySquare,
 } from 'lucide-react';
 import type { Feature } from '@/types/industry-template';
 
@@ -28,6 +32,11 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Truck,
   Calendar,
   MessageSquare,
+  // EMR icons
+  Stethoscope,
+  ClipboardCheck,
+  FileHeart,
+  KeySquare,
 };
 
 const defaultFeatures: Feature[] = [

@@ -15,11 +15,11 @@ import {
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { 
-  FileText, 
-  ArrowLeftRight, 
-  Zap, 
-  Shield, 
+import {
+  FileText,
+  ArrowLeftRight,
+  Zap,
+  Shield,
   ArrowRight,
   CheckCircle,
   X,
@@ -35,6 +35,7 @@ import {
   MessageSquare,
   Bot,
   Sparkles,
+  Stethoscope,
 } from "lucide-react";
 import { FeedbackButton } from "@/components/FeedbackButton";
 
@@ -101,6 +102,12 @@ const features = [
     icon: MessageSquare,
     title: "LINE AI Assistant",
     description: "LINEから全機能にアクセス。契約書作成から経理処理まで会話で操作。",
+    badge: "NEW",
+  },
+  {
+    icon: Stethoscope,
+    title: "電子カルテ (EMR)",
+    description: "HPKI対応の電子署名機能を搭載。クリニック向け診療記録管理システム。",
     badge: "NEW",
   },
 ];
@@ -243,6 +250,24 @@ const comparisonCategories = {
       { feature: "ERPとの統合", values: ["内蔵", false, false, false, false] },
     ],
   },
+  emr: {
+    label: "電子カルテ",
+    competitors: [
+      { name: "Totonos", sub: "" },
+      { name: "ORCA", sub: "" },
+      { name: "Medicom", sub: "" },
+      { name: "Dynamics", sub: "" },
+      { name: "カルテZERO", sub: "" },
+    ],
+    rows: [
+      { feature: "基本料金", values: ["0円", "年60万〜", "年200万〜", "年150万〜", "月5万〜"] },
+      { feature: "SOAP記録", values: [true, true, true, true, true] },
+      { feature: "HPKI署名", values: [true, "partial", true, true, false] },
+      { feature: "患者管理", values: [true, true, true, true, true] },
+      { feature: "受付管理", values: [true, true, true, true, true] },
+      { feature: "会計連携", values: ["内蔵", "別途", "別途", "別途", "別途"] },
+    ],
+  },
 };
 
 type CategoryKey = keyof typeof comparisonCategories;
@@ -308,7 +333,7 @@ function HeroSection() {
           🚀 無料で始める会社運営OS
         </div>
         <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6">
-          10個のSaaSを
+          10個以上のSaaSを
           <br />
           <span className="underline decoration-4 underline-offset-8">1つに統合</span>
         </h1>
@@ -423,7 +448,7 @@ export default function Landing() {
       <section className="border-b-2 border-foreground py-24">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold text-center mb-4">
-            10個のコア機能
+            13個のコア機能
           </h2>
           <p className="text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
             freee + SmartHR + Salesforce + Notion + クラウドサイン...
