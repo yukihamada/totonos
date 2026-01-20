@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { Building2, Users, CreditCard, Shield, Loader2, Plus, Trash2, Mail } from "lucide-react";
 
 export default function OrganizationSettings() {
@@ -49,21 +50,60 @@ export default function OrganizationSettings() {
   };
 
   const handleInvite = async () => {
-    if (!inviteEmail) return;
+    if (!inviteEmail || !organization) return;
 
+    setSaving(true);
     try {
-      // TODO: Implement invite via Edge Function
-      toast({
-        title: "招待を送信しました",
-        description: `${inviteEmail} に招待メールを送信しました`,
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('ユーザーが見つかりません');
+
+      // Map frontend role to DB role
+      const dbRole = inviteRole === 'admin' ? 'admin' : inviteRole === 'manager' ? 'admin' : 'member';
+
+      // Create invitation record
+      const { data: invitation, error: invError } = await supabase
+        .from('company_invitations')
+        .insert({
+          company_id: organization.id,
+          email: inviteEmail.trim(),
+          role: dbRole,
+          invited_by: user.id,
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+        })
+        .select()
+        .single();
+
+      if (invError) throw invError;
+
+      // Send invitation email via Edge Function
+      const { error: sendError } = await supabase.functions.invoke('send-invitation', {
+        body: { invitationId: invitation.id }
       });
+
+      if (sendError) {
+        console.error('Send invitation error:', sendError);
+        toast({
+          title: "招待を作成しました",
+          description: "メール送信に問題がありましたが、招待は作成されました",
+        });
+      } else {
+        toast({
+          title: "招待を送信しました",
+          description: `${inviteEmail} に招待メールを送信しました`,
+        });
+      }
       setInviteEmail("");
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Invite error:', error);
       toast({
         title: "エラー",
-        description: "招待の送信に失敗しました",
+        description: error.message?.includes('duplicate') 
+          ? "このメールアドレスは既に招待済みです" 
+          : "招待の送信に失敗しました",
         variant: "destructive",
       });
+    } finally {
+      setSaving(false);
     }
   };
 

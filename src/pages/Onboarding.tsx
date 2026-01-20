@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { Building2, Users, CheckCircle, ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
 
 type Step = "company" | "invite" | "complete";
@@ -62,15 +63,71 @@ export default function Onboarding() {
   };
 
   const handleInviteSubmit = async () => {
-    // Filter out empty emails
     const validEmails = invites.filter(email => email.trim());
+    const { organization } = await import("@/contexts/OrganizationContext").then(() => ({ organization: null }));
 
     if (validEmails.length > 0) {
-      // TODO: Send invitations via Edge Function
-      toast({
-        title: "招待を送信しました",
-        description: `${validEmails.length}人にメールを送信しました`,
-      });
+      setLoading(true);
+      try {
+        // Get current company from context
+        const { data: currentCompanyData } = await supabase
+          .from('user_current_company')
+          .select('company_id')
+          .single();
+
+        if (!currentCompanyData?.company_id) {
+          throw new Error('会社が見つかりません');
+        }
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('ユーザーが見つかりません');
+
+        let successCount = 0;
+        for (const email of validEmails) {
+          // Create invitation record
+          const { data: invitation, error: invError } = await supabase
+            .from('company_invitations')
+            .insert({
+              company_id: currentCompanyData.company_id,
+              email: email.trim(),
+              role: 'member',
+              invited_by: user.id,
+              expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+            })
+            .select()
+            .single();
+
+          if (invError) {
+            console.error('Invitation error:', invError);
+            continue;
+          }
+
+          // Send invitation email via Edge Function
+          const { error: sendError } = await supabase.functions.invoke('send-invitation', {
+            body: { invitationId: invitation.id }
+          });
+
+          if (!sendError) {
+            successCount++;
+          }
+        }
+
+        if (successCount > 0) {
+          toast({
+            title: "招待を送信しました",
+            description: `${successCount}人にメールを送信しました`,
+          });
+        }
+      } catch (error) {
+        console.error('Invite error:', error);
+        toast({
+          title: "一部の招待に失敗しました",
+          description: "後から設定画面で再送信できます",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
     }
 
     setStep("complete");

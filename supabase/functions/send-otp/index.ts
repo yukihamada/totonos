@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
 
     const { token }: SendOTPRequest = await req.json();
 
-    console.log(`[send-otp] Generating OTP for token: ${token?.substring(0, 8)}...`);
+    // Validate input
 
     // Validate input
     if (!token || typeof token !== "string") {
@@ -60,7 +60,6 @@ Deno.serve(async (req) => {
 
     // Check if already signed
     if (signature.signed_at) {
-      console.log("[send-otp] Contract already signed");
       return new Response(
         JSON.stringify({ error: "この契約書はすでに署名されています" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -70,8 +69,6 @@ Deno.serve(async (req) => {
     // Generate new OTP
     const otpCode = generateOTP();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes
-
-    console.log(`[send-otp] Generated OTP for ${signature.signatory_email}, expires at ${expiresAt}`);
 
     // Store OTP in database
     const { error: updateError } = await supabase
@@ -136,15 +133,13 @@ Deno.serve(async (req) => {
           const errorData = await emailResponse.text();
           console.error("[send-otp] Failed to send email:", errorData);
           // Continue anyway - OTP is stored
-        } else {
-          console.log("[send-otp] OTP email sent successfully");
         }
       } catch (emailError) {
         console.error("[send-otp] Email sending error:", emailError);
         // Continue anyway - OTP is stored
       }
     } else {
-      console.warn("[send-otp] RESEND_API_KEY not configured, skipping email");
+      // RESEND_API_KEY not configured, skipping email
     }
 
     return new Response(

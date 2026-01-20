@@ -97,8 +97,6 @@ JSON のみを返してください。`;
   const data = await response.json();
   const aiResponse = data.choices?.[0]?.message?.content || "";
 
-  console.log("AI response:", aiResponse);
-
   // Extract JSON from response
   const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
@@ -129,12 +127,8 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Analyzing email ${emailId}${spreadsheetData?.length ? ` with ${spreadsheetData.length} spreadsheet(s)` : ""}`);
-
     // Run AI analysis
     const analysis = await analyzeWithAI(textContent, subject, spreadsheetData);
-
-    console.log(`Analysis result:`, analysis);
 
     // Update email with AI analysis
     const updateData: Record<string, unknown> = {
