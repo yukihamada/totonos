@@ -108,7 +108,12 @@ export function useChat() {
           signal: abortControllerRef.current.signal,
         })) {
           if (chunk.type === "content_block_delta" && chunk.delta?.text) {
-            contentBuffer += chunk.delta.text;
+            const newText = chunk.delta.text;
+            // Issue #12 fix: Skip if this exact content was already received (duplicate prevention)
+            if (contentBuffer === newText || contentBuffer.endsWith(newText)) {
+              continue;
+            }
+            contentBuffer += newText;
             updateMessage(assistantMessage.id, { content: contentBuffer });
           }
 

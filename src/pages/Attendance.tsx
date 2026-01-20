@@ -190,9 +190,11 @@ export default function Attendance() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全従業員</SelectItem>
-              {employees.map(emp => (
-                <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
-              ))}
+              {employees
+                .filter(emp => emp.id && emp.id.trim() !== '')
+                .map(emp => (
+                  <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>
