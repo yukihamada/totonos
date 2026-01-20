@@ -28,6 +28,8 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useCompanyEmailAddresses } from "@/hooks/useCompanyEmailAddresses";
+import { useCurrentCompany } from "@/hooks/useCompany";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface TutorialStep {
   id: string;
@@ -43,12 +45,14 @@ export default function GettingStarted() {
   const navigate = useNavigate();
   const [dismissed, setDismissed] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
-  const { data: emailAddresses = [] } = useCompanyEmailAddresses();
+  const { data: emailAddresses = [], isLoading: emailLoading } = useCompanyEmailAddresses();
+  const { data: currentCompany, isLoading: companyLoading } = useCurrentCompany();
 
-  // 会社のメールアドレスを取得
-  const companyEmail = emailAddresses[0]?.address_prefix 
-    ? `${emailAddresses[0].address_prefix}@totonos.jp`
-    : "読込中...";
+  // 会社のメールアドレスを取得（会社スラッグを含む正しい形式）
+  const isLoading = emailLoading || companyLoading;
+  const companyEmail = emailAddresses[0]?.address_prefix && currentCompany?.slug
+    ? `${emailAddresses[0].address_prefix}@${currentCompany.slug}.totonos.jp`
+    : null;
 
   useEffect(() => {
     const isDismissed = localStorage.getItem(STORAGE_KEY) === "true";
@@ -83,8 +87,10 @@ export default function GettingStarted() {
   };
 
   const copyEmailAddress = () => {
-    navigator.clipboard.writeText(companyEmail);
-    toast.success("メールアドレスをコピーしました");
+    if (companyEmail) {
+      navigator.clipboard.writeText(companyEmail);
+      toast.success("メールアドレスをコピーしました");
+    }
   };
 
   if (dismissed) {
@@ -236,12 +242,22 @@ export default function GettingStarted() {
                 専用メールアドレスに送信
               </div>
               <div className="flex items-center gap-2">
-                <code className="px-3 py-2 bg-background border rounded text-sm font-mono">
-                  {companyEmail}
-                </code>
-                <Button variant="ghost" size="sm" onClick={copyEmailAddress}>
-                  <Copy className="h-4 w-4" />
-                </Button>
+                {isLoading ? (
+                  <Skeleton className="h-9 w-64" />
+                ) : companyEmail ? (
+                  <>
+                    <code className="px-3 py-2 bg-background border rounded text-sm font-mono">
+                      {companyEmail}
+                    </code>
+                    <Button variant="ghost" size="sm" onClick={copyEmailAddress}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic px-3 py-2">
+                    会社設定でメールアドレスを設定してください
+                  </p>
+                )}
               </div>
               <div className="flex items-center gap-2 text-sm font-medium">
                 <Reply className="h-4 w-4" />
