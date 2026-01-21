@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 
 // All available feature groups with labels
 const ALL_FEATURES: Record<string, { label: string; category: string }> = {
+  // Core features
   crm: { label: 'CRM', category: 'core' },
   sales: { label: '営業', category: 'core' },
   documents: { label: '帳票', category: 'core' },
@@ -16,6 +17,11 @@ const ALL_FEATURES: Record<string, { label: string; category: string }> = {
   contracts: { label: '契約管理', category: 'core' },
   members: { label: '会員管理', category: 'core' },
   emr: { label: '電子カルテ', category: 'core' },
+  reservation: { label: '予約管理', category: 'core' },
+  delivery: { label: '配送管理', category: 'core' },
+  childcare: { label: '園児管理', category: 'core' },
+  care: { label: '介護記録', category: 'core' },
+  // Productivity features
   projects: { label: 'プロジェクト', category: 'productivity' },
   expenses: { label: '経費精算', category: 'productivity' },
   hr: { label: '人事・労務', category: 'productivity' },
@@ -25,10 +31,15 @@ const ALL_FEATURES: Record<string, { label: string; category: string }> = {
   marketing: { label: 'マーケ', category: 'productivity' },
   lms: { label: 'LMS', category: 'productivity' },
   legal: { label: '法務', category: 'productivity' },
+  calendar: { label: 'スケジュール', category: 'productivity' },
+  reports: { label: 'レポート・分析', category: 'productivity' },
+  // Other features
   info: { label: '情報管理', category: 'other' },
   integrations: { label: '連携', category: 'other' },
   retail: { label: '小売', category: 'other' },
   finance: { label: 'ファイナンス', category: 'other' },
+  wiki: { label: 'ナレッジベース', category: 'other' },
+  donation: { label: '寄付管理', category: 'other' },
 };
 
 interface MenuGroup {
