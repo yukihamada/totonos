@@ -91,7 +91,7 @@ export default function TrustPassport() {
               <CardDescription>取引履歴に基づいて算出されたあなたの信用度</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-8">
+              <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8">
                 <div className="relative">
                   <div className="w-40 h-40 rounded-full border-8 border-muted flex items-center justify-center">
                     <div className="text-center">
@@ -201,7 +201,7 @@ export default function TrustPassport() {
             <CardTitle>ランク別特典比較</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
               {(['S', 'A', 'B', 'C', 'D'] as TrustRank[]).map((r) => (
                 <div
                   key={r}

@@ -147,7 +147,7 @@ export default function AccountingReceivables() {
             <CardDescription>請求書の期限超過日数別の分布</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-5">
+            <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
               {bucketTotals.map((bucket) => (
                 <Card key={bucket.label} className={`${bucket.color} border-0`}>
                   <CardHeader className="pb-2">
