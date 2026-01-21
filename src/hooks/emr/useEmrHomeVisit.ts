@@ -1,16 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useCompany } from "@/hooks/useCompany";
+import { useCurrentCompany } from "@/hooks/useCompany";
 import { toast } from "sonner";
-
-export interface VitalSigns {
-  blood_pressure_systolic?: number;
-  blood_pressure_diastolic?: number;
-  pulse?: number;
-  temperature?: number;
-  spo2?: number;
-  weight?: number;
-}
+import type { Json } from "@/integrations/supabase/types";
+import type { VitalSigns } from "./useEmrRecords";
+export type { VitalSigns };
 
 export interface EmrHomeVisitPlan {
   id: string;
@@ -56,7 +50,7 @@ export interface EmrHomeVisit {
 }
 
 export function useEmrHomeVisitPlans() {
-  const { currentCompany } = useCompany();
+  const { data: currentCompany } = useCurrentCompany();
   const queryClient = useQueryClient();
 
   const { data: plans, isLoading } = useQuery({
@@ -118,7 +112,7 @@ export function useEmrHomeVisitPlans() {
 }
 
 export function useEmrHomeVisits(date?: string) {
-  const { currentCompany } = useCompany();
+  const { data: currentCompany } = useCurrentCompany();
   const queryClient = useQueryClient();
 
   const { data: visits, isLoading } = useQuery({
@@ -151,9 +145,15 @@ export function useEmrHomeVisits(date?: string) {
     mutationFn: async (data: Omit<EmrHomeVisit, 'id' | 'company_id' | 'created_at' | 'patient'>) => {
       if (!currentCompany?.id) throw new Error('No company selected');
       
+      const insertData = {
+        ...data,
+        vital_signs: data.vital_signs as unknown as Json,
+        company_id: currentCompany.id,
+      };
+
       const { data: result, error } = await supabase
         .from('emr_home_visits')
-        .insert({ ...data, company_id: currentCompany.id })
+        .insert(insertData)
         .select()
         .single();
 
@@ -168,9 +168,17 @@ export function useEmrHomeVisits(date?: string) {
 
   const updateVisit = useMutation({
     mutationFn: async ({ id, ...data }: Partial<EmrHomeVisit> & { id: string }) => {
+      const updateData: Record<string, unknown> = {
+        ...data,
+        updated_at: new Date().toISOString(),
+      };
+      if (data.vital_signs) {
+        updateData.vital_signs = data.vital_signs as unknown as Json;
+      }
+
       const { error } = await supabase
         .from('emr_home_visits')
-        .update({ ...data, updated_at: new Date().toISOString() })
+        .update(updateData)
         .eq('id', id);
 
       if (error) throw error;
@@ -187,7 +195,7 @@ export function useEmrHomeVisits(date?: string) {
         .from('emr_home_visits')
         .update({ 
           status: 'completed',
-          vital_signs,
+          vital_signs: vital_signs as unknown as Json,
           notes,
           completed_at: new Date().toISOString(),
           updated_at: new Date().toISOString()

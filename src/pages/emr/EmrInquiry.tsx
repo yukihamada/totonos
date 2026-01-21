@@ -283,7 +283,7 @@ export default function EmrInquiry() {
                           <pre className="whitespace-pre-wrap">{JSON.stringify(r.responses, null, 2)}</pre>
                         </div>
                       </div>
-                    )))}
+                    ))}
                   </div>
                 )}
               </CardContent>

@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useCompany } from "@/hooks/useCompany";
+import { useCurrentCompany } from "@/hooks/useCompany";
 import { toast } from "sonner";
+import type { Json } from "@/integrations/supabase/types";
 
 export interface PrescriptionMedication {
   medication_id: string;
@@ -45,7 +46,7 @@ export interface EmrPrescription {
 }
 
 export function useEmrMedications() {
-  const { currentCompany } = useCompany();
+  const { data: currentCompany } = useCurrentCompany();
   const queryClient = useQueryClient();
 
   const { data: medications, isLoading } = useQuery({
@@ -104,7 +105,7 @@ export function useEmrMedications() {
 }
 
 export function useEmrPrescriptions(patientId?: string) {
-  const { currentCompany } = useCompany();
+  const { data: currentCompany } = useCurrentCompany();
   const queryClient = useQueryClient();
 
   const { data: prescriptions, isLoading } = useQuery({
@@ -129,7 +130,7 @@ export function useEmrPrescriptions(patientId?: string) {
       if (error) throw error;
       return (data || []).map(d => ({
         ...d,
-        medications: Array.isArray(d.medications) ? d.medications : []
+        medications: Array.isArray(d.medications) ? d.medications as unknown as PrescriptionMedication[] : []
       })) as EmrPrescription[];
     },
     enabled: !!currentCompany?.id,
@@ -151,13 +152,16 @@ export function useEmrPrescriptions(patientId?: string) {
 
       const prescriptionNumber = `RX${dateStr}-${String((count || 0) + 1).padStart(4, '0')}`;
 
+      const insertData = {
+        ...data,
+        medications: data.medications as unknown as Json,
+        company_id: currentCompany.id,
+        prescription_number: prescriptionNumber,
+      };
+
       const { data: result, error } = await supabase
         .from('emr_prescriptions')
-        .insert({ 
-          ...data, 
-          company_id: currentCompany.id,
-          prescription_number: prescriptionNumber,
-        })
+        .insert(insertData)
         .select()
         .single();
 
