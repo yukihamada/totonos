@@ -2,12 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { toast } from 'sonner';
-
-// Helper to get current company
-function useCurrentCompany() {
-  const { currentCompany } = useOrganization();
-  return { company: currentCompany };
-}
+import type { Json } from '@/integrations/supabase/types';
 
 // Types
 export interface VacationRental {
@@ -22,11 +17,11 @@ export interface VacationRental {
   max_guests: number;
   bedrooms: number | null;
   bathrooms: number | null;
-  amenities: string[];
+  amenities: Json;
   registration_number: string | null;
   registration_date: string | null;
   annual_limit_days: number;
-  images: string[];
+  images: Json;
   description: string | null;
   house_rules: string | null;
   check_in_time: string;
@@ -54,7 +49,7 @@ export interface VacationBooking {
   source: string;
   external_booking_id: string | null;
   status: string;
-  special_requests: Record<string, unknown>;
+  special_requests: Json;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -86,9 +81,9 @@ export interface CleaningTask {
   scheduled_date: string;
   scheduled_time: string;
   assigned_to: string | null;
-  checklist: ChecklistItem[];
+  checklist: Json;
   status: string;
-  photos: string[];
+  photos: Json;
   notes: string | null;
   completed_at: string | null;
   created_at: string;
@@ -105,22 +100,22 @@ export interface ChecklistItem {
 
 // === Properties Hooks ===
 export function useVacationProperties() {
-  const { company } = useCurrentCompany();
+  const { organization } = useOrganization();
 
   return useQuery({
-    queryKey: ['vacation-rentals', company?.id],
+    queryKey: ['vacation-rentals', organization?.id],
     queryFn: async () => {
-      if (!company?.id) return [];
+      if (!organization?.id) return [];
       const { data, error } = await supabase
         .from('vacation_rentals')
         .select('*')
-        .eq('company_id', company.id)
+        .eq('company_id', organization.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       return (data || []) as VacationRental[];
     },
-    enabled: !!company?.id,
+    enabled: !!organization?.id,
   });
 }
 
@@ -144,20 +139,29 @@ export function useVacationProperty(propertyId: string | undefined) {
 
 export function useCreateProperty() {
   const queryClient = useQueryClient();
-  const { company } = useCurrentCompany();
+  const { organization } = useOrganization();
 
   return useMutation({
     mutationFn: async (data: Partial<VacationRental>) => {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error('Not authenticated');
-      if (!company?.id) throw new Error('No company selected');
+      if (!organization?.id) throw new Error('No company selected');
 
       const { data: result, error } = await supabase
         .from('vacation_rentals')
         .insert({
-          ...data,
-          company_id: company.id,
+          name: data.name || '',
+          company_id: organization.id,
           user_id: user.user.id,
+          address: data.address,
+          property_type: data.property_type || 'entire_home',
+          max_guests: data.max_guests || 2,
+          bedrooms: data.bedrooms,
+          bathrooms: data.bathrooms,
+          base_price: data.base_price || 0,
+          cleaning_fee: data.cleaning_fee || 0,
+          description: data.description,
+          registration_number: data.registration_number,
         })
         .select()
         .single();
@@ -182,7 +186,19 @@ export function useUpdateProperty() {
     mutationFn: async ({ id, ...data }: Partial<VacationRental> & { id: string }) => {
       const { data: result, error } = await supabase
         .from('vacation_rentals')
-        .update(data)
+        .update({
+          name: data.name,
+          address: data.address,
+          property_type: data.property_type,
+          max_guests: data.max_guests,
+          bedrooms: data.bedrooms,
+          bathrooms: data.bathrooms,
+          base_price: data.base_price,
+          cleaning_fee: data.cleaning_fee,
+          description: data.description,
+          registration_number: data.registration_number,
+          status: data.status,
+        })
         .eq('id', id)
         .select()
         .single();
@@ -225,17 +241,17 @@ export function useDeleteProperty() {
 
 // === Bookings Hooks ===
 export function useVacationBookings(propertyId?: string) {
-  const { company } = useCurrentCompany();
+  const { organization } = useOrganization();
 
   return useQuery({
-    queryKey: ['vacation-bookings', company?.id, propertyId],
+    queryKey: ['vacation-bookings', organization?.id, propertyId],
     queryFn: async () => {
-      if (!company?.id) return [];
+      if (!organization?.id) return [];
 
       let query = supabase
         .from('vacation_bookings')
         .select('*, property:vacation_rentals(*)')
-        .eq('company_id', company.id)
+        .eq('company_id', organization.id)
         .order('check_in_date', { ascending: true });
 
       if (propertyId) {
@@ -246,23 +262,45 @@ export function useVacationBookings(propertyId?: string) {
       if (error) throw error;
       return (data || []) as VacationBooking[];
     },
-    enabled: !!company?.id,
+    enabled: !!organization?.id,
   });
 }
 
 export function useCreateBooking() {
   const queryClient = useQueryClient();
-  const { company } = useCurrentCompany();
+  const { organization } = useOrganization();
 
   return useMutation({
-    mutationFn: async (data: Partial<VacationBooking>) => {
-      if (!company?.id) throw new Error('No company selected');
+    mutationFn: async (data: {
+      property_id: string;
+      check_in_date: string;
+      check_out_date: string;
+      guest_name?: string;
+      guest_email?: string;
+      guest_phone?: string;
+      guest_count?: number;
+      total_price?: number;
+      cleaning_fee?: number;
+      source?: string;
+      notes?: string;
+    }) => {
+      if (!organization?.id) throw new Error('No company selected');
 
       const { data: result, error } = await supabase
         .from('vacation_bookings')
         .insert({
-          ...data,
-          company_id: company.id,
+          property_id: data.property_id,
+          company_id: organization.id,
+          check_in_date: data.check_in_date,
+          check_out_date: data.check_out_date,
+          guest_name: data.guest_name,
+          guest_email: data.guest_email,
+          guest_phone: data.guest_phone,
+          guest_count: data.guest_count || 1,
+          total_price: data.total_price || 0,
+          cleaning_fee: data.cleaning_fee || 0,
+          source: data.source || 'direct',
+          notes: data.notes,
         })
         .select()
         .single();
@@ -284,10 +322,13 @@ export function useUpdateBooking() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, ...data }: Partial<VacationBooking> & { id: string }) => {
+    mutationFn: async ({ id, ...data }: { id: string; status?: string; notes?: string }) => {
       const { data: result, error } = await supabase
         .from('vacation_bookings')
-        .update(data)
+        .update({
+          status: data.status,
+          notes: data.notes,
+        })
         .eq('id', id)
         .select()
         .single();
@@ -329,38 +370,45 @@ export function useDeleteBooking() {
 
 // === Guests Hooks ===
 export function useVacationGuests() {
-  const { company } = useCurrentCompany();
+  const { organization } = useOrganization();
 
   return useQuery({
-    queryKey: ['vacation-guests', company?.id],
+    queryKey: ['vacation-guests', organization?.id],
     queryFn: async () => {
-      if (!company?.id) return [];
+      if (!organization?.id) return [];
       const { data, error } = await supabase
         .from('vacation_guests')
         .select('*')
-        .eq('company_id', company.id)
+        .eq('company_id', organization.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       return (data || []) as VacationGuest[];
     },
-    enabled: !!company?.id,
+    enabled: !!organization?.id,
   });
 }
 
 export function useCreateGuest() {
   const queryClient = useQueryClient();
-  const { company } = useCurrentCompany();
+  const { organization } = useOrganization();
 
   return useMutation({
     mutationFn: async (data: Partial<VacationGuest>) => {
-      if (!company?.id) throw new Error('No company selected');
+      if (!organization?.id) throw new Error('No company selected');
 
       const { data: result, error } = await supabase
         .from('vacation_guests')
         .insert({
-          ...data,
-          company_id: company.id,
+          name: data.name || '',
+          company_id: organization.id,
+          name_kana: data.name_kana,
+          email: data.email,
+          phone: data.phone,
+          nationality: data.nationality,
+          passport_number: data.passport_number,
+          address: data.address,
+          notes: data.notes,
         })
         .select()
         .single();
@@ -380,17 +428,17 @@ export function useCreateGuest() {
 
 // === Cleaning Tasks Hooks ===
 export function useCleaningTasks(propertyId?: string) {
-  const { company } = useCurrentCompany();
+  const { organization } = useOrganization();
 
   return useQuery({
-    queryKey: ['cleaning-tasks', company?.id, propertyId],
+    queryKey: ['cleaning-tasks', organization?.id, propertyId],
     queryFn: async () => {
-      if (!company?.id) return [];
+      if (!organization?.id) return [];
 
       let query = supabase
         .from('cleaning_tasks')
         .select('*, property:vacation_rentals(*), booking:vacation_bookings(*)')
-        .eq('company_id', company.id)
+        .eq('company_id', organization.id)
         .order('scheduled_date', { ascending: true });
 
       if (propertyId) {
@@ -401,24 +449,33 @@ export function useCleaningTasks(propertyId?: string) {
       if (error) throw error;
       return (data || []) as CleaningTask[];
     },
-    enabled: !!company?.id,
+    enabled: !!organization?.id,
   });
 }
 
 export function useCreateCleaningTask() {
   const queryClient = useQueryClient();
-  const { company } = useCurrentCompany();
+  const { organization } = useOrganization();
 
   return useMutation({
-    mutationFn: async (data: Partial<CleaningTask>) => {
-      if (!company?.id) throw new Error('No company selected');
+    mutationFn: async (data: {
+      property_id: string;
+      scheduled_date: string;
+      scheduled_time?: string;
+      assigned_to?: string;
+      checklist?: ChecklistItem[];
+    }) => {
+      if (!organization?.id) throw new Error('No company selected');
 
       const { data: result, error } = await supabase
         .from('cleaning_tasks')
         .insert({
-          ...data,
-          company_id: company.id,
-          checklist: data.checklist || [],
+          property_id: data.property_id,
+          company_id: organization.id,
+          scheduled_date: data.scheduled_date,
+          scheduled_time: data.scheduled_time || '11:00',
+          assigned_to: data.assigned_to,
+          checklist: (data.checklist || []) as unknown as Json,
         })
         .select()
         .single();
@@ -440,10 +497,14 @@ export function useUpdateCleaningTask() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, ...data }: Partial<CleaningTask> & { id: string }) => {
+    mutationFn: async ({ id, ...data }: { id: string; status?: string; checklist?: ChecklistItem[] }) => {
+      const updateData: Record<string, unknown> = {};
+      if (data.status) updateData.status = data.status;
+      if (data.checklist) updateData.checklist = data.checklist as unknown as Json;
+
       const { data: result, error } = await supabase
         .from('cleaning_tasks')
-        .update(data)
+        .update(updateData)
         .eq('id', id)
         .select()
         .single();
@@ -534,19 +595,19 @@ export function useOperatingDays(propertyId: string | undefined, year?: number) 
 
 // === Dashboard Stats ===
 export function useVacationDashboardStats() {
-  const { company } = useCurrentCompany();
+  const { organization } = useOrganization();
   const today = new Date().toISOString().split('T')[0];
 
   return useQuery({
-    queryKey: ['vacation-dashboard-stats', company?.id, today],
+    queryKey: ['vacation-dashboard-stats', organization?.id, today],
     queryFn: async () => {
-      if (!company?.id) return null;
+      if (!organization?.id) return null;
 
       // Today's check-ins
       const { data: checkIns } = await supabase
         .from('vacation_bookings')
         .select('*, property:vacation_rentals(name)')
-        .eq('company_id', company.id)
+        .eq('company_id', organization.id)
         .eq('check_in_date', today)
         .eq('status', 'confirmed');
 
@@ -554,7 +615,7 @@ export function useVacationDashboardStats() {
       const { data: checkOuts } = await supabase
         .from('vacation_bookings')
         .select('*, property:vacation_rentals(name)')
-        .eq('company_id', company.id)
+        .eq('company_id', organization.id)
         .eq('check_out_date', today)
         .eq('status', 'confirmed');
 
@@ -562,7 +623,7 @@ export function useVacationDashboardStats() {
       const { data: pendingCleaning } = await supabase
         .from('cleaning_tasks')
         .select('*, property:vacation_rentals(name)')
-        .eq('company_id', company.id)
+        .eq('company_id', organization.id)
         .eq('status', 'pending')
         .lte('scheduled_date', today);
 
@@ -570,7 +631,7 @@ export function useVacationDashboardStats() {
       const { count: propertyCount } = await supabase
         .from('vacation_rentals')
         .select('*', { count: 'exact', head: true })
-        .eq('company_id', company.id)
+        .eq('company_id', organization.id)
         .eq('status', 'active');
 
       // This month's revenue
@@ -579,7 +640,7 @@ export function useVacationDashboardStats() {
       const { data: monthlyBookings } = await supabase
         .from('vacation_bookings')
         .select('total_price, cleaning_fee')
-        .eq('company_id', company.id)
+        .eq('company_id', organization.id)
         .gte('check_in_date', startOfMonth.toISOString().split('T')[0])
         .in('status', ['confirmed', 'completed']);
 
@@ -596,6 +657,6 @@ export function useVacationDashboardStats() {
         monthlyRevenue,
       };
     },
-    enabled: !!company?.id,
+    enabled: !!organization?.id,
   });
 }
