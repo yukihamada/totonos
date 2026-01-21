@@ -162,6 +162,13 @@ import EmrPatients from "./pages/emr/EmrPatients";
 import EmrRecords from "./pages/emr/EmrRecords";
 import EmrHpkiBridge from "./pages/emr/EmrHpkiBridge";
 import EmrSalesReport from "./pages/emr/EmrSalesReport";
+import EmrAppointments from "./pages/emr/EmrAppointments";
+import EmrBilling from "./pages/emr/EmrBilling";
+import EmrPharmacy from "./pages/emr/EmrPharmacy";
+import EmrInquiry from "./pages/emr/EmrInquiry";
+import EmrHomeVisit from "./pages/emr/EmrHomeVisit";
+import EmrTelemedicine from "./pages/emr/EmrTelemedicine";
+import EmrHealthCheckup from "./pages/emr/EmrHealthCheckup";
 // Membership
 import MembersDashboard from "./pages/membership/MembersDashboard";
 import MembersList from "./pages/membership/MembersList";
@@ -396,6 +403,13 @@ function AppRoutes() {
       <Route path="/emr/records" element={<ProtectedRoute><EmrRecords /></ProtectedRoute>} />
       <Route path="/emr/sales" element={<ProtectedRoute><EmrSalesReport /></ProtectedRoute>} />
       <Route path="/emr/hpki" element={<ProtectedRoute><EmrHpkiBridge /></ProtectedRoute>} />
+      <Route path="/emr/appointments" element={<ProtectedRoute><EmrAppointments /></ProtectedRoute>} />
+      <Route path="/emr/billing" element={<ProtectedRoute><EmrBilling /></ProtectedRoute>} />
+      <Route path="/emr/pharmacy" element={<ProtectedRoute><EmrPharmacy /></ProtectedRoute>} />
+      <Route path="/emr/inquiry" element={<ProtectedRoute><EmrInquiry /></ProtectedRoute>} />
+      <Route path="/emr/home-visit" element={<ProtectedRoute><EmrHomeVisit /></ProtectedRoute>} />
+      <Route path="/emr/telemedicine" element={<ProtectedRoute><EmrTelemedicine /></ProtectedRoute>} />
+      <Route path="/emr/health-checkup" element={<ProtectedRoute><EmrHealthCheckup /></ProtectedRoute>} />
       {/* Membership */}
       <Route path="/membership" element={<ProtectedRoute><MembersDashboard /></ProtectedRoute>} />
       <Route path="/membership/members" element={<ProtectedRoute><MembersList /></ProtectedRoute>} />
