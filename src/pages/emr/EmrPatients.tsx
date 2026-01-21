@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -30,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Users,
   Search,
@@ -38,10 +39,13 @@ import {
   FileHeart,
   Calendar,
   Loader2,
+  Camera,
 } from "lucide-react";
 import { format, differenceInYears } from "date-fns";
 import { useEmrPatients, EmrPatient } from "@/hooks/emr/useEmrPatients";
+import { useEmrPatientOCR, PatientOCRResult } from "@/hooks/emr/useEmrOCR";
 import { Textarea } from "@/components/ui/textarea";
+import { EmrImageUploader } from "@/components/emr/EmrImageUploader";
 
 type InsuranceType = "national_health" | "employee_health" | "late_elderly" | "welfare" | "self_pay";
 
@@ -62,7 +66,9 @@ const genderLabels: Record<string, string> = {
 export default function EmrPatients() {
   const [searchQuery, setSearchQuery] = useState("");
   const [newPatientOpen, setNewPatientOpen] = useState(false);
+  const [inputMode, setInputMode] = useState<"manual" | "ocr">("manual");
   const { patients, isLoading, createPatient } = useEmrPatients();
+  const { processImage, isProcessing, progress, result: ocrResult, reset: resetOCR } = useEmrPatientOCR();
 
   // Form state
   const [formData, setFormData] = useState({
@@ -77,6 +83,25 @@ export default function EmrPatients() {
     allergies: "",
     notes: "",
   });
+
+  // Apply OCR result to form
+  useEffect(() => {
+    if (ocrResult) {
+      setFormData({
+        name: ocrResult.name || "",
+        name_kana: ocrResult.name_kana || "",
+        birth_date: ocrResult.birth_date || "",
+        gender: (ocrResult.gender as "male" | "female" | "other" | "") || "",
+        insurance_type: (ocrResult.insurance_type as InsuranceType | "") || "",
+        insurance_number: ocrResult.insurance_number || "",
+        phone: ocrResult.phone || "",
+        address: ocrResult.address || "",
+        allergies: ocrResult.allergies?.join(", ") || "",
+        notes: ocrResult.notes || "",
+      });
+      setInputMode("manual"); // Switch to manual to show filled form
+    }
+  }, [ocrResult]);
 
   const filteredPatients = patients.filter(
     (p) =>
@@ -126,7 +151,13 @@ export default function EmrPatients() {
       allergies: "",
       notes: "",
     });
+    resetOCR();
+    setInputMode("manual");
     setNewPatientOpen(false);
+  };
+
+  const handleImageUpload = async (file: File) => {
+    await processImage(file);
   };
 
   return (
@@ -157,13 +188,43 @@ export default function EmrPatients() {
                 新規患者登録
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>新規患者登録</DialogTitle>
                 <DialogDescription>
-                  患者の基本情報を入力してください
+                  画像から読み取るか、手動で入力してください
                 </DialogDescription>
               </DialogHeader>
+
+              <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as "manual" | "ocr")}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="manual">手動入力</TabsTrigger>
+                  <TabsTrigger value="ocr">
+                    <Camera className="h-4 w-4 mr-2" />
+                    画像から読み取り
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="ocr" className="mt-4">
+                  <EmrImageUploader
+                    onFileSelect={handleImageUpload}
+                    isProcessing={isProcessing}
+                    progress={progress}
+                    label="問診票・保険証・紹介状の画像をアップロード"
+                  />
+                  {ocrResult && (
+                    <div className="mt-4 p-3 bg-muted rounded-lg">
+                      <p className="text-sm font-medium text-primary">
+                        ✓ 読み取り完了（信頼度: {Math.round(ocrResult.confidence * 100)}%）
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        「手動入力」タブで内容を確認・編集してください
+                      </p>
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="manual" className="mt-4">
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -269,7 +330,10 @@ export default function EmrPatients() {
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   />
                 </div>
-              </div>
+                </div>
+                </TabsContent>
+              </Tabs>
+
               <DialogFooter>
                 <Button variant="outline" onClick={() => setNewPatientOpen(false)}>
                   キャンセル

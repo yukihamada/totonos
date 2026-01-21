@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -35,12 +35,15 @@ import {
   User,
   Clock,
   Loader2,
+  Camera,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { HpkiBridgeDownload } from "@/components/emr/HpkiBridgeDownload";
 import { useEmrRecords } from "@/hooks/emr/useEmrRecords";
 import { useEmrPatients } from "@/hooks/emr/useEmrPatients";
+import { useEmrRecordOCR } from "@/hooks/emr/useEmrOCR";
+import { EmrImageUploader } from "@/components/emr/EmrImageUploader";
 
 export default function EmrRecords() {
   const [searchParams] = useSearchParams();
@@ -49,9 +52,11 @@ export default function EmrRecords() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPatient, setSelectedPatient] = useState<string>(preselectedPatientId || "");
   const [newRecordOpen, setNewRecordOpen] = useState(false);
+  const [inputMode, setInputMode] = useState<"manual" | "ocr">("manual");
 
   const { records, isLoading, createRecord, signRecord } = useEmrRecords(selectedPatient || undefined);
   const { patients } = useEmrPatients();
+  const { processImage, isProcessing, progress, result: ocrResult, reset: resetOCR } = useEmrRecordOCR();
 
   // Form state
   const [formData, setFormData] = useState({
@@ -62,6 +67,21 @@ export default function EmrRecords() {
     assessment: "",
     plan: "",
   });
+
+  // Apply OCR result to form
+  useEffect(() => {
+    if (ocrResult) {
+      setFormData((prev) => ({
+        ...prev,
+        record_date: ocrResult.record_date || format(new Date(), "yyyy-MM-dd"),
+        subjective: ocrResult.subjective || "",
+        objective: ocrResult.objective || "",
+        assessment: ocrResult.assessment || "",
+        plan: ocrResult.plan || "",
+      }));
+      setInputMode("manual"); // Switch to manual to show filled form
+    }
+  }, [ocrResult]);
 
   const filteredRecords = records.filter((r) => {
     if (searchQuery) {
@@ -108,7 +128,13 @@ export default function EmrRecords() {
       assessment: "",
       plan: "",
     });
+    resetOCR();
+    setInputMode("manual");
     setNewRecordOpen(false);
+  };
+
+  const handleImageUpload = async (file: File) => {
+    await processImage(file);
   };
 
   return (
@@ -143,91 +169,124 @@ export default function EmrRecords() {
               <DialogHeader>
                 <DialogTitle>新規カルテ作成</DialogTitle>
                 <DialogDescription>
-                  SOAP形式で診療記録を入力してください
+                  画像から読み取るか、手動でSOAP形式で入力してください
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>患者 *</Label>
-                    <Select 
-                      value={formData.patient_id} 
-                      onValueChange={(v) => setFormData({ ...formData, patient_id: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="患者を選択..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {patients.map((p) => (
-                          <SelectItem key={p.id} value={p.id}>
-                            {p.name} ({p.patient_number})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>診療日 *</Label>
-                    <Input 
-                      type="date" 
-                      value={formData.record_date}
-                      onChange={(e) => setFormData({ ...formData, record_date: e.target.value })}
-                    />
-                  </div>
-                </div>
 
-                <div className="space-y-4 border rounded-lg p-4">
-                  <h4 className="font-semibold">SOAP</h4>
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      <Badge variant="outline">S</Badge>
-                      主観的情報（Subjective）
-                    </Label>
-                    <Textarea
-                      placeholder="患者の訴え、症状、経過など..."
-                      className="min-h-[80px]"
-                      value={formData.subjective}
-                      onChange={(e) => setFormData({ ...formData, subjective: e.target.value })}
-                    />
+              <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as "manual" | "ocr")}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="manual">手動入力</TabsTrigger>
+                  <TabsTrigger value="ocr">
+                    <Camera className="h-4 w-4 mr-2" />
+                    画像から読み取り
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="ocr" className="mt-4">
+                  <EmrImageUploader
+                    onFileSelect={handleImageUpload}
+                    isProcessing={isProcessing}
+                    progress={progress}
+                    label="カルテ・診療記録の画像をアップロード"
+                  />
+                  {ocrResult && (
+                    <div className="mt-4 p-3 bg-muted rounded-lg">
+                      <p className="text-sm font-medium text-primary">
+                        ✓ 読み取り完了（信頼度: {Math.round(ocrResult.confidence * 100)}%）
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        「手動入力」タブで内容を確認・編集してください
+                      </p>
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="manual" className="mt-4">
+                  <div className="space-y-4 py-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>患者 *</Label>
+                        <Select 
+                          value={formData.patient_id} 
+                          onValueChange={(v) => setFormData({ ...formData, patient_id: v })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="患者を選択..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {patients.map((p) => (
+                              <SelectItem key={p.id} value={p.id}>
+                                {p.name} ({p.patient_number})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>診療日 *</Label>
+                        <Input 
+                          type="date" 
+                          value={formData.record_date}
+                          onChange={(e) => setFormData({ ...formData, record_date: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-4 border rounded-lg p-4">
+                      <h4 className="font-semibold">SOAP</h4>
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2">
+                          <Badge variant="outline">S</Badge>
+                          主観的情報（Subjective）
+                        </Label>
+                        <Textarea
+                          placeholder="患者の訴え、症状、経過など..."
+                          className="min-h-[80px]"
+                          value={formData.subjective}
+                          onChange={(e) => setFormData({ ...formData, subjective: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2">
+                          <Badge variant="outline">O</Badge>
+                          客観的情報（Objective）
+                        </Label>
+                        <Textarea
+                          placeholder="バイタルサイン、診察所見、検査結果など..."
+                          className="min-h-[80px]"
+                          value={formData.objective}
+                          onChange={(e) => setFormData({ ...formData, objective: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2">
+                          <Badge variant="outline">A</Badge>
+                          評価（Assessment）
+                        </Label>
+                        <Textarea
+                          placeholder="診断名、病態の評価..."
+                          className="min-h-[60px]"
+                          value={formData.assessment}
+                          onChange={(e) => setFormData({ ...formData, assessment: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2">
+                          <Badge variant="outline">P</Badge>
+                          計画（Plan）
+                        </Label>
+                        <Textarea
+                          placeholder="治療方針、処方、次回予定..."
+                          className="min-h-[60px]"
+                          value={formData.plan}
+                          onChange={(e) => setFormData({ ...formData, plan: e.target.value })}
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      <Badge variant="outline">O</Badge>
-                      客観的情報（Objective）
-                    </Label>
-                    <Textarea
-                      placeholder="バイタルサイン、診察所見、検査結果など..."
-                      className="min-h-[80px]"
-                      value={formData.objective}
-                      onChange={(e) => setFormData({ ...formData, objective: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      <Badge variant="outline">A</Badge>
-                      評価（Assessment）
-                    </Label>
-                    <Textarea
-                      placeholder="診断名、病態の評価..."
-                      className="min-h-[60px]"
-                      value={formData.assessment}
-                      onChange={(e) => setFormData({ ...formData, assessment: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      <Badge variant="outline">P</Badge>
-                      計画（Plan）
-                    </Label>
-                    <Textarea
-                      placeholder="治療方針、処方、次回予定..."
-                      className="min-h-[60px]"
-                      value={formData.plan}
-                      onChange={(e) => setFormData({ ...formData, plan: e.target.value })}
-                    />
-                  </div>
-                </div>
-              </div>
+                </TabsContent>
+              </Tabs>
+
               <DialogFooter>
                 <Button variant="outline" onClick={() => setNewRecordOpen(false)}>
                   キャンセル
@@ -308,12 +367,12 @@ export default function EmrRecords() {
                     </div>
                     <div className="flex items-center gap-2">
                       {record.is_signed ? (
-                        <Badge variant="outline" className="gap-1 text-green-600">
+                        <Badge variant="default" className="gap-1">
                           <FileSignature className="h-3 w-3" />
                           署名済
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="text-amber-600">
+                        <Badge variant="secondary">
                           未署名
                         </Badge>
                       )}
