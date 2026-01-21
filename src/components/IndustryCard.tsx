@@ -200,36 +200,36 @@ export function IndustryCard({ template }: IndustryCardProps) {
   };
 
   return (
-    <Card className="h-full transition-all duration-300 hover:shadow-lg hover:border-primary/50 group">
+    <Card className="h-full transition-all duration-300 ease-out hover:shadow-xl hover:shadow-primary/10 hover:border-primary/50 hover:-translate-y-1 group cursor-pointer">
       <CardContent className="p-6 flex flex-col h-full">
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div 
-            className="w-12 h-12 rounded-xl flex items-center justify-center"
+            className="w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-3"
             style={{ backgroundColor: `${template.color || 'hsl(var(--primary))'}20` }}
           >
             {IconComponent ? (
               <IconComponent 
-                className="h-6 w-6" 
+                className="h-6 w-6 transition-transform duration-300 group-hover:scale-110" 
                 style={{ color: template.color || 'hsl(var(--primary))' }}
               />
             ) : (
-              <span className="text-2xl">{template.icon || '🏢'}</span>
+              <span className="text-2xl transition-transform duration-300 group-hover:scale-110">{template.icon || '🏢'}</span>
             )}
           </div>
           {template.is_featured && (
-            <Badge variant="secondary" className="gap-1">
-              <Star className="h-3 w-3" />
+            <Badge variant="secondary" className="gap-1 transition-all duration-300 group-hover:bg-primary group-hover:text-primary-foreground">
+              <Star className="h-3 w-3 transition-transform duration-300 group-hover:rotate-12" />
               おすすめ
             </Badge>
           )}
         </div>
 
         {/* Title & Description */}
-        <h3 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors line-clamp-1">
+        <h3 className="text-lg font-semibold mb-2 transition-colors duration-300 group-hover:text-primary line-clamp-1">
           {template.name}
         </h3>
-        <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+        <p className="text-sm text-muted-foreground mb-4 line-clamp-2 transition-opacity duration-300 group-hover:opacity-80">
           {template.description || `${template.name}に特化した業務管理テンプレート`}
         </p>
 
@@ -244,11 +244,11 @@ export function IndustryCard({ template }: IndustryCardProps) {
         </div>
 
         {/* Actions */}
-        <div className="flex gap-2 mt-auto pt-3 border-t">
+        <div className="flex gap-2 mt-auto pt-3 border-t transition-all duration-300 group-hover:border-primary/30">
           <Link to={`/lp/${template.template_key}`} className="flex-1">
-            <Button variant="outline" size="sm" className="w-full text-xs">
+            <Button variant="outline" size="sm" className="w-full text-xs transition-all duration-300 group-hover:border-primary/50 group-hover:text-primary">
               詳細を見る
-              <ArrowRight className="h-3 w-3 ml-1" />
+              <ArrowRight className="h-3 w-3 ml-1 transition-transform duration-300 group-hover:translate-x-0.5" />
             </Button>
           </Link>
           
