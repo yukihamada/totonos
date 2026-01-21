@@ -5,41 +5,52 @@ import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp, Check, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// All available feature groups with labels
+// All available feature groups with labels (synced with useSettings.ts defaultMenuGroups)
 const ALL_FEATURES: Record<string, { label: string; category: string }> = {
-  // Core features
-  crm: { label: 'CRM', category: 'core' },
-  sales: { label: '営業', category: 'core' },
-  documents: { label: '帳票', category: 'core' },
+  // Core business features
+  crm: { label: '営業・CRM', category: 'core' },
+  documents: { label: 'ドキュメント', category: 'core' },
+  finance: { label: 'ファイナンス', category: 'core' },
   accounting: { label: '会計', category: 'core' },
-  inventory: { label: '在庫管理', category: 'core' },
-  purchasing: { label: '仕入管理', category: 'core' },
-  contracts: { label: '契約管理', category: 'core' },
-  members: { label: '会員管理', category: 'core' },
-  emr: { label: '電子カルテ', category: 'core' },
-  reservation: { label: '予約管理', category: 'core' },
-  delivery: { label: '配送管理', category: 'core' },
-  childcare: { label: '園児管理', category: 'core' },
-  care: { label: '介護記録', category: 'core' },
+  
   // Productivity features
-  projects: { label: 'プロジェクト', category: 'productivity' },
-  expenses: { label: '経費精算', category: 'productivity' },
+  'expense-reimbursement': { label: '経費精算', category: 'productivity' },
+  'project-management': { label: 'プロジェクト管理', category: 'productivity' },
+  recruiting: { label: '採用管理', category: 'productivity' },
   hr: { label: '人事・労務', category: 'productivity' },
-  recruiting: { label: '採用', category: 'productivity' },
-  billing: { label: '課金', category: 'productivity' },
-  support: { label: 'サポート', category: 'productivity' },
-  marketing: { label: 'マーケ', category: 'productivity' },
-  lms: { label: 'LMS', category: 'productivity' },
-  legal: { label: '法務', category: 'productivity' },
-  calendar: { label: 'スケジュール', category: 'productivity' },
-  reports: { label: 'レポート・分析', category: 'productivity' },
-  // Other features
-  info: { label: '情報管理', category: 'other' },
-  integrations: { label: '連携', category: 'other' },
-  retail: { label: '小売', category: 'other' },
-  finance: { label: 'ファイナンス', category: 'other' },
+  info: { label: '情報管理', category: 'productivity' },
+  integrations: { label: '外部連携', category: 'productivity' },
+  billing: { label: '課金・請求', category: 'productivity' },
+  
+  // Specialized industry features
+  healthcare: { label: '医療・電子カルテ', category: 'specialized' },
+  membership: { label: '会員・スクール', category: 'specialized' },
+  'support-cs': { label: 'サポート・CS', category: 'specialized' },
+  marketing: { label: 'マーケティング', category: 'specialized' },
+  'retail-ec': { label: '小売・EC', category: 'specialized' },
+  lms: { label: 'LMS・研修', category: 'specialized' },
+  'legal-governance': { label: '法務・ガバナンス', category: 'specialized' },
+  
+  // Additional industry-specific features (virtual groups)
+  inventory: { label: '在庫管理', category: 'other' },
+  purchasing: { label: '仕入管理', category: 'other' },
+  contracts: { label: '契約管理', category: 'other' },
+  reservation: { label: '予約管理', category: 'other' },
+  delivery: { label: '配送管理', category: 'other' },
+  childcare: { label: '園児管理', category: 'other' },
+  care: { label: '介護記録', category: 'other' },
+  calendar: { label: 'スケジュール', category: 'other' },
+  reports: { label: 'レポート・分析', category: 'other' },
   wiki: { label: 'ナレッジベース', category: 'other' },
   donation: { label: '寄付管理', category: 'other' },
+  sales: { label: '販売管理', category: 'other' },
+  members: { label: '会員管理', category: 'other' },
+  emr: { label: '電子カルテ', category: 'other' },
+  expenses: { label: '経費管理', category: 'other' },
+  projects: { label: 'プロジェクト', category: 'other' },
+  support: { label: 'カスタマーサポート', category: 'other' },
+  legal: { label: '法務', category: 'other' },
+  retail: { label: '店舗・小売', category: 'other' },
 };
 
 interface MenuGroup {
