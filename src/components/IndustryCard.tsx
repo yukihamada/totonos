@@ -1,6 +1,16 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { IndustryFeatureSelector } from './IndustryFeatureSelector';
 import { 
   ArrowRight, 
   Star,
@@ -150,6 +160,9 @@ const menuGroupLabels: Record<string, string> = {
 };
 
 export function IndustryCard({ template }: IndustryCardProps) {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
+  
   // Get the icon component from the map, or use a default
   const IconComponent = template.icon ? iconMap[template.icon] : null;
 
@@ -160,104 +173,126 @@ export function IndustryCard({ template }: IndustryCardProps) {
     ?.map(group => menuGroupLabels[group.id] || group.id)
     ?.filter(Boolean) || [];
 
-  // Get suggested features that are hidden but can be easily added (default OFF but recommended)
+  // Get suggested features that are hidden but can be easily added
   const suggestedFeatures = template.menu_config?.hidden_features
     ?.slice(0, 2)
     ?.map(id => menuGroupLabels[id] || id)
     ?.filter(Boolean) || [];
 
+  // Total available features count
+  const totalFeatures = Object.keys(menuGroupLabels).length;
+
+  const handleStartWithFeatures = () => {
+    // Navigate to auth with template and selected features
+    const featuresParam = selectedFeatures.length > 0 
+      ? `&features=${selectedFeatures.join(',')}`
+      : '';
+    window.location.href = `/auth?template=${template.template_key}${featuresParam}`;
+  };
+
   return (
-    <Link to={`/lp/${template.template_key}`}>
-      <Card className="h-full transition-all duration-300 hover:shadow-lg hover:border-primary/50 hover:-translate-y-1 group">
-        <CardContent className="p-6">
-          <div className="flex items-start justify-between mb-4">
-            <div 
-              className="w-12 h-12 rounded-xl flex items-center justify-center"
-              style={{ backgroundColor: `${template.color || 'hsl(var(--primary))'}20` }}
-            >
-              {IconComponent ? (
-                <IconComponent 
-                  className="h-6 w-6" 
-                  style={{ color: template.color || 'hsl(var(--primary))' }}
-                />
-              ) : (
-                <span className="text-2xl">{template.icon || '🏢'}</span>
-              )}
-            </div>
-            {template.is_featured && (
-              <Badge variant="secondary" className="gap-1">
-                <Star className="h-3 w-3" />
-                おすすめ
-              </Badge>
+    <Card className="h-full transition-all duration-300 hover:shadow-lg hover:border-primary/50 group">
+      <CardContent className="p-6 flex flex-col h-full">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div 
+            className="w-12 h-12 rounded-xl flex items-center justify-center"
+            style={{ backgroundColor: `${template.color || 'hsl(var(--primary))'}20` }}
+          >
+            {IconComponent ? (
+              <IconComponent 
+                className="h-6 w-6" 
+                style={{ color: template.color || 'hsl(var(--primary))' }}
+              />
+            ) : (
+              <span className="text-2xl">{template.icon || '🏢'}</span>
             )}
           </div>
-
-          <h3 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors line-clamp-1">
-            {template.name}
-          </h3>
-
-          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-            {template.description || `${template.name}に特化した業務管理テンプレート`}
-          </p>
-
-          {/* Default ON features */}
-          {enabledFeatures.length > 0 && (
-            <div className="mb-2">
-              <div className="flex items-center gap-1 mb-1">
-                <span className="text-xs text-muted-foreground">デフォルトON:</span>
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {enabledFeatures.map((feature, index) => (
-                  <Badge 
-                    key={index} 
-                    variant="default" 
-                    className="text-xs px-2 py-0.5"
-                  >
-                    {feature}
-                  </Badge>
-                ))}
-              </div>
-            </div>
+          {template.is_featured && (
+            <Badge variant="secondary" className="gap-1">
+              <Star className="h-3 w-3" />
+              おすすめ
+            </Badge>
           )}
+        </div>
 
-          {/* Suggested features (easy to add) */}
-          {suggestedFeatures.length > 0 && (
-            <div className="mb-3">
-              <div className="flex items-center gap-1 mb-1">
-                <span className="text-xs text-muted-foreground">簡単に追加可能:</span>
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {suggestedFeatures.map((feature, index) => (
-                  <Badge 
-                    key={index} 
-                    variant="outline" 
-                    className="text-xs px-2 py-0.5 text-muted-foreground"
-                  >
-                    + {feature}
-                  </Badge>
-                ))}
-                <Badge 
-                  variant="secondary" 
-                  className="text-xs px-2 py-0.5 bg-transparent text-muted-foreground hover:text-foreground cursor-pointer"
+        {/* Title & Description */}
+        <h3 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors line-clamp-1">
+          {template.name}
+        </h3>
+        <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+          {template.description || `${template.name}に特化した業務管理テンプレート`}
+        </p>
+
+        {/* Feature Preview - Compact */}
+        <div className="mb-4 flex-1">
+          <IndustryFeatureSelector
+            menuGroups={template.menu_config?.menu_groups}
+            hiddenFeatures={template.menu_config?.hidden_features}
+            emphasizedFeatures={template.menu_config?.emphasized_features}
+            compact
+          />
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-2 mt-auto pt-3 border-t">
+          <Link to={`/lp/${template.template_key}`} className="flex-1">
+            <Button variant="outline" size="sm" className="w-full text-xs">
+              詳細を見る
+              <ArrowRight className="h-3 w-3 ml-1" />
+            </Button>
+          </Link>
+          
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="flex-1 text-xs">
+                機能を選んで始める
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  {IconComponent && (
+                    <div 
+                      className="w-8 h-8 rounded-lg flex items-center justify-center"
+                      style={{ backgroundColor: `${template.color || 'hsl(var(--primary))'}20` }}
+                    >
+                      <IconComponent 
+                        className="h-4 w-4" 
+                        style={{ color: template.color || 'hsl(var(--primary))' }}
+                      />
+                    </div>
+                  )}
+                  {template.name}
+                </DialogTitle>
+              </DialogHeader>
+              
+              <IndustryFeatureSelector
+                menuGroups={template.menu_config?.menu_groups}
+                hiddenFeatures={template.menu_config?.hidden_features}
+                emphasizedFeatures={template.menu_config?.emphasized_features}
+                onFeaturesChange={setSelectedFeatures}
+              />
+
+              <div className="flex gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setDialogOpen(false)}
                 >
-                  他多数...
-                </Badge>
+                  キャンセル
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={handleStartWithFeatures}
+                >
+                  この構成で始める
+                </Button>
               </div>
-            </div>
-          )}
-
-          {/* Note about customization */}
-          <p className="text-xs text-muted-foreground mb-3 flex items-center gap-1">
-            <span className="inline-block w-1 h-1 rounded-full bg-primary"></span>
-            すべての機能は後から自由に変更可能
-          </p>
-
-          <div className="flex items-center text-sm text-primary font-medium">
-            詳細を見る
-            <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
