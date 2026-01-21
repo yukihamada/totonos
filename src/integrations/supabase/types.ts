@@ -1961,6 +1961,660 @@ export type Database = {
           },
         ]
       }
+      emr_appointment_slots: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          day_of_week: number | null
+          department: string | null
+          end_time: string
+          id: string
+          is_active: boolean | null
+          max_appointments: number | null
+          slot_duration: number | null
+          start_time: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          day_of_week?: number | null
+          department?: string | null
+          end_time: string
+          id?: string
+          is_active?: boolean | null
+          max_appointments?: number | null
+          slot_duration?: number | null
+          start_time: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          day_of_week?: number | null
+          department?: string | null
+          end_time?: string
+          id?: string
+          is_active?: boolean | null
+          max_appointments?: number | null
+          slot_duration?: number | null
+          start_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emr_appointment_slots_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      emr_appointments: {
+        Row: {
+          appointment_date: string
+          appointment_time: string
+          company_id: string
+          created_at: string | null
+          department: string | null
+          doctor_name: string | null
+          duration_minutes: number | null
+          id: string
+          notes: string | null
+          patient_id: string | null
+          reminder_sent: boolean | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          appointment_date: string
+          appointment_time: string
+          company_id: string
+          created_at?: string | null
+          department?: string | null
+          doctor_name?: string | null
+          duration_minutes?: number | null
+          id?: string
+          notes?: string | null
+          patient_id?: string | null
+          reminder_sent?: boolean | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          appointment_date?: string
+          appointment_time?: string
+          company_id?: string
+          created_at?: string | null
+          department?: string | null
+          doctor_name?: string | null
+          duration_minutes?: number | null
+          id?: string
+          notes?: string | null
+          patient_id?: string | null
+          reminder_sent?: boolean | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emr_appointments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emr_appointments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "emr_patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      emr_billing_details: {
+        Row: {
+          billing_date: string
+          company_id: string
+          copay_ratio: number | null
+          created_at: string | null
+          id: string
+          insurance_amount: number | null
+          insurance_type: string | null
+          items: Json
+          paid_at: string | null
+          patient_amount: number | null
+          patient_id: string | null
+          payment_method: string | null
+          payment_status: string | null
+          reception_id: string | null
+          total_points: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          billing_date: string
+          company_id: string
+          copay_ratio?: number | null
+          created_at?: string | null
+          id?: string
+          insurance_amount?: number | null
+          insurance_type?: string | null
+          items?: Json
+          paid_at?: string | null
+          patient_amount?: number | null
+          patient_id?: string | null
+          payment_method?: string | null
+          payment_status?: string | null
+          reception_id?: string | null
+          total_points?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          billing_date?: string
+          company_id?: string
+          copay_ratio?: number | null
+          created_at?: string | null
+          id?: string
+          insurance_amount?: number | null
+          insurance_type?: string | null
+          items?: Json
+          paid_at?: string | null
+          patient_amount?: number | null
+          patient_id?: string | null
+          payment_method?: string | null
+          payment_status?: string | null
+          reception_id?: string | null
+          total_points?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emr_billing_details_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emr_billing_details_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "emr_patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emr_billing_details_reception_id_fkey"
+            columns: ["reception_id"]
+            isOneToOne: false
+            referencedRelation: "emr_receptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      emr_billing_masters: {
+        Row: {
+          category: string | null
+          code: string
+          company_id: string
+          created_at: string | null
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          points: number
+        }
+        Insert: {
+          category?: string | null
+          code: string
+          company_id: string
+          created_at?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          points: number
+        }
+        Update: {
+          category?: string | null
+          code?: string
+          company_id?: string
+          created_at?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          points?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emr_billing_masters_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      emr_checkup_appointments: {
+        Row: {
+          appointment_date: string
+          appointment_time: string | null
+          company_id: string
+          course_id: string | null
+          created_at: string | null
+          id: string
+          patient_id: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          appointment_date: string
+          appointment_time?: string | null
+          company_id: string
+          course_id?: string | null
+          created_at?: string | null
+          id?: string
+          patient_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          appointment_date?: string
+          appointment_time?: string | null
+          company_id?: string
+          course_id?: string | null
+          created_at?: string | null
+          id?: string
+          patient_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emr_checkup_appointments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emr_checkup_appointments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "emr_checkup_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emr_checkup_appointments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "emr_patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      emr_checkup_courses: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          items: Json
+          name: string
+          price: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          items?: Json
+          name: string
+          price?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          items?: Json
+          name?: string
+          price?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emr_checkup_courses_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      emr_checkup_results: {
+        Row: {
+          appointment_id: string | null
+          checkup_date: string
+          company_id: string
+          course_name: string | null
+          created_at: string | null
+          doctor_comment: string | null
+          id: string
+          overall_judgement: string | null
+          patient_id: string | null
+          pdf_url: string | null
+          results: Json
+          updated_at: string | null
+        }
+        Insert: {
+          appointment_id?: string | null
+          checkup_date: string
+          company_id: string
+          course_name?: string | null
+          created_at?: string | null
+          doctor_comment?: string | null
+          id?: string
+          overall_judgement?: string | null
+          patient_id?: string | null
+          pdf_url?: string | null
+          results?: Json
+          updated_at?: string | null
+        }
+        Update: {
+          appointment_id?: string | null
+          checkup_date?: string
+          company_id?: string
+          course_name?: string | null
+          created_at?: string | null
+          doctor_comment?: string | null
+          id?: string
+          overall_judgement?: string | null
+          patient_id?: string | null
+          pdf_url?: string | null
+          results?: Json
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emr_checkup_results_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "emr_checkup_appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emr_checkup_results_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emr_checkup_results_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "emr_patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      emr_home_visit_plans: {
+        Row: {
+          address: string | null
+          care_plan: string | null
+          company_id: string
+          created_at: string | null
+          frequency: string | null
+          id: string
+          is_active: boolean | null
+          patient_id: string | null
+          preferred_day: string | null
+          preferred_time: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          care_plan?: string | null
+          company_id: string
+          created_at?: string | null
+          frequency?: string | null
+          id?: string
+          is_active?: boolean | null
+          patient_id?: string | null
+          preferred_day?: string | null
+          preferred_time?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          care_plan?: string | null
+          company_id?: string
+          created_at?: string | null
+          frequency?: string | null
+          id?: string
+          is_active?: boolean | null
+          patient_id?: string | null
+          preferred_day?: string | null
+          preferred_time?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emr_home_visit_plans_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emr_home_visit_plans_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "emr_patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      emr_home_visits: {
+        Row: {
+          address: string | null
+          company_id: string
+          completed_at: string | null
+          created_at: string | null
+          doctor_name: string | null
+          id: string
+          notes: string | null
+          nurse_name: string | null
+          patient_id: string | null
+          plan_id: string | null
+          record_id: string | null
+          status: string | null
+          updated_at: string | null
+          visit_date: string
+          visit_time: string | null
+          visit_type: string | null
+          vital_signs: Json | null
+        }
+        Insert: {
+          address?: string | null
+          company_id: string
+          completed_at?: string | null
+          created_at?: string | null
+          doctor_name?: string | null
+          id?: string
+          notes?: string | null
+          nurse_name?: string | null
+          patient_id?: string | null
+          plan_id?: string | null
+          record_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          visit_date: string
+          visit_time?: string | null
+          visit_type?: string | null
+          vital_signs?: Json | null
+        }
+        Update: {
+          address?: string | null
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string | null
+          doctor_name?: string | null
+          id?: string
+          notes?: string | null
+          nurse_name?: string | null
+          patient_id?: string | null
+          plan_id?: string | null
+          record_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          visit_date?: string
+          visit_time?: string | null
+          visit_type?: string | null
+          vital_signs?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emr_home_visits_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emr_home_visits_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "emr_patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emr_home_visits_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "emr_home_visit_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emr_home_visits_record_id_fkey"
+            columns: ["record_id"]
+            isOneToOne: false
+            referencedRelation: "emr_medical_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      emr_inquiry_responses: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          id: string
+          patient_id: string | null
+          reception_id: string | null
+          responses: Json
+          submitted_at: string | null
+          template_id: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          id?: string
+          patient_id?: string | null
+          reception_id?: string | null
+          responses?: Json
+          submitted_at?: string | null
+          template_id?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          patient_id?: string | null
+          reception_id?: string | null
+          responses?: Json
+          submitted_at?: string | null
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emr_inquiry_responses_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emr_inquiry_responses_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "emr_patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emr_inquiry_responses_reception_id_fkey"
+            columns: ["reception_id"]
+            isOneToOne: false
+            referencedRelation: "emr_receptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emr_inquiry_responses_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "emr_inquiry_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      emr_inquiry_templates: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          questions: Json
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          questions?: Json
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          questions?: Json
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emr_inquiry_templates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       emr_medical_records: {
         Row: {
           assessment: string | null
@@ -2049,6 +2703,53 @@ export type Database = {
           },
         ]
       }
+      emr_medications: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          dosage_form: string | null
+          generic_name: string | null
+          id: string
+          is_active: boolean | null
+          is_generic: boolean | null
+          name: string
+          unit: string | null
+          yj_code: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          dosage_form?: string | null
+          generic_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_generic?: boolean | null
+          name: string
+          unit?: string | null
+          yj_code?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          dosage_form?: string | null
+          generic_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_generic?: boolean | null
+          name?: string
+          unit?: string | null
+          yj_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emr_medications_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       emr_patients: {
         Row: {
           address: string | null
@@ -2126,6 +2827,127 @@ export type Database = {
           },
         ]
       }
+      emr_prescriptions: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          id: string
+          issued_at: string | null
+          medications: Json
+          patient_id: string | null
+          pharmacy_notes: string | null
+          prescription_date: string
+          prescription_number: string | null
+          record_id: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          id?: string
+          issued_at?: string | null
+          medications?: Json
+          patient_id?: string | null
+          pharmacy_notes?: string | null
+          prescription_date: string
+          prescription_number?: string | null
+          record_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          issued_at?: string | null
+          medications?: Json
+          patient_id?: string | null
+          pharmacy_notes?: string | null
+          prescription_date?: string
+          prescription_number?: string | null
+          record_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emr_prescriptions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emr_prescriptions_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "emr_patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emr_prescriptions_record_id_fkey"
+            columns: ["record_id"]
+            isOneToOne: false
+            referencedRelation: "emr_medical_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      emr_receipts: {
+        Row: {
+          billing_month: string
+          company_id: string
+          created_at: string | null
+          id: string
+          patient_id: string | null
+          receipt_data: Json
+          status: string | null
+          submitted_at: string | null
+          total_points: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          billing_month: string
+          company_id: string
+          created_at?: string | null
+          id?: string
+          patient_id?: string | null
+          receipt_data?: Json
+          status?: string | null
+          submitted_at?: string | null
+          total_points?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          billing_month?: string
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          patient_id?: string | null
+          receipt_data?: Json
+          status?: string | null
+          submitted_at?: string | null
+          total_points?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emr_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emr_receipts_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "emr_patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       emr_receptions: {
         Row: {
           assigned_doctor_name: string | null
@@ -2188,6 +3010,76 @@ export type Database = {
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "emr_patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      emr_telemedicine_sessions: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          doctor_name: string | null
+          duration_minutes: number | null
+          id: string
+          meeting_id: string | null
+          meeting_url: string | null
+          notes: string | null
+          patient_id: string | null
+          record_id: string | null
+          scheduled_at: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          doctor_name?: string | null
+          duration_minutes?: number | null
+          id?: string
+          meeting_id?: string | null
+          meeting_url?: string | null
+          notes?: string | null
+          patient_id?: string | null
+          record_id?: string | null
+          scheduled_at: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          doctor_name?: string | null
+          duration_minutes?: number | null
+          id?: string
+          meeting_id?: string | null
+          meeting_url?: string | null
+          notes?: string | null
+          patient_id?: string | null
+          record_id?: string | null
+          scheduled_at?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emr_telemedicine_sessions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emr_telemedicine_sessions_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "emr_patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emr_telemedicine_sessions_record_id_fkey"
+            columns: ["record_id"]
+            isOneToOne: false
+            referencedRelation: "emr_medical_records"
             referencedColumns: ["id"]
           },
         ]
