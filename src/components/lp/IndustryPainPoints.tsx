@@ -54,7 +54,8 @@ export function IndustryPainPoints({ painPoints, industryName }: IndustryPainPoi
             return (
               <div
                 key={index}
-                className="bg-background rounded-xl p-6 shadow-sm border border-border/50"
+                className="bg-background rounded-xl p-6 shadow-sm border border-border/50 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 animate-fade-in"
+                style={{ animationDelay: `${index * 100}ms` }}
               >
                 <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
                   <IconComponent className="h-6 w-6 text-destructive" />
