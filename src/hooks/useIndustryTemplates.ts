@@ -8,6 +8,12 @@ import type {
   TemplateCategory 
 } from '@/types/industry-template';
 
+export interface TemplateWithMenuConfig extends IndustryTemplate {
+  menu_config?: {
+    menu_groups: Array<{ id: string; priority?: number }>;
+  };
+}
+
 export function useIndustryTemplates() {
   return useQuery({
     queryKey: ['industry-templates'],
@@ -20,6 +26,39 @@ export function useIndustryTemplates() {
 
       if (error) throw error;
       return data as IndustryTemplate[];
+    },
+  });
+}
+
+// New hook that includes menu config for each template
+export function useIndustryTemplatesWithConfig() {
+  return useQuery({
+    queryKey: ['industry-templates-with-config'],
+    queryFn: async (): Promise<TemplateWithMenuConfig[]> => {
+      const { data: templates, error: templateError } = await supabase
+        .from('industry_templates')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true });
+
+      if (templateError) throw templateError;
+
+      // Fetch all menu configs
+      const { data: menuConfigs } = await supabase
+        .from('template_menu_config')
+        .select('template_id, menu_groups');
+
+      // Map menu configs to templates
+      const configMap = new Map(
+        menuConfigs?.map(mc => [mc.template_id, mc.menu_groups]) || []
+      );
+
+      return (templates as IndustryTemplate[]).map(template => ({
+        ...template,
+        menu_config: configMap.get(template.id) 
+          ? { menu_groups: configMap.get(template.id) as Array<{ id: string; priority?: number }> }
+          : undefined,
+      }));
     },
   });
 }
@@ -80,6 +119,40 @@ export function useIndustryTemplateByKey(templateKey: string | undefined) {
       };
     },
     enabled: !!templateKey,
+  });
+}
+
+export function useFeaturedTemplatesWithConfig() {
+  return useQuery({
+    queryKey: ['featured-templates-with-config'],
+    queryFn: async (): Promise<TemplateWithMenuConfig[]> => {
+      const { data: templates, error: templateError } = await supabase
+        .from('industry_templates')
+        .select('*')
+        .eq('is_active', true)
+        .eq('is_featured', true)
+        .order('sort_order', { ascending: true })
+        .limit(6);
+
+      if (templateError) throw templateError;
+
+      // Fetch all menu configs
+      const { data: menuConfigs } = await supabase
+        .from('template_menu_config')
+        .select('template_id, menu_groups');
+
+      // Map menu configs to templates
+      const configMap = new Map(
+        menuConfigs?.map(mc => [mc.template_id, mc.menu_groups]) || []
+      );
+
+      return (templates as IndustryTemplate[]).map(template => ({
+        ...template,
+        menu_config: configMap.get(template.id) 
+          ? { menu_groups: configMap.get(template.id) as Array<{ id: string; priority?: number }> }
+          : undefined,
+      }));
+    },
   });
 }
 

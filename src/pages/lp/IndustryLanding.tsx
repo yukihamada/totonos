@@ -50,7 +50,7 @@ export default function IndustryLanding() {
         <title>{templateData.name}向け業務管理 | Totonos</title>
         <meta
           name="description"
-          content={`${templateData.name}に特化した業務管理システム。${showEmrSection ? 'HPKI対応電子カルテ、' : ''}請求書、経費精算、顧客管理をオールインワンで。14日間無料トライアル実施中。`}
+          content={`${templateData.name}に特化した業務管理システム。${showEmrSection ? 'HPKI対応電子カルテ、' : ''}請求書、経費精算、顧客管理をオールインワンで。毎月100クレジット無料。`}
         />
         <meta name="keywords" content={templateData.keywords?.join(', ') || `${templateData.name}, 業務管理, 請求書, 経費精算${showEmrSection ? ', 電子カルテ, HPKI' : ''}`} />
         <link rel="canonical" href={`https://totonos.lovable.app/lp/${template}`} />

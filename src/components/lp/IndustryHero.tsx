@@ -22,7 +22,7 @@ export function IndustryHero({ title, subtitle, templateKey, color }: IndustryHe
   const highlights = [
     '初期設定不要ですぐに使える',
     '業界特化の勘定科目を標準搭載',
-    '14日間無料トライアル',
+    '毎月100クレジット無料',
   ];
 
   // Extract industry name from title

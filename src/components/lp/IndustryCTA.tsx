@@ -10,7 +10,7 @@ interface IndustryCTAProps {
 
 export function IndustryCTA({ ctaText, templateKey, industryName }: IndustryCTAProps) {
   const benefits = [
-    '14日間無料トライアル',
+    '毎月100クレジット無料',
     'クレジットカード不要',
     'いつでもキャンセル可能',
   ];

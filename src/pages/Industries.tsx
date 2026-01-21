@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { useTemplatesGroupedByCategory, useFeaturedTemplates } from '@/hooks/useIndustryTemplates';
+import { useIndustryTemplatesWithConfig, useFeaturedTemplatesWithConfig, type TemplateWithMenuConfig } from '@/hooks/useIndustryTemplates';
 import { IndustryLandingLayout } from '@/components/lp/IndustryLandingLayout';
 import { IndustryCard } from '@/components/IndustryCard';
 import { Input } from '@/components/ui/input';
@@ -13,17 +13,27 @@ import { CATEGORY_LABELS, type TemplateCategory, type IndustryTemplate } from '@
 
 export default function Industries() {
   const [searchQuery, setSearchQuery] = useState('');
-  const { data: groupedTemplates, isLoading } = useTemplatesGroupedByCategory();
-  const { data: featuredTemplates } = useFeaturedTemplates();
+  const { data: templates, isLoading } = useIndustryTemplatesWithConfig();
+  const { data: featuredTemplates } = useFeaturedTemplatesWithConfig();
 
   const categories = Object.keys(CATEGORY_LABELS) as TemplateCategory[];
 
-  const filterTemplates = (templates: IndustryTemplate[] | undefined) => {
-    if (!templates) return [];
-    if (!searchQuery) return templates;
+  // Group templates by category
+  const groupedTemplates = templates?.reduce((acc, template) => {
+    const category = template.category as TemplateCategory;
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(template);
+    return acc;
+  }, {} as Record<TemplateCategory, TemplateWithMenuConfig[]>);
+
+  const filterTemplates = (templatesList: TemplateWithMenuConfig[] | undefined) => {
+    if (!templatesList) return [];
+    if (!searchQuery) return templatesList;
     
     const query = searchQuery.toLowerCase();
-    return templates.filter(t => 
+    return templatesList.filter(t => 
       t.name.toLowerCase().includes(query) ||
       t.name_en?.toLowerCase().includes(query) ||
       t.description?.toLowerCase().includes(query)
