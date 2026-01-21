@@ -13,6 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
 import { useAppSettings } from '@/contexts/SettingsContext';
 import { useCurrentCompany, useUpdateCompany } from '@/hooks/useCompany';
+import { useBrandingSettings } from '@/hooks/useBrandingSettings';
 import { toast } from 'sonner';
 import { 
   Settings as SettingsIcon, 
@@ -31,13 +32,28 @@ import {
   GripVertical,
   Eye,
   EyeOff,
+  Brush,
+  Type,
+  ImageIcon,
 } from 'lucide-react';
+import { DesignTemplateSelector } from '@/components/settings/DesignTemplateSelector';
+import { AccentColorPicker } from '@/components/settings/AccentColorPicker';
+import { FontSelector } from '@/components/settings/FontSelector';
+import { LogoUploader } from '@/components/settings/LogoUploader';
+import { LetterSpacingType } from '@/types/design-templates';
 
 export default function Settings() {
   const { user } = useAuth();
   const { settings, updateSettings, updateMenuGroup, updateMenuItem, resetToDefaults } = useAppSettings();
   const { data: currentCompany } = useCurrentCompany();
   const updateCompany = useUpdateCompany();
+  const { 
+    brandingSettings, 
+    updateBrandingSettings, 
+    applyDesignTemplate,
+    companyId,
+    logoUrl,
+  } = useBrandingSettings();
 
   // Company settings - sync with currentCompany
   const [companyName, setCompanyName] = useState('');
@@ -128,13 +144,48 @@ export default function Settings() {
 
           {/* Appearance Tab */}
           <TabsContent value="appearance" className="space-y-4">
+            {/* Design Template Selector */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Brush className="h-5 w-5" />
+                  デザインテンプレート
+                </CardTitle>
+                <CardDescription>15種類のテンプレートからワンクリックで選択</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <DesignTemplateSelector
+                  value={brandingSettings.designTemplateId}
+                  onChange={(templateId) => applyDesignTemplate(templateId)}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Accent Color */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Palette className="h-5 w-5" />
+                  アクセントカラー
+                </CardTitle>
+                <CardDescription>12色のプリセットまたはカスタムカラーを選択</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AccentColorPicker
+                  value={brandingSettings.accentHue}
+                  onChange={(hue) => updateBrandingSettings({ accentHue: hue })}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Theme Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sun className="h-5 w-5" />
                   テーマ設定
                 </CardTitle>
-                <CardDescription>アプリケーションの外観をカスタマイズ</CardDescription>
+                <CardDescription>カラーモードとフォントサイズ</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-4">
@@ -208,6 +259,54 @@ export default function Settings() {
               </CardContent>
             </Card>
 
+            {/* Font Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Type className="h-5 w-5" />
+                  フォント設定
+                </CardTitle>
+                <CardDescription>本文・見出しのフォントと文字間隔</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <FontSelector
+                  fontBody={brandingSettings.fontBody}
+                  fontHeading={brandingSettings.fontHeading}
+                  letterSpacing={brandingSettings.letterSpacing}
+                  onFontBodyChange={(value) => updateBrandingSettings({ fontBody: value })}
+                  onFontHeadingChange={(value) => updateBrandingSettings({ fontHeading: value })}
+                  onLetterSpacingChange={(value) => updateBrandingSettings({ letterSpacing: value as LetterSpacingType })}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Logo Upload */}
+            {companyId && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ImageIcon className="h-5 w-5" />
+                    ブランディング
+                  </CardTitle>
+                  <CardDescription>会社ロゴのアップロードと表示設定</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <LogoUploader
+                    logoUrl={logoUrl}
+                    companyId={companyId}
+                    showLogoSidebar={brandingSettings.showLogoSidebar}
+                    showLogoLogin={brandingSettings.showLogoLogin}
+                    showLogoDocuments={brandingSettings.showLogoDocuments}
+                    onLogoChange={(url) => updateBrandingSettings({ logoUrl: url })}
+                    onShowLogoSidebarChange={(value) => updateBrandingSettings({ showLogoSidebar: value })}
+                    onShowLogoLoginChange={(value) => updateBrandingSettings({ showLogoLogin: value })}
+                    onShowLogoDocumentsChange={(value) => updateBrandingSettings({ showLogoDocuments: value })}
+                  />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Regional Settings */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
