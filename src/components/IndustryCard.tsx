@@ -157,6 +157,15 @@ const menuGroupLabels: Record<string, string> = {
   inventory: '在庫管理',
   purchasing: '仕入管理',
   contracts: '契約管理',
+  // New features
+  reservation: '予約管理',
+  delivery: '配送管理',
+  childcare: '園児管理',
+  care: '介護記録',
+  calendar: 'スケジュール',
+  reports: 'レポート',
+  wiki: 'ナレッジ',
+  donation: '寄付管理',
 };
 
 export function IndustryCard({ template }: IndustryCardProps) {
