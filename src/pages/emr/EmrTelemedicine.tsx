@@ -58,7 +58,6 @@ export default function EmrTelemedicine() {
       doctor_name: formData.doctor_name || null,
       notes: formData.notes || null,
       record_id: null,
-      updated_at: new Date().toISOString(),
     });
     setDialogOpen(false);
     setFormData({

@@ -39,11 +39,20 @@ export default function EmrHomeVisit() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [selectedVisit, setSelectedVisit] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    patient_id: string;
+    visit_date: string;
+    visit_time: string;
+    visit_type: "regular" | "temporary" | "emergency";
+    address: string;
+    doctor_name: string;
+    nurse_name: string;
+    notes: string;
+  }>({
     patient_id: "",
     visit_date: format(new Date(), "yyyy-MM-dd"),
     visit_time: "09:00",
-    visit_type: "regular" as const,
+    visit_type: "regular",
     address: "",
     doctor_name: "",
     nurse_name: "",
@@ -79,7 +88,6 @@ export default function EmrHomeVisit() {
       record_id: null,
       status: "scheduled",
       completed_at: null,
-      updated_at: new Date().toISOString(),
     });
     setDialogOpen(false);
     setFormData({
@@ -160,7 +168,7 @@ export default function EmrHomeVisit() {
                 </div>
                 <div>
                   <Label>種別</Label>
-                  <Select value={formData.visit_type} onValueChange={(v: "regular" | "temporary" | "emergency") => setFormData({ ...formData, visit_type: v })}>
+                  <Select value={formData.visit_type} onValueChange={(v) => setFormData({ ...formData, visit_type: v as "regular" | "temporary" | "emergency" })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="regular">定期訪問</SelectItem>

@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Calculator, CreditCard, FileText, Plus, Receipt, Search, Trash2, Yen } from "lucide-react";
+import { Calculator, CreditCard, FileText, JapaneseYen, Plus, Receipt, Search, Trash2 } from "lucide-react";
 import { useEmrBilling, useEmrBillingMasters, useEmrReceipts, BillingItem } from "@/hooks/emr/useEmrBilling";
 import { useEmrPatients } from "@/hooks/emr/useEmrPatients";
 
@@ -93,7 +93,6 @@ export default function EmrBilling() {
       payment_status: "unpaid",
       payment_method: null,
       paid_at: null,
-      updated_at: new Date().toISOString(),
     });
     setDialogOpen(false);
     setBillingItems([]);
@@ -284,7 +283,7 @@ export default function EmrBilling() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                <Yen className="h-4 w-4" />
+                <JapaneseYen className="h-4 w-4" />
                 <span className="text-sm">本日売上</span>
               </div>
               <p className="text-2xl font-bold">¥{todaySummary.totalAmount.toLocaleString()}</p>
