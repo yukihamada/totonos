@@ -5,6 +5,7 @@ import { IndustryHero } from '@/components/lp/IndustryHero';
 import { IndustryPainPoints } from '@/components/lp/IndustryPainPoints';
 import { IndustrySolutions } from '@/components/lp/IndustrySolutions';
 import { IndustryFeatures } from '@/components/lp/IndustryFeatures';
+import { IndustryFeatureSelection } from '@/components/lp/IndustryFeatureSelection';
 import { IndustryFAQ } from '@/components/lp/IndustryFAQ';
 import { IndustryCTA } from '@/components/lp/IndustryCTA';
 import { EmrSection } from '@/components/lp/EmrSection';
@@ -80,6 +81,13 @@ export default function IndustryLanding() {
         <IndustryFeatures
           features={landing_content?.features}
           emphasizedFeatures={menu_config?.emphasized_features}
+        />
+
+        {/* Feature Selection Section */}
+        <IndustryFeatureSelection
+          templateKey={templateData.template_key}
+          industryName={templateData.name}
+          menuConfig={menu_config}
         />
 
         <IndustryFAQ
