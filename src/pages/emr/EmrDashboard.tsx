@@ -25,138 +25,94 @@ import {
   RotateCw,
   BarChart3,
   Percent,
+  Loader2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import type { ReceptionEntry, ReceptionStatus, VisitType, InsuranceType } from "@/types/emr";
 import { VisitTypeIndicator } from "@/components/emr/VisitTypeIndicator";
 import { KpiCard } from "@/components/emr/KpiCard";
 import { InsuranceTypePieChart } from "@/components/emr/InsuranceTypePieChart";
+import { useEmrReceptions } from "@/hooks/emr/useEmrReceptions";
+import { useEmrPatients } from "@/hooks/emr/useEmrPatients";
+import { useTodayRecordStats } from "@/hooks/emr/useEmrRecords";
 
-// Mock data - extended with visit_type
-const mockStats = {
-  todayPatients: 24,
-  waiting: 5,
-  inProgress: 2,
-  completed: 17,
-  firstVisit: 6,
-  returnVisit: 18,
-};
-
-// Mock analytics data
-const mockAnalytics = {
-  today: {
-    firstVisit: 6,
-    returnVisit: 18,
-    totalPatients: 24,
-    returnRate: 75,
-    avgAge: 48,
-  },
-  week: {
-    firstVisit: 32,
-    returnVisit: 115,
-    totalPatients: 147,
-    returnRate: 78,
-    avgAge: 52,
-  },
-  month: {
-    firstVisit: 124,
-    returnVisit: 512,
-    totalPatients: 636,
-    returnRate: 81,
-    avgAge: 50,
-  },
-};
-
-// Mock insurance type distribution
-const mockInsuranceDistribution = [
-  { type: "employee_health" as InsuranceType, count: 10, amount: 125000 },
-  { type: "national_health" as InsuranceType, count: 6, amount: 72000 },
-  { type: "late_elderly" as InsuranceType, count: 5, amount: 68000 },
-  { type: "welfare" as InsuranceType, count: 1, amount: 12000 },
-  { type: "self_pay" as InsuranceType, count: 2, amount: 35000 },
-];
-
-const mockRecentReceptions: ReceptionEntry[] = [
-  {
-    id: "1",
-    patient_id: "P001",
-    patient: {
-      id: "P001",
-      patient_number: "001",
-      name: "田中太郎",
-      name_kana: "タナカタロウ",
-      birth_date: "1980-05-15",
-      gender: "male",
-      created_at: "",
-      updated_at: "",
-    },
-    reception_date: new Date().toISOString(),
-    reception_number: 1,
-    status: "waiting",
-    visit_type: "first_visit",
-    chief_complaint: "頭痛",
-    created_at: "",
-    updated_at: "",
-  },
-  {
-    id: "2",
-    patient_id: "P002",
-    patient: {
-      id: "P002",
-      patient_number: "002",
-      name: "鈴木花子",
-      name_kana: "スズキハナコ",
-      birth_date: "1975-03-20",
-      gender: "female",
-      created_at: "",
-      updated_at: "",
-    },
-    reception_date: new Date().toISOString(),
-    reception_number: 2,
-    status: "in_progress",
-    visit_type: "return_visit",
-    chief_complaint: "発熱",
-    created_at: "",
-    updated_at: "",
-  },
-  {
-    id: "3",
-    patient_id: "P003",
-    patient: {
-      id: "P003",
-      patient_number: "003",
-      name: "佐藤次郎",
-      name_kana: "サトウジロウ",
-      birth_date: "1990-08-10",
-      gender: "male",
-      created_at: "",
-      updated_at: "",
-    },
-    reception_date: new Date().toISOString(),
-    reception_number: 3,
-    status: "waiting",
-    visit_type: "return_visit",
-    chief_complaint: "腹痛",
-    created_at: "",
-    updated_at: "",
-  },
-];
+type ReceptionStatus = "waiting" | "in_progress" | "completed" | "cancelled";
 
 const statusConfig: Record<ReceptionStatus, { label: string; color: string }> = {
   waiting: { label: "待機中", color: "bg-yellow-500" },
-  called: { label: "呼出中", color: "bg-blue-500" },
   in_progress: { label: "診察中", color: "bg-green-500" },
   completed: { label: "完了", color: "bg-gray-500" },
   cancelled: { label: "キャンセル", color: "bg-red-500" },
+};
+
+const visitTypeMapping: Record<string, "first_visit" | "return_visit"> = {
+  initial: "first_visit",
+  follow_up: "return_visit",
+  emergency: "return_visit",
 };
 
 type AnalyticsPeriod = "today" | "week" | "month";
 
 export default function EmrDashboard() {
   const [analyticsPeriod, setAnalyticsPeriod] = useState<AnalyticsPeriod>("today");
+  
+  const { receptions, isLoading: receptionsLoading } = useEmrReceptions();
+  const { patients, isLoading: patientsLoading } = useEmrPatients();
+  const { data: recordStats } = useTodayRecordStats();
 
-  const currentAnalytics = mockAnalytics[analyticsPeriod];
+  const isLoading = receptionsLoading || patientsLoading;
+
+  // Calculate stats from real data
+  const waitingCount = receptions.filter((r) => r.status === "waiting").length;
+  const inProgressCount = receptions.filter((r) => r.status === "in_progress").length;
+  const completedCount = receptions.filter((r) => r.status === "completed").length;
+  const totalTodayPatients = receptions.length;
+  const initialCount = receptions.filter((r) => r.visit_type === "initial").length;
+  const followUpCount = receptions.filter((r) => r.visit_type === "follow_up" || r.visit_type === "emergency").length;
+
+  // Calculate return rate
+  const returnRate = totalTodayPatients > 0 
+    ? Math.round((followUpCount / totalTodayPatients) * 100) 
+    : 0;
+
+  // Calculate average age from patients
+  const calculateAverageAge = () => {
+    const patientsWithAge = patients.filter(p => p.birth_date);
+    if (patientsWithAge.length === 0) return 0;
+    
+    const totalAge = patientsWithAge.reduce((sum, p) => {
+      const birthDate = new Date(p.birth_date!);
+      const age = Math.floor((Date.now() - birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+      return sum + age;
+    }, 0);
+    
+    return Math.round(totalAge / patientsWithAge.length);
+  };
+
+  // Get insurance distribution from patients
+  const getInsuranceDistribution = () => {
+    const distribution: Record<string, { count: number; amount: number }> = {};
+    
+    patients.forEach(p => {
+      const type = p.insurance_type || "self_pay";
+      if (!distribution[type]) {
+        distribution[type] = { count: 0, amount: 0 };
+      }
+      distribution[type].count++;
+      distribution[type].amount += 10000; // Placeholder amount
+    });
+    
+    return Object.entries(distribution).map(([type, data]) => ({
+      type: type as any,
+      count: data.count,
+      amount: data.amount,
+    }));
+  };
+
+  // Get active receptions (waiting or in progress)
+  const activeReceptions = receptions.filter(
+    (r) => r.status === "waiting" || r.status === "in_progress"
+  );
 
   return (
     <AppLayout>
@@ -200,10 +156,10 @@ export default function EmrDashboard() {
             <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
             <div>
               <p className="font-medium text-amber-800 dark:text-amber-200">
-                デモ版電子カルテ
+                電子カルテ機能
               </p>
               <p className="text-sm text-amber-700 dark:text-amber-300">
-                この画面はデモンストレーション用です。実際の診療データは保存されません。
+                患者データ、受付、カルテはデータベースに保存されます。
                 HPKI署名機能を使用するにはローカルブリッジサーバーの起動が必要です。
               </p>
             </div>
@@ -211,171 +167,186 @@ export default function EmrDashboard() {
         </Card>
 
         {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">本日の患者数</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{mockStats.todayPatients}</div>
-              <p className="text-xs text-muted-foreground">
-                {format(new Date(), "yyyy年MM月dd日 (E)", { locale: ja })}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">待機中</CardTitle>
-              <Clock className="h-4 w-4 text-yellow-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">
-                {mockStats.waiting}
-              </div>
-              <Button variant="link" className="px-0 h-auto" asChild>
-                <Link to="/emr/reception">
-                  受付一覧 <ArrowRight className="h-3 w-3 ml-1" />
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">診察中</CardTitle>
-              <Stethoscope className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                {mockStats.inProgress}
-              </div>
-              <p className="text-xs text-muted-foreground">現在診療中</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">診察完了</CardTitle>
-              <ClipboardCheck className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{mockStats.completed}</div>
-              <p className="text-xs text-muted-foreground">本日完了分</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* KPI Analytics Section */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                患者統計・KPI
-              </CardTitle>
-              <CardDescription>来院状況の分析</CardDescription>
-            </div>
-            <Select value={analyticsPeriod} onValueChange={(v) => setAnalyticsPeriod(v as AnalyticsPeriod)}>
-              <SelectTrigger className="w-28">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="today">本日</SelectItem>
-                <SelectItem value="week">今週</SelectItem>
-                <SelectItem value="month">今月</SelectItem>
-              </SelectContent>
-            </Select>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-4">
-              <KpiCard
-                title="新患数"
-                value={currentAnalytics.firstVisit}
-                subtitle={`総来院数: ${currentAnalytics.totalPatients}名`}
-                icon={UserRoundPlus}
-                iconColor="text-blue-600"
-              />
-              <KpiCard
-                title="再診数"
-                value={currentAnalytics.returnVisit}
-                icon={RotateCw}
-                iconColor="text-green-600"
-              />
-              <KpiCard
-                title="再診率"
-                value={`${currentAnalytics.returnRate}%`}
-                subtitle="リピート率"
-                icon={Percent}
-                iconColor="text-purple-600"
-                variant="highlight"
-              />
-              <KpiCard
-                title="平均年齢"
-                value={`${currentAnalytics.avgAge}歳`}
-                subtitle="来院患者"
-                icon={Users}
-                iconColor="text-muted-foreground"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Current Queue */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>待機・診察中</CardTitle>
-                <CardDescription>
-                  現在の受付状況
-                </CardDescription>
-              </div>
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/emr/reception">すべて見る</Link>
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {mockRecentReceptions
-                .filter((r) => r.status === "waiting" || r.status === "in_progress")
-                .map((reception) => (
-                  <div
-                    key={reception.id}
-                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-bold">
-                        {reception.reception_number}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium">{reception.patient?.name}</p>
-                          {reception.visit_type && (
-                            <VisitTypeIndicator visitType={reception.visit_type} size="sm" />
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {reception.chief_complaint}
-                        </p>
-                      </div>
-                    </div>
-                    <Badge
-                      className={`${
-                        statusConfig[reception.status].color
-                      } text-white`}
-                    >
-                      {statusConfig[reception.status].label}
-                    </Badge>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">本日の患者数</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{totalTodayPatients}</div>
+                  <p className="text-xs text-muted-foreground">
+                    {format(new Date(), "yyyy年MM月dd日 (E)", { locale: ja })}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">待機中</CardTitle>
+                  <Clock className="h-4 w-4 text-yellow-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-yellow-600">
+                    {waitingCount}
                   </div>
-                ))}
-            </CardContent>
-          </Card>
+                  <Button variant="link" className="px-0 h-auto" asChild>
+                    <Link to="/emr/reception">
+                      受付一覧 <ArrowRight className="h-3 w-3 ml-1" />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">診察中</CardTitle>
+                  <Stethoscope className="h-4 w-4 text-green-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">
+                    {inProgressCount}
+                  </div>
+                  <p className="text-xs text-muted-foreground">現在診療中</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">診察完了</CardTitle>
+                  <ClipboardCheck className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{completedCount}</div>
+                  <p className="text-xs text-muted-foreground">本日完了分</p>
+                </CardContent>
+              </Card>
+            </div>
 
-          {/* Insurance Distribution */}
-          <InsuranceTypePieChart
-            data={mockInsuranceDistribution}
-            title="保険種別分布（本日）"
-            showAmount={false}
-          />
-        </div>
+            {/* KPI Analytics Section */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    患者統計・KPI
+                  </CardTitle>
+                  <CardDescription>来院状況の分析</CardDescription>
+                </div>
+                <Select value={analyticsPeriod} onValueChange={(v) => setAnalyticsPeriod(v as AnalyticsPeriod)}>
+                  <SelectTrigger className="w-28">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="today">本日</SelectItem>
+                    <SelectItem value="week">今週</SelectItem>
+                    <SelectItem value="month">今月</SelectItem>
+                  </SelectContent>
+                </Select>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-4">
+                  <KpiCard
+                    title="新患数"
+                    value={initialCount}
+                    subtitle={`総来院数: ${totalTodayPatients}名`}
+                    icon={UserRoundPlus}
+                    iconColor="text-blue-600"
+                  />
+                  <KpiCard
+                    title="再診数"
+                    value={followUpCount}
+                    icon={RotateCw}
+                    iconColor="text-green-600"
+                  />
+                  <KpiCard
+                    title="再診率"
+                    value={`${returnRate}%`}
+                    subtitle="リピート率"
+                    icon={Percent}
+                    iconColor="text-purple-600"
+                    variant="highlight"
+                  />
+                  <KpiCard
+                    title="登録患者数"
+                    value={patients.length}
+                    subtitle="総患者数"
+                    icon={Users}
+                    iconColor="text-muted-foreground"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="grid gap-6 lg:grid-cols-2">
+              {/* Current Queue */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>待機・診察中</CardTitle>
+                    <CardDescription>
+                      現在の受付状況
+                    </CardDescription>
+                  </div>
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link to="/emr/reception">すべて見る</Link>
+                  </Button>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {activeReceptions.length === 0 ? (
+                    <div className="text-center py-4 text-muted-foreground">
+                      現在待機中・診察中の患者はいません
+                    </div>
+                  ) : (
+                    activeReceptions.slice(0, 5).map((reception, index) => (
+                      <div
+                        key={reception.id}
+                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-bold">
+                            {index + 1}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium">{reception.patient?.name}</p>
+                              {reception.visit_type && (
+                                <VisitTypeIndicator 
+                                  visitType={visitTypeMapping[reception.visit_type] || "return_visit"} 
+                                  size="sm" 
+                                />
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {reception.chief_complaint || "主訴なし"}
+                            </p>
+                          </div>
+                        </div>
+                        <Badge
+                          className={`${
+                            statusConfig[reception.status]?.color || "bg-gray-500"
+                          } text-white`}
+                        >
+                          {statusConfig[reception.status]?.label || reception.status}
+                        </Badge>
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Insurance Distribution */}
+              <InsuranceTypePieChart
+                data={getInsuranceDistribution()}
+                title="保険種別分布"
+                showAmount={false}
+              />
+            </div>
+          </>
+        )}
 
         {/* Quick Links */}
         <Card>
