@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,114 +34,81 @@ import {
   Calendar,
   User,
   Clock,
+  Loader2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import type { MedicalRecord, Patient } from "@/types/emr";
 import { HpkiBridgeDownload } from "@/components/emr/HpkiBridgeDownload";
-
-// Mock data
-const mockPatients: Patient[] = [
-  {
-    id: "P001",
-    patient_number: "001",
-    name: "田中太郎",
-    name_kana: "タナカタロウ",
-    birth_date: "1980-05-15",
-    gender: "male",
-    created_at: "",
-    updated_at: "",
-  },
-  {
-    id: "P002",
-    patient_number: "002",
-    name: "鈴木花子",
-    name_kana: "スズキハナコ",
-    birth_date: "1975-03-20",
-    gender: "female",
-    created_at: "",
-    updated_at: "",
-  },
-];
-
-const mockRecords: MedicalRecord[] = [
-  {
-    id: "R001",
-    patient_id: "P001",
-    record_date: "2024-01-15",
-    subjective: "3日前から頭痛が続いている。特に朝方がひどい。吐き気はない。",
-    objective: "血圧: 135/85mmHg、体温: 36.5℃\n瞳孔正常、項部硬直なし",
-    assessment: "緊張型頭痛の疑い",
-    plan: "ロキソプロフェン処方、1週間後再診",
-    icd10_codes: ["G44.2"],
-    diagnosis_names: ["緊張型頭痛"],
-    is_finalized: true,
-    finalized_at: "2024-01-15T12:00:00Z",
-    finalized_by: "Dr. 山田",
-    signature_hash: "abc123...",
-    signed_at: "2024-01-15T12:05:00Z",
-    signer_name: "山田太郎（医師）",
-    version: 1,
-    created_at: "2024-01-15T10:00:00Z",
-    updated_at: "2024-01-15T12:05:00Z",
-    created_by: "user1",
-  },
-  {
-    id: "R002",
-    patient_id: "P001",
-    record_date: "2024-01-08",
-    subjective: "風邪症状で来院。咳、鼻水、軽度の発熱。",
-    objective: "体温: 37.8℃、咽頭発赤あり、肺音清明",
-    assessment: "急性上気道炎",
-    plan: "対症療法（解熱剤、咳止め）処方",
-    icd10_codes: ["J06.9"],
-    diagnosis_names: ["急性上気道炎"],
-    is_finalized: true,
-    finalized_at: "2024-01-08T15:00:00Z",
-    finalized_by: "Dr. 山田",
-    version: 1,
-    created_at: "2024-01-08T14:00:00Z",
-    updated_at: "2024-01-08T15:00:00Z",
-    created_by: "user1",
-  },
-  {
-    id: "R003",
-    patient_id: "P002",
-    record_date: "2024-01-16",
-    subjective: "定期検診。特に自覚症状なし。",
-    objective: "血圧: 120/75mmHg、体温: 36.2℃\n一般状態良好",
-    assessment: "異常なし",
-    plan: "次回3ヶ月後に定期検診",
-    is_finalized: false,
-    version: 1,
-    created_at: "2024-01-16T09:00:00Z",
-    updated_at: "2024-01-16T09:30:00Z",
-    created_by: "user1",
-  },
-];
+import { useEmrRecords } from "@/hooks/emr/useEmrRecords";
+import { useEmrPatients } from "@/hooks/emr/useEmrPatients";
 
 export default function EmrRecords() {
+  const [searchParams] = useSearchParams();
+  const preselectedPatientId = searchParams.get("patient");
+  
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedPatient, setSelectedPatient] = useState<string>("");
-  const [records] = useState<MedicalRecord[]>(mockRecords);
+  const [selectedPatient, setSelectedPatient] = useState<string>(preselectedPatientId || "");
   const [newRecordOpen, setNewRecordOpen] = useState(false);
 
+  const { records, isLoading, createRecord, signRecord } = useEmrRecords(selectedPatient || undefined);
+  const { patients } = useEmrPatients();
+
+  // Form state
+  const [formData, setFormData] = useState({
+    patient_id: preselectedPatientId || "",
+    record_date: format(new Date(), "yyyy-MM-dd"),
+    subjective: "",
+    objective: "",
+    assessment: "",
+    plan: "",
+  });
+
   const filteredRecords = records.filter((r) => {
-    if (selectedPatient && r.patient_id !== selectedPatient) return false;
     if (searchQuery) {
-      const patient = mockPatients.find((p) => p.id === r.patient_id);
+      const patient = patients.find((p) => p.id === r.patient_id);
       return (
         patient?.name.includes(searchQuery) ||
         patient?.patient_number.includes(searchQuery) ||
-        r.subjective.includes(searchQuery) ||
-        r.assessment.includes(searchQuery)
+        r.subjective?.includes(searchQuery) ||
+        r.assessment?.includes(searchQuery)
       );
     }
     return true;
   });
 
   const getPatientName = (patientId: string) => {
-    return mockPatients.find((p) => p.id === patientId)?.name || "不明";
+    return patients.find((p) => p.id === patientId)?.name || "不明";
+  };
+
+  const handleSubmit = async (finalize: boolean) => {
+    if (!formData.patient_id) return;
+
+    await createRecord.mutateAsync({
+      patient_id: formData.patient_id,
+      reception_id: null,
+      record_date: formData.record_date,
+      doctor_name: null,
+      subjective: formData.subjective || null,
+      objective: formData.objective || null,
+      assessment: formData.assessment || null,
+      plan: formData.plan || null,
+      vital_signs: {},
+      prescriptions: [],
+      procedures: [],
+      is_signed: false,
+      signed_at: null,
+      hpki_signature: null,
+    });
+
+    setFormData({
+      patient_id: "",
+      record_date: format(new Date(), "yyyy-MM-dd"),
+      subjective: "",
+      objective: "",
+      assessment: "",
+      plan: "",
+    });
+    setNewRecordOpen(false);
   };
 
   return (
@@ -183,12 +150,15 @@ export default function EmrRecords() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>患者 *</Label>
-                    <Select>
+                    <Select 
+                      value={formData.patient_id} 
+                      onValueChange={(v) => setFormData({ ...formData, patient_id: v })}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="患者を選択..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {mockPatients.map((p) => (
+                        {patients.map((p) => (
                           <SelectItem key={p.id} value={p.id}>
                             {p.name} ({p.patient_number})
                           </SelectItem>
@@ -198,7 +168,11 @@ export default function EmrRecords() {
                   </div>
                   <div className="space-y-2">
                     <Label>診療日 *</Label>
-                    <Input type="date" defaultValue={format(new Date(), "yyyy-MM-dd")} />
+                    <Input 
+                      type="date" 
+                      value={formData.record_date}
+                      onChange={(e) => setFormData({ ...formData, record_date: e.target.value })}
+                    />
                   </div>
                 </div>
 
@@ -212,6 +186,8 @@ export default function EmrRecords() {
                     <Textarea
                       placeholder="患者の訴え、症状、経過など..."
                       className="min-h-[80px]"
+                      value={formData.subjective}
+                      onChange={(e) => setFormData({ ...formData, subjective: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
@@ -222,6 +198,8 @@ export default function EmrRecords() {
                     <Textarea
                       placeholder="バイタルサイン、診察所見、検査結果など..."
                       className="min-h-[80px]"
+                      value={formData.objective}
+                      onChange={(e) => setFormData({ ...formData, objective: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
@@ -232,6 +210,8 @@ export default function EmrRecords() {
                     <Textarea
                       placeholder="診断名、病態の評価..."
                       className="min-h-[60px]"
+                      value={formData.assessment}
+                      onChange={(e) => setFormData({ ...formData, assessment: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
@@ -242,25 +222,22 @@ export default function EmrRecords() {
                     <Textarea
                       placeholder="治療方針、処方、次回予定..."
                       className="min-h-[60px]"
+                      value={formData.plan}
+                      onChange={(e) => setFormData({ ...formData, plan: e.target.value })}
                     />
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>病名（ICD-10）</Label>
-                  <Input placeholder="病名を入力して検索..." />
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setNewRecordOpen(false)}>
                   キャンセル
                 </Button>
-                <Button variant="secondary">
-                  下書き保存
-                </Button>
-                <Button onClick={() => setNewRecordOpen(false)}>
-                  <Lock className="h-4 w-4 mr-2" />
-                  確定保存
+                <Button 
+                  onClick={() => handleSubmit(false)} 
+                  disabled={createRecord.isPending || !formData.patient_id}
+                >
+                  {createRecord.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  保存
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -286,7 +263,7 @@ export default function EmrRecords() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">すべての患者</SelectItem>
-                  {mockPatients.map((p) => (
+                  {patients.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
                       {p.name}
                     </SelectItem>
@@ -301,152 +278,109 @@ export default function EmrRecords() {
         <HpkiBridgeDownload variant="inline" />
 
         {/* Records List */}
-        <div className="space-y-4">
-          {filteredRecords.map((record) => (
-            <Card key={record.id}>
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <User className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <CardTitle className="text-lg">
-                        {getPatientName(record.patient_id)}
-                      </CardTitle>
-                      <CardDescription className="flex items-center gap-2">
-                        <Calendar className="h-3 w-3" />
-                        {format(new Date(record.record_date), "yyyy年MM月dd日 (E)", {
-                          locale: ja,
-                        })}
-                      </CardDescription>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {record.is_finalized ? (
-                      <>
-                        <Badge variant="secondary" className="gap-1">
-                          <Lock className="h-3 w-3" />
-                          確定済
-                        </Badge>
-                        {record.signature_hash && (
-                          <Badge variant="outline" className="gap-1 text-green-600">
-                            <FileSignature className="h-3 w-3" />
-                            署名済
-                          </Badge>
-                        )}
-                      </>
-                    ) : (
-                      <Badge variant="outline" className="text-amber-600">
-                        下書き
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="soap" className="w-full">
-                  <TabsList>
-                    <TabsTrigger value="soap">SOAP</TabsTrigger>
-                    <TabsTrigger value="diagnosis">診断</TabsTrigger>
-                    <TabsTrigger value="info">記録情報</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="soap" className="space-y-3 mt-4">
-                    <div className="grid gap-3">
-                      <div className="flex gap-3">
-                        <Badge variant="outline" className="h-6 w-6 justify-center shrink-0">
-                          S
-                        </Badge>
-                        <p className="text-sm">{record.subjective}</p>
-                      </div>
-                      <div className="flex gap-3">
-                        <Badge variant="outline" className="h-6 w-6 justify-center shrink-0">
-                          O
-                        </Badge>
-                        <p className="text-sm whitespace-pre-line">{record.objective}</p>
-                      </div>
-                      <div className="flex gap-3">
-                        <Badge variant="outline" className="h-6 w-6 justify-center shrink-0">
-                          A
-                        </Badge>
-                        <p className="text-sm">{record.assessment}</p>
-                      </div>
-                      <div className="flex gap-3">
-                        <Badge variant="outline" className="h-6 w-6 justify-center shrink-0">
-                          P
-                        </Badge>
-                        <p className="text-sm">{record.plan}</p>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : filteredRecords.length === 0 ? (
+          <Card>
+            <CardContent className="py-8 text-center text-muted-foreground">
+              {records.length === 0 ? "カルテが登録されていません" : "検索条件に一致するカルテがありません"}
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {filteredRecords.map((record) => (
+              <Card key={record.id}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <User className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <CardTitle className="text-lg">
+                          {getPatientName(record.patient_id)}
+                        </CardTitle>
+                        <CardDescription className="flex items-center gap-2">
+                          <Calendar className="h-3 w-3" />
+                          {format(new Date(record.record_date), "yyyy年MM月dd日 (E)", { locale: ja })}
+                        </CardDescription>
                       </div>
                     </div>
-                  </TabsContent>
-                  <TabsContent value="diagnosis" className="mt-4">
-                    {record.diagnosis_names?.length ? (
-                      <div className="space-y-2">
-                        {record.diagnosis_names.map((name, i) => (
-                          <div key={i} className="flex items-center gap-2">
-                            <Badge variant="secondary">
-                              {record.icd10_codes?.[i] || "-"}
-                            </Badge>
-                            <span>{name}</span>
+                    <div className="flex items-center gap-2">
+                      {record.is_signed ? (
+                        <Badge variant="outline" className="gap-1 text-green-600">
+                          <FileSignature className="h-3 w-3" />
+                          署名済
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-amber-600">
+                          未署名
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Tabs defaultValue="soap" className="w-full">
+                    <TabsList>
+                      <TabsTrigger value="soap">SOAP</TabsTrigger>
+                      <TabsTrigger value="info">記録情報</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="soap" className="space-y-3 mt-4">
+                      <div className="grid gap-3">
+                        <div className="flex gap-3">
+                          <Badge variant="outline" className="h-6 w-6 justify-center shrink-0">S</Badge>
+                          <p className="text-sm">{record.subjective || "-"}</p>
+                        </div>
+                        <div className="flex gap-3">
+                          <Badge variant="outline" className="h-6 w-6 justify-center shrink-0">O</Badge>
+                          <p className="text-sm whitespace-pre-line">{record.objective || "-"}</p>
+                        </div>
+                        <div className="flex gap-3">
+                          <Badge variant="outline" className="h-6 w-6 justify-center shrink-0">A</Badge>
+                          <p className="text-sm">{record.assessment || "-"}</p>
+                        </div>
+                        <div className="flex gap-3">
+                          <Badge variant="outline" className="h-6 w-6 justify-center shrink-0">P</Badge>
+                          <p className="text-sm">{record.plan || "-"}</p>
+                        </div>
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="info" className="mt-4">
+                      <div className="grid gap-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">作成:</span>
+                          <span>{format(new Date(record.created_at), "yyyy/MM/dd HH:mm")}</span>
+                        </div>
+                        {record.signed_at && (
+                          <div className="flex items-center gap-2">
+                            <FileSignature className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-muted-foreground">署名:</span>
+                            <span>{format(new Date(record.signed_at), "yyyy/MM/dd HH:mm")}</span>
                           </div>
-                        ))}
+                        )}
                       </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        病名が登録されていません
-                      </p>
-                    )}
-                  </TabsContent>
-                  <TabsContent value="info" className="mt-4">
-                    <div className="grid gap-2 text-sm">
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">作成:</span>
-                        <span>
-                          {format(new Date(record.created_at), "yyyy/MM/dd HH:mm")}
-                        </span>
-                      </div>
-                      {record.finalized_at && (
-                        <div className="flex items-center gap-2">
-                          <Lock className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-muted-foreground">確定:</span>
-                          <span>
-                            {format(new Date(record.finalized_at), "yyyy/MM/dd HH:mm")}
-                            {record.finalized_by && ` (${record.finalized_by})`}
-                          </span>
-                        </div>
-                      )}
-                      {record.signed_at && (
-                        <div className="flex items-center gap-2">
-                          <FileSignature className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-muted-foreground">署名:</span>
-                          <span>
-                            {format(new Date(record.signed_at), "yyyy/MM/dd HH:mm")}
-                            {record.signer_name && ` (${record.signer_name})`}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">バージョン:</span>
-                        <span>v{record.version}</span>
-                      </div>
-                    </div>
-                  </TabsContent>
-                </Tabs>
+                    </TabsContent>
+                  </Tabs>
 
-                {!record.is_finalized && (
-                  <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
-                    <Button variant="outline" size="sm">
-                      編集
-                    </Button>
-                    <Button size="sm">
-                      <Lock className="h-4 w-4 mr-1" />
-                      確定
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                  {!record.is_signed && (
+                    <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
+                      <Button 
+                        size="sm" 
+                        onClick={() => signRecord.mutate({ id: record.id })}
+                        disabled={signRecord.isPending}
+                      >
+                        <Lock className="h-4 w-4 mr-1" />
+                        署名
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     </AppLayout>
   );

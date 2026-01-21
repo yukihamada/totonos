@@ -260,20 +260,20 @@ const defaultMenuGroups: MenuGroupConfig[] = [
       { id: 'pages', title: 'ページ一覧', visible: true, enabled: true, order: 4 },
     ],
   },
-  // === 医療・ヘルスケア ===
+  // === 医療・ヘルスケア（専門機能、デフォルトOFF） ===
   {
     id: 'healthcare',
     label: '医療・ヘルスケア',
-    visible: true,
-    enabled: true,
+    visible: false,
+    enabled: false, // 専門機能のためデフォルトOFF
     order: 14,
     items: [
-      { id: 'emr-dashboard', title: '電子カルテ', visible: true, enabled: true, order: 0 },
-      { id: 'emr-reception', title: '受付', visible: true, enabled: true, order: 1 },
-      { id: 'emr-patients', title: '患者管理', visible: true, enabled: true, order: 2 },
-      { id: 'emr-records', title: 'カルテ', visible: true, enabled: true, order: 3 },
-      { id: 'emr-sales', title: '売上レポート', visible: true, enabled: true, order: 4 },
-      { id: 'emr-hpki', title: 'HPKI署名', visible: true, enabled: true, order: 5 },
+      { id: 'emr-dashboard', title: '電子カルテ', visible: false, enabled: false, order: 0 },
+      { id: 'emr-reception', title: '受付', visible: false, enabled: false, order: 1 },
+      { id: 'emr-patients', title: '患者管理', visible: false, enabled: false, order: 2 },
+      { id: 'emr-records', title: 'カルテ', visible: false, enabled: false, order: 3 },
+      { id: 'emr-sales', title: '売上レポート', visible: false, enabled: false, order: 4 },
+      { id: 'emr-hpki', title: 'HPKI署名', visible: false, enabled: false, order: 5 },
       { id: 'web-inquiry', title: 'Web問診', visible: false, enabled: false, order: 6 },
       { id: 'medical-reservation', title: '予約管理', visible: false, enabled: false, order: 7 },
       { id: 'receipt-claim', title: 'レセプト', visible: false, enabled: false, order: 8 },

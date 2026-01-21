@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,133 +42,86 @@ import {
   ArrowLeft,
   UserRoundPlus,
   RotateCw,
+  Loader2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import type { ReceptionEntry, ReceptionStatus, Patient, VisitType } from "@/types/emr";
+import { useEmrReceptions, type EmrReception as EmrReceptionType } from "@/hooks/emr/useEmrReceptions";
+import { useEmrPatients } from "@/hooks/emr/useEmrPatients";
 import { VisitTypeIndicator } from "@/components/emr/VisitTypeIndicator";
 
-// Mock data
-const mockReceptions: ReceptionEntry[] = [
-  {
-    id: "1",
-    patient_id: "P001",
-    patient: {
-      id: "P001",
-      patient_number: "001",
-      name: "田中太郎",
-      name_kana: "タナカタロウ",
-      birth_date: "1980-05-15",
-      gender: "male",
-      created_at: "",
-      updated_at: "",
-    },
-    reception_date: new Date().toISOString(),
-    reception_number: 1,
-    status: "waiting",
-    visit_type: "first_visit",
-    chief_complaint: "頭痛、めまい",
-    scheduled_time: "09:00",
-    created_at: "",
-    updated_at: "",
-  },
-  {
-    id: "2",
-    patient_id: "P002",
-    patient: {
-      id: "P002",
-      patient_number: "002",
-      name: "鈴木花子",
-      name_kana: "スズキハナコ",
-      birth_date: "1975-03-20",
-      gender: "female",
-      created_at: "",
-      updated_at: "",
-    },
-    reception_date: new Date().toISOString(),
-    reception_number: 2,
-    status: "in_progress",
-    visit_type: "return_visit",
-    chief_complaint: "発熱、咳",
-    scheduled_time: "09:30",
-    created_at: "",
-    updated_at: "",
-  },
-  {
-    id: "3",
-    patient_id: "P003",
-    patient: {
-      id: "P003",
-      patient_number: "003",
-      name: "佐藤次郎",
-      name_kana: "サトウジロウ",
-      birth_date: "1990-08-10",
-      gender: "male",
-      created_at: "",
-      updated_at: "",
-    },
-    reception_date: new Date().toISOString(),
-    reception_number: 3,
-    status: "waiting",
-    visit_type: "return_visit",
-    chief_complaint: "腹痛",
-    scheduled_time: "10:00",
-    created_at: "",
-    updated_at: "",
-  },
-  {
-    id: "4",
-    patient_id: "P004",
-    patient: {
-      id: "P004",
-      patient_number: "004",
-      name: "高橋美咲",
-      name_kana: "タカハシミサキ",
-      birth_date: "1985-12-25",
-      gender: "female",
-      created_at: "",
-      updated_at: "",
-    },
-    reception_date: new Date().toISOString(),
-    reception_number: 4,
-    status: "completed",
-    visit_type: "first_visit",
-    chief_complaint: "定期検診",
-    scheduled_time: "08:30",
-    created_at: "",
-    updated_at: "",
-  },
-];
+type ReceptionStatus = "waiting" | "in_progress" | "completed" | "cancelled";
 
 const statusConfig: Record<ReceptionStatus, { label: string; color: string; bgColor: string }> = {
   waiting: { label: "待機中", color: "bg-yellow-500", bgColor: "bg-yellow-50 dark:bg-yellow-950/30" },
-  called: { label: "呼出中", color: "bg-blue-500", bgColor: "bg-blue-50 dark:bg-blue-950/30" },
   in_progress: { label: "診察中", color: "bg-green-500", bgColor: "bg-green-50 dark:bg-green-950/30" },
   completed: { label: "完了", color: "bg-gray-500", bgColor: "" },
   cancelled: { label: "キャンセル", color: "bg-red-500", bgColor: "bg-red-50 dark:bg-red-950/30" },
 };
 
+const visitTypeMapping: Record<string, "first_visit" | "return_visit"> = {
+  initial: "first_visit",
+  follow_up: "return_visit",
+  emergency: "return_visit",
+};
+
 export default function EmrReception() {
+  const [searchParams] = useSearchParams();
+  const preselectedPatientId = searchParams.get("patient");
+  
   const [searchQuery, setSearchQuery] = useState("");
-  const [receptions, setReceptions] = useState<ReceptionEntry[]>(mockReceptions);
-  const [newReceptionOpen, setNewReceptionOpen] = useState(false);
+  const [newReceptionOpen, setNewReceptionOpen] = useState(!!preselectedPatientId);
+  
+  const { receptions, isLoading, createReception, updateStatus, refetch } = useEmrReceptions();
+  const { patients } = useEmrPatients();
+
+  // Form state
+  const [formData, setFormData] = useState({
+    patient_id: preselectedPatientId || "",
+    visit_type: "follow_up" as "initial" | "follow_up" | "emergency",
+    chief_complaint: "",
+    scheduled_time: format(new Date(), "HH:mm"),
+  });
 
   const filteredReceptions = receptions.filter(
     (r) =>
       r.patient?.name.includes(searchQuery) ||
-      r.patient?.name_kana.includes(searchQuery) ||
+      r.patient?.name_kana?.includes(searchQuery) ||
       r.patient?.patient_number.includes(searchQuery)
   );
 
   const waitingCount = receptions.filter((r) => r.status === "waiting").length;
   const inProgressCount = receptions.filter((r) => r.status === "in_progress").length;
-  const firstVisitCount = receptions.filter((r) => r.visit_type === "first_visit").length;
-  const returnVisitCount = receptions.filter((r) => r.visit_type === "return_visit").length;
+  const completedCount = receptions.filter((r) => r.status === "completed").length;
+  const initialCount = receptions.filter((r) => r.visit_type === "initial").length;
+  const followUpCount = receptions.filter((r) => r.visit_type === "follow_up").length;
 
-  const updateStatus = (id: string, newStatus: ReceptionStatus) => {
-    setReceptions((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r))
-    );
+  const handleUpdateStatus = (id: string, newStatus: ReceptionStatus) => {
+    updateStatus.mutate({ id, status: newStatus });
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.patient_id) return;
+
+    await createReception.mutateAsync({
+      patient_id: formData.patient_id,
+      reception_date: new Date().toISOString().split("T")[0],
+      reception_time: formData.scheduled_time,
+      status: "waiting",
+      visit_type: formData.visit_type,
+      chief_complaint: formData.chief_complaint || null,
+      department: null,
+      assigned_doctor_name: null,
+      notes: null,
+    });
+
+    setFormData({
+      patient_id: "",
+      visit_type: "follow_up",
+      chief_complaint: "",
+      scheduled_time: format(new Date(), "HH:mm"),
+    });
+    setNewReceptionOpen(false);
   };
 
   return (
@@ -203,28 +156,45 @@ export default function EmrReception() {
               <DialogHeader>
                 <DialogTitle>新規受付</DialogTitle>
                 <DialogDescription>
-                  患者を検索して受付処理を行います
+                  患者を選択して受付処理を行います
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label>患者検索</Label>
-                  <Input placeholder="患者番号または氏名で検索..." />
+                  <Label>患者 *</Label>
+                  <Select 
+                    value={formData.patient_id} 
+                    onValueChange={(v) => setFormData({ ...formData, patient_id: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="患者を選択..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {patients.map((patient) => (
+                        <SelectItem key={patient.id} value={patient.id}>
+                          {patient.patient_number} - {patient.name} ({patient.name_kana})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>来院区分</Label>
-                  <Select defaultValue="first_visit">
+                  <Select 
+                    value={formData.visit_type} 
+                    onValueChange={(v) => setFormData({ ...formData, visit_type: v as "initial" | "follow_up" | "emergency" })}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="来院区分を選択" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="first_visit">
+                      <SelectItem value="initial">
                         <div className="flex items-center gap-2">
                           <UserRoundPlus className="h-4 w-4 text-blue-500" />
                           <span>新患（初診）</span>
                         </div>
                       </SelectItem>
-                      <SelectItem value="return_visit">
+                      <SelectItem value="follow_up">
                         <div className="flex items-center gap-2">
                           <RotateCw className="h-4 w-4 text-green-500" />
                           <span>再診</span>
@@ -234,15 +204,33 @@ export default function EmrReception() {
                   </Select>
                 </div>
                 <div className="space-y-2">
+                  <Label>予約時刻</Label>
+                  <Input 
+                    type="time" 
+                    value={formData.scheduled_time}
+                    onChange={(e) => setFormData({ ...formData, scheduled_time: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label>主訴</Label>
-                  <Textarea placeholder="来院理由・症状を入力..." />
+                  <Textarea 
+                    placeholder="来院理由・症状を入力..." 
+                    value={formData.chief_complaint}
+                    onChange={(e) => setFormData({ ...formData, chief_complaint: e.target.value })}
+                  />
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setNewReceptionOpen(false)}>
                   キャンセル
                 </Button>
-                <Button onClick={() => setNewReceptionOpen(false)}>受付登録</Button>
+                <Button 
+                  onClick={handleSubmit} 
+                  disabled={createReception.isPending || !formData.patient_id}
+                >
+                  {createReception.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  受付登録
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -276,7 +264,7 @@ export default function EmrReception() {
             <CardContent className="flex items-center gap-4 pt-6">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
                 <span className="text-xl font-bold text-gray-600 dark:text-gray-300">
-                  {receptions.filter((r) => r.status === "completed").length}
+                  {completedCount}
                 </span>
               </div>
               <div>
@@ -292,7 +280,7 @@ export default function EmrReception() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">新患</p>
-                <p className="text-lg font-semibold">{firstVisitCount}名</p>
+                <p className="text-lg font-semibold">{initialCount}名</p>
               </div>
             </CardContent>
           </Card>
@@ -303,7 +291,7 @@ export default function EmrReception() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">再診</p>
-                <p className="text-lg font-semibold">{returnVisitCount}名</p>
+                <p className="text-lg font-semibold">{followUpCount}名</p>
               </div>
             </CardContent>
           </Card>
@@ -327,99 +315,115 @@ export default function EmrReception() {
                     className="pl-9 w-64"
                   />
                 </div>
-                <Button variant="outline" size="icon">
+                <Button variant="outline" size="icon" onClick={() => refetch()}>
                   <RefreshCw className="h-4 w-4" />
                 </Button>
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-16">番号</TableHead>
-                  <TableHead>患者</TableHead>
-                  <TableHead className="w-20">区分</TableHead>
-                  <TableHead>予約時刻</TableHead>
-                  <TableHead>主訴</TableHead>
-                  <TableHead>ステータス</TableHead>
-                  <TableHead className="text-right">操作</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredReceptions.map((reception) => (
-                  <TableRow
-                    key={reception.id}
-                    className={statusConfig[reception.status].bgColor}
-                  >
-                    <TableCell>
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-sm">
-                        {reception.reception_number}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{reception.patient?.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          No.{reception.patient?.patient_number} ・{" "}
-                          {reception.patient?.name_kana}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {reception.visit_type && (
-                        <VisitTypeIndicator visitType={reception.visit_type} size="sm" />
-                      )}
-                    </TableCell>
-                    <TableCell>{reception.scheduled_time || "-"}</TableCell>
-                    <TableCell className="max-w-[200px] truncate">
-                      {reception.chief_complaint}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        className={`${statusConfig[reception.status].color} text-white`}
-                      >
-                        {statusConfig[reception.status].label}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {reception.status === "waiting" && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => updateStatus(reception.id, "in_progress")}
-                          >
-                            <Play className="h-4 w-4 mr-1" />
-                            診察開始
-                          </Button>
-                        )}
-                        {reception.status === "in_progress" && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => updateStatus(reception.id, "completed")}
-                          >
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            完了
-                          </Button>
-                        )}
-                        {(reception.status === "waiting" ||
-                          reception.status === "in_progress") && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => updateStatus(reception.id, "cancelled")}
-                          >
-                            <XCircle className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : filteredReceptions.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                {receptions.length === 0 ? "本日の受付はまだありません" : "検索条件に一致する受付が見つかりません"}
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-16">番号</TableHead>
+                    <TableHead>患者</TableHead>
+                    <TableHead className="w-20">区分</TableHead>
+                    <TableHead>予約時刻</TableHead>
+                    <TableHead>主訴</TableHead>
+                    <TableHead>ステータス</TableHead>
+                    <TableHead className="text-right">操作</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredReceptions.map((reception, index) => (
+                    <TableRow
+                      key={reception.id}
+                      className={statusConfig[reception.status]?.bgColor || ""}
+                    >
+                      <TableCell>
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-sm">
+                          {index + 1}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{reception.patient?.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            No.{reception.patient?.patient_number} ・{" "}
+                            {reception.patient?.name_kana}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {reception.visit_type && (
+                          <VisitTypeIndicator 
+                            visitType={visitTypeMapping[reception.visit_type] || "return_visit"} 
+                            size="sm" 
+                          />
+                        )}
+                      </TableCell>
+                      <TableCell>{reception.reception_time || "-"}</TableCell>
+                      <TableCell className="max-w-[200px] truncate">
+                        {reception.chief_complaint || "-"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          className={`${statusConfig[reception.status]?.color || "bg-gray-500"} text-white`}
+                        >
+                          {statusConfig[reception.status]?.label || reception.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {reception.status === "waiting" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleUpdateStatus(reception.id, "in_progress")}
+                              disabled={updateStatus.isPending}
+                            >
+                              <Play className="h-4 w-4 mr-1" />
+                              診察開始
+                            </Button>
+                          )}
+                          {reception.status === "in_progress" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleUpdateStatus(reception.id, "completed")}
+                              disabled={updateStatus.isPending}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              完了
+                            </Button>
+                          )}
+                          {(reception.status === "waiting" ||
+                            reception.status === "in_progress") && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleUpdateStatus(reception.id, "cancelled")}
+                              disabled={updateStatus.isPending}
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>

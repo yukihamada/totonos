@@ -37,87 +37,13 @@ import {
   ArrowLeft,
   FileHeart,
   Calendar,
+  Loader2,
 } from "lucide-react";
 import { format, differenceInYears } from "date-fns";
-import { ja } from "date-fns/locale";
-import type { Patient, InsuranceType } from "@/types/emr";
+import { useEmrPatients, EmrPatient } from "@/hooks/emr/useEmrPatients";
+import { Textarea } from "@/components/ui/textarea";
 
-// Mock data
-const mockPatients: Patient[] = [
-  {
-    id: "P001",
-    patient_number: "001",
-    name: "田中太郎",
-    name_kana: "タナカタロウ",
-    birth_date: "1980-05-15",
-    gender: "male",
-    insurance_type: "employee_health",
-    insurance_number: "12345678",
-    phone: "090-1234-5678",
-    address: "東京都新宿区西新宿1-1-1",
-    created_at: "2024-01-01T00:00:00Z",
-    updated_at: "2024-01-15T00:00:00Z",
-  },
-  {
-    id: "P002",
-    patient_number: "002",
-    name: "鈴木花子",
-    name_kana: "スズキハナコ",
-    birth_date: "1975-03-20",
-    gender: "female",
-    insurance_type: "national_health",
-    insurance_number: "87654321",
-    phone: "080-9876-5432",
-    address: "東京都渋谷区渋谷2-2-2",
-    created_at: "2024-01-05T00:00:00Z",
-    updated_at: "2024-01-10T00:00:00Z",
-  },
-  {
-    id: "P003",
-    patient_number: "003",
-    name: "佐藤次郎",
-    name_kana: "サトウジロウ",
-    birth_date: "1990-08-10",
-    gender: "male",
-    insurance_type: "employee_health",
-    insurance_number: "11223344",
-    phone: "070-1111-2222",
-    address: "東京都港区六本木3-3-3",
-    created_at: "2024-01-08T00:00:00Z",
-    updated_at: "2024-01-12T00:00:00Z",
-  },
-  {
-    id: "P004",
-    patient_number: "004",
-    name: "高橋美咲",
-    name_kana: "タカハシミサキ",
-    birth_date: "1985-12-25",
-    gender: "female",
-    insurance_type: "late_elderly",
-    insurance_number: "99887766",
-    phone: "090-3333-4444",
-    address: "東京都千代田区丸の内4-4-4",
-    allergies: "ペニシリン系アレルギー",
-    created_at: "2024-01-10T00:00:00Z",
-    updated_at: "2024-01-14T00:00:00Z",
-  },
-  {
-    id: "P005",
-    patient_number: "005",
-    name: "山田健一",
-    name_kana: "ヤマダケンイチ",
-    birth_date: "1950-02-28",
-    gender: "male",
-    insurance_type: "late_elderly",
-    insurance_number: "55667788",
-    phone: "03-5555-6666",
-    address: "東京都中央区銀座5-5-5",
-    allergies: "卵アレルギー",
-    notes: "難聴あり、大きな声で話す必要あり",
-    created_at: "2024-01-03T00:00:00Z",
-    updated_at: "2024-01-11T00:00:00Z",
-  },
-];
+type InsuranceType = "national_health" | "employee_health" | "late_elderly" | "welfare" | "self_pay";
 
 const insuranceTypeLabels: Record<InsuranceType, string> = {
   national_health: "国保",
@@ -127,7 +53,7 @@ const insuranceTypeLabels: Record<InsuranceType, string> = {
   self_pay: "自費",
 };
 
-const genderLabels = {
+const genderLabels: Record<string, string> = {
   male: "男性",
   female: "女性",
   other: "その他",
@@ -135,19 +61,72 @@ const genderLabels = {
 
 export default function EmrPatients() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [patients] = useState<Patient[]>(mockPatients);
   const [newPatientOpen, setNewPatientOpen] = useState(false);
+  const { patients, isLoading, createPatient } = useEmrPatients();
+
+  // Form state
+  const [formData, setFormData] = useState({
+    name: "",
+    name_kana: "",
+    birth_date: "",
+    gender: "" as "male" | "female" | "other" | "",
+    insurance_type: "" as InsuranceType | "",
+    insurance_number: "",
+    phone: "",
+    address: "",
+    allergies: "",
+    notes: "",
+  });
 
   const filteredPatients = patients.filter(
     (p) =>
-      p.name.includes(searchQuery) ||
-      p.name_kana.includes(searchQuery) ||
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.name_kana && p.name_kana.toLowerCase().includes(searchQuery.toLowerCase())) ||
       p.patient_number.includes(searchQuery) ||
-      p.phone?.includes(searchQuery)
+      (p.phone && p.phone.includes(searchQuery))
   );
 
-  const calculateAge = (birthDate: string) => {
+  const calculateAge = (birthDate: string | null) => {
+    if (!birthDate) return "-";
     return differenceInYears(new Date(), new Date(birthDate));
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.name || !formData.name_kana) {
+      return;
+    }
+
+    await createPatient.mutateAsync({
+      name: formData.name,
+      name_kana: formData.name_kana || null,
+      birth_date: formData.birth_date || null,
+      gender: formData.gender || null,
+      insurance_type: formData.insurance_type || null,
+      insurance_number: formData.insurance_number || null,
+      phone: formData.phone || null,
+      address: formData.address || null,
+      allergies: formData.allergies ? formData.allergies.split(",").map(a => a.trim()) : null,
+      notes: formData.notes || null,
+      email: null,
+      emergency_contact_name: null,
+      emergency_contact_phone: null,
+      blood_type: null,
+      is_active: true,
+    });
+
+    setFormData({
+      name: "",
+      name_kana: "",
+      birth_date: "",
+      gender: "",
+      insurance_type: "",
+      insurance_number: "",
+      phone: "",
+      address: "",
+      allergies: "",
+      notes: "",
+    });
+    setNewPatientOpen(false);
   };
 
   return (
@@ -189,21 +168,36 @@ export default function EmrPatients() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>氏名 *</Label>
-                    <Input placeholder="山田太郎" />
+                    <Input 
+                      placeholder="山田太郎" 
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>フリガナ *</Label>
-                    <Input placeholder="ヤマダタロウ" />
+                    <Input 
+                      placeholder="ヤマダタロウ" 
+                      value={formData.name_kana}
+                      onChange={(e) => setFormData({ ...formData, name_kana: e.target.value })}
+                    />
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label>生年月日 *</Label>
-                    <Input type="date" />
+                    <Label>生年月日</Label>
+                    <Input 
+                      type="date" 
+                      value={formData.birth_date}
+                      onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })}
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label>性別 *</Label>
-                    <Select>
+                    <Label>性別</Label>
+                    <Select 
+                      value={formData.gender} 
+                      onValueChange={(v) => setFormData({ ...formData, gender: v as "male" | "female" | "other" })}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="選択..." />
                       </SelectTrigger>
@@ -216,7 +210,10 @@ export default function EmrPatients() {
                   </div>
                   <div className="space-y-2">
                     <Label>保険種別</Label>
-                    <Select>
+                    <Select 
+                      value={formData.insurance_type} 
+                      onValueChange={(v) => setFormData({ ...formData, insurance_type: v as InsuranceType })}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="選択..." />
                       </SelectTrigger>
@@ -233,27 +230,57 @@ export default function EmrPatients() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>保険証番号</Label>
-                    <Input placeholder="12345678" />
+                    <Input 
+                      placeholder="12345678" 
+                      value={formData.insurance_number}
+                      onChange={(e) => setFormData({ ...formData, insurance_number: e.target.value })}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>電話番号</Label>
-                    <Input placeholder="090-1234-5678" />
+                    <Input 
+                      placeholder="090-1234-5678" 
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label>住所</Label>
-                  <Input placeholder="東京都..." />
+                  <Input 
+                    placeholder="東京都..." 
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label>アレルギー情報</Label>
-                  <Input placeholder="薬品名など" />
+                  <Label>アレルギー情報（カンマ区切り）</Label>
+                  <Input 
+                    placeholder="ペニシリン, 卵" 
+                    value={formData.allergies}
+                    onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>備考</Label>
+                  <Textarea 
+                    placeholder="特記事項..." 
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  />
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setNewPatientOpen(false)}>
                   キャンセル
                 </Button>
-                <Button onClick={() => setNewPatientOpen(false)}>登録</Button>
+                <Button 
+                  onClick={handleSubmit} 
+                  disabled={createPatient.isPending || !formData.name || !formData.name_kana}
+                >
+                  {createPatient.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  登録
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -283,83 +310,99 @@ export default function EmrPatients() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-20">患者番号</TableHead>
-                  <TableHead>氏名</TableHead>
-                  <TableHead>年齢・性別</TableHead>
-                  <TableHead>保険</TableHead>
-                  <TableHead>電話番号</TableHead>
-                  <TableHead>備考</TableHead>
-                  <TableHead className="text-right">操作</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredPatients.map((patient) => (
-                  <TableRow key={patient.id}>
-                    <TableCell className="font-mono">
-                      {patient.patient_number}
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{patient.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {patient.name_kana}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span>{calculateAge(patient.birth_date)}歳</span>
-                        <Badge variant="outline" className="text-xs">
-                          {genderLabels[patient.gender]}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(patient.birth_date), "yyyy/MM/dd")}
-                      </p>
-                    </TableCell>
-                    <TableCell>
-                      {patient.insurance_type && (
-                        <Badge variant="secondary">
-                          {insuranceTypeLabels[patient.insurance_type]}
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">
-                      {patient.phone || "-"}
-                    </TableCell>
-                    <TableCell className="max-w-[150px]">
-                      {patient.allergies && (
-                        <Badge variant="destructive" className="text-xs">
-                          アレルギー
-                        </Badge>
-                      )}
-                      {patient.notes && (
-                        <p className="text-xs text-muted-foreground truncate mt-1">
-                          {patient.notes}
-                        </p>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link to={`/emr/records?patient=${patient.id}`}>
-                            <FileHeart className="h-4 w-4 mr-1" />
-                            カルテ
-                          </Link>
-                        </Button>
-                        <Button variant="ghost" size="sm">
-                          <Calendar className="h-4 w-4 mr-1" />
-                          受付
-                        </Button>
-                      </div>
-                    </TableCell>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : filteredPatients.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                {patients.length === 0 ? "患者が登録されていません" : "検索条件に一致する患者が見つかりません"}
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-20">患者番号</TableHead>
+                    <TableHead>氏名</TableHead>
+                    <TableHead>年齢・性別</TableHead>
+                    <TableHead>保険</TableHead>
+                    <TableHead>電話番号</TableHead>
+                    <TableHead>備考</TableHead>
+                    <TableHead className="text-right">操作</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredPatients.map((patient) => (
+                    <TableRow key={patient.id}>
+                      <TableCell className="font-mono">
+                        {patient.patient_number}
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{patient.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {patient.name_kana}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span>{calculateAge(patient.birth_date)}歳</span>
+                          {patient.gender && (
+                            <Badge variant="outline" className="text-xs">
+                              {genderLabels[patient.gender]}
+                            </Badge>
+                          )}
+                        </div>
+                        {patient.birth_date && (
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(patient.birth_date), "yyyy/MM/dd")}
+                          </p>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {patient.insurance_type && (
+                          <Badge variant="secondary">
+                            {insuranceTypeLabels[patient.insurance_type as InsuranceType] || patient.insurance_type}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {patient.phone || "-"}
+                      </TableCell>
+                      <TableCell className="max-w-[150px]">
+                        {patient.allergies && patient.allergies.length > 0 && (
+                          <Badge variant="destructive" className="text-xs">
+                            アレルギー
+                          </Badge>
+                        )}
+                        {patient.notes && (
+                          <p className="text-xs text-muted-foreground truncate mt-1">
+                            {patient.notes}
+                          </p>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link to={`/emr/records?patient=${patient.id}`}>
+                              <FileHeart className="h-4 w-4 mr-1" />
+                              カルテ
+                            </Link>
+                          </Button>
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link to={`/emr/reception?patient=${patient.id}`}>
+                              <Calendar className="h-4 w-4 mr-1" />
+                              受付
+                            </Link>
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>
