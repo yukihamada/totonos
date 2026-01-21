@@ -51,8 +51,16 @@ export function IndustryFeatureSelector({
   onFeaturesChange,
   compact = false,
 }: IndustryFeatureSelectorProps) {
+  // Default features if none provided
+  const defaultMenuGroups = menuGroups.length > 0 ? menuGroups : [
+    { id: 'crm', priority: 1 },
+    { id: 'accounting', priority: 2 },
+    { id: 'documents', priority: 3 },
+    { id: 'expenses', priority: 4 },
+  ];
+  
   // Get default enabled features from menu_groups
-  const defaultEnabled = menuGroups.map(g => g.id);
+  const defaultEnabled = defaultMenuGroups.map(g => g.id);
   
   // Initialize state with default enabled features
   const [enabledFeatures, setEnabledFeatures] = useState<Set<string>>(
@@ -62,7 +70,7 @@ export function IndustryFeatureSelector({
 
   // Categorize features
   const primaryFeatures = defaultEnabled.slice(0, 4); // First 4 are primary (default ON)
-  const suggestedFeatures = hiddenFeatures.slice(0, 4); // Suggested but OFF
+  const suggestedFeatures = (hiddenFeatures.length > 0 ? hiddenFeatures : ['inventory', 'contracts', 'members', 'projects']).slice(0, 4); // Suggested but OFF
   const otherFeatures = Object.keys(ALL_FEATURES).filter(
     id => !primaryFeatures.includes(id) && !suggestedFeatures.includes(id)
   );
@@ -123,9 +131,9 @@ export function IndustryFeatureSelector({
   }
 
   return (
-    <div className="space-y-4" onClick={e => e.preventDefault()}>
+    <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1" onClick={e => e.preventDefault()}>
       {/* Header with count */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between sticky top-0 bg-background py-2 z-10">
         <div className="text-sm font-medium">
           利用する機能を選択
         </div>
