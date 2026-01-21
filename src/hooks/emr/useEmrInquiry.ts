@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useCompany } from "@/hooks/useCompany";
+import { useCurrentCompany } from "@/hooks/useCompany";
 import { toast } from "sonner";
+import type { Json } from "@/integrations/supabase/types";
 
 export interface InquiryQuestion {
   id: string;
@@ -42,7 +43,7 @@ export interface EmrInquiryResponse {
 }
 
 export function useEmrInquiryTemplates() {
-  const { currentCompany } = useCompany();
+  const { data: currentCompany } = useCurrentCompany();
   const queryClient = useQueryClient();
 
   const { data: templates, isLoading } = useQuery({
@@ -59,7 +60,7 @@ export function useEmrInquiryTemplates() {
       if (error) throw error;
       return (data || []).map(d => ({
         ...d,
-        questions: Array.isArray(d.questions) ? d.questions : []
+        questions: Array.isArray(d.questions) ? d.questions as unknown as InquiryQuestion[] : []
       })) as EmrInquiryTemplate[];
     },
     enabled: !!currentCompany?.id,
@@ -69,9 +70,15 @@ export function useEmrInquiryTemplates() {
     mutationFn: async (data: Omit<EmrInquiryTemplate, 'id' | 'company_id' | 'created_at'>) => {
       if (!currentCompany?.id) throw new Error('No company selected');
       
+      const insertData = {
+        ...data,
+        questions: data.questions as unknown as Json,
+        company_id: currentCompany.id,
+      };
+
       const { data: result, error } = await supabase
         .from('emr_inquiry_templates')
-        .insert({ ...data, company_id: currentCompany.id })
+        .insert(insertData)
         .select()
         .single();
 
@@ -86,9 +93,17 @@ export function useEmrInquiryTemplates() {
 
   const updateTemplate = useMutation({
     mutationFn: async ({ id, ...data }: Partial<EmrInquiryTemplate> & { id: string }) => {
+      const updateData: Record<string, unknown> = {
+        ...data,
+        updated_at: new Date().toISOString(),
+      };
+      if (data.questions) {
+        updateData.questions = data.questions as unknown as Json;
+      }
+
       const { error } = await supabase
         .from('emr_inquiry_templates')
-        .update({ ...data, updated_at: new Date().toISOString() })
+        .update(updateData)
         .eq('id', id);
 
       if (error) throw error;
@@ -118,7 +133,7 @@ export function useEmrInquiryTemplates() {
 }
 
 export function useEmrInquiryResponses() {
-  const { currentCompany } = useCompany();
+  const { data: currentCompany } = useCurrentCompany();
   const queryClient = useQueryClient();
 
   const { data: responses, isLoading } = useQuery({
@@ -144,9 +159,14 @@ export function useEmrInquiryResponses() {
 
   const createResponse = useMutation({
     mutationFn: async (data: Omit<EmrInquiryResponse, 'id' | 'created_at' | 'patient' | 'template'>) => {
+      const insertData = {
+        ...data,
+        responses: data.responses as unknown as Json,
+      };
+
       const { data: result, error } = await supabase
         .from('emr_inquiry_responses')
-        .insert(data)
+        .insert(insertData)
         .select()
         .single();
 

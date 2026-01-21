@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useCompany } from "@/hooks/useCompany";
+import { useCurrentCompany } from "@/hooks/useCompany";
 import { toast } from "sonner";
+import type { Json } from "@/integrations/supabase/types";
 
 export interface CheckupItem {
   category: string;
@@ -73,7 +74,7 @@ export interface EmrCheckupResult {
 }
 
 export function useEmrCheckupCourses() {
-  const { currentCompany } = useCompany();
+  const { data: currentCompany } = useCurrentCompany();
   const queryClient = useQueryClient();
 
   const { data: courses, isLoading } = useQuery({
@@ -91,7 +92,7 @@ export function useEmrCheckupCourses() {
       if (error) throw error;
       return (data || []).map(d => ({
         ...d,
-        items: Array.isArray(d.items) ? d.items : []
+        items: Array.isArray(d.items) ? d.items as unknown as CheckupItem[] : []
       })) as EmrCheckupCourse[];
     },
     enabled: !!currentCompany?.id,
@@ -101,9 +102,15 @@ export function useEmrCheckupCourses() {
     mutationFn: async (data: Omit<EmrCheckupCourse, 'id' | 'company_id'>) => {
       if (!currentCompany?.id) throw new Error('No company selected');
       
+      const insertData = {
+        ...data,
+        items: data.items as unknown as Json,
+        company_id: currentCompany.id,
+      };
+
       const { data: result, error } = await supabase
         .from('emr_checkup_courses')
-        .insert({ ...data, company_id: currentCompany.id })
+        .insert(insertData)
         .select()
         .single();
 
@@ -118,9 +125,17 @@ export function useEmrCheckupCourses() {
 
   const updateCourse = useMutation({
     mutationFn: async ({ id, ...data }: Partial<EmrCheckupCourse> & { id: string }) => {
+      const updateData: Record<string, unknown> = {
+        ...data,
+        updated_at: new Date().toISOString(),
+      };
+      if (data.items) {
+        updateData.items = data.items as unknown as Json;
+      }
+
       const { error } = await supabase
         .from('emr_checkup_courses')
-        .update({ ...data, updated_at: new Date().toISOString() })
+        .update(updateData)
         .eq('id', id);
 
       if (error) throw error;
@@ -135,7 +150,7 @@ export function useEmrCheckupCourses() {
 }
 
 export function useEmrCheckupAppointments(date?: string) {
-  const { currentCompany } = useCompany();
+  const { data: currentCompany } = useCurrentCompany();
   const queryClient = useQueryClient();
 
   const { data: appointments, isLoading } = useQuery({
@@ -203,7 +218,7 @@ export function useEmrCheckupAppointments(date?: string) {
 }
 
 export function useEmrCheckupResults(patientId?: string) {
-  const { currentCompany } = useCompany();
+  const { data: currentCompany } = useCurrentCompany();
   const queryClient = useQueryClient();
 
   const { data: results, isLoading } = useQuery({
@@ -228,7 +243,7 @@ export function useEmrCheckupResults(patientId?: string) {
       if (error) throw error;
       return (data || []).map(d => ({
         ...d,
-        results: Array.isArray(d.results) ? d.results : []
+        results: Array.isArray(d.results) ? d.results as unknown as CheckupResult[] : []
       })) as EmrCheckupResult[];
     },
     enabled: !!currentCompany?.id,
@@ -238,9 +253,15 @@ export function useEmrCheckupResults(patientId?: string) {
     mutationFn: async (data: Omit<EmrCheckupResult, 'id' | 'company_id' | 'created_at' | 'patient'>) => {
       if (!currentCompany?.id) throw new Error('No company selected');
       
+      const insertData = {
+        ...data,
+        results: data.results as unknown as Json,
+        company_id: currentCompany.id,
+      };
+
       const { data: result, error } = await supabase
         .from('emr_checkup_results')
-        .insert({ ...data, company_id: currentCompany.id })
+        .insert(insertData)
         .select()
         .single();
 
@@ -255,9 +276,17 @@ export function useEmrCheckupResults(patientId?: string) {
 
   const updateResult = useMutation({
     mutationFn: async ({ id, ...data }: Partial<EmrCheckupResult> & { id: string }) => {
+      const updateData: Record<string, unknown> = {
+        ...data,
+        updated_at: new Date().toISOString(),
+      };
+      if (data.results) {
+        updateData.results = data.results as unknown as Json;
+      }
+
       const { error } = await supabase
         .from('emr_checkup_results')
-        .update({ ...data, updated_at: new Date().toISOString() })
+        .update(updateData)
         .eq('id', id);
 
       if (error) throw error;

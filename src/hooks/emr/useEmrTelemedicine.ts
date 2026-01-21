@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useCompany } from "@/hooks/useCompany";
+import { useCurrentCompany } from "@/hooks/useCompany";
 import { toast } from "sonner";
 
 export interface EmrTelemedicineSession {
@@ -26,7 +26,7 @@ export interface EmrTelemedicineSession {
 }
 
 export function useEmrTelemedicine(date?: string) {
-  const { currentCompany } = useCompany();
+  const { data: currentCompany } = useCurrentCompany();
   const queryClient = useQueryClient();
 
   const { data: sessions, isLoading } = useQuery({

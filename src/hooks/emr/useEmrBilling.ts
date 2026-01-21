@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useCompany } from "@/hooks/useCompany";
+import { useCurrentCompany } from "@/hooks/useCompany";
 import { toast } from "sonner";
+import type { Json } from "@/integrations/supabase/types";
 
 export interface BillingItem {
   code: string;
@@ -61,7 +62,7 @@ export interface EmrReceipt {
 }
 
 export function useEmrBilling(date?: string) {
-  const { currentCompany } = useCompany();
+  const { data: currentCompany } = useCurrentCompany();
   const queryClient = useQueryClient();
 
   const { data: billings, isLoading, error } = useQuery({
@@ -86,7 +87,7 @@ export function useEmrBilling(date?: string) {
       if (error) throw error;
       return (data || []).map(d => ({
         ...d,
-        items: Array.isArray(d.items) ? d.items : []
+        items: Array.isArray(d.items) ? d.items as unknown as BillingItem[] : []
       })) as EmrBillingDetail[];
     },
     enabled: !!currentCompany?.id,
@@ -100,14 +101,17 @@ export function useEmrBilling(date?: string) {
       const patientAmount = Math.floor(totalAmount * (data.copay_ratio / 100));
       const insuranceAmount = totalAmount - patientAmount;
 
+      const insertData = {
+        ...data,
+        items: data.items as unknown as Json,
+        company_id: currentCompany.id,
+        patient_amount: patientAmount,
+        insurance_amount: insuranceAmount,
+      };
+
       const { data: result, error } = await supabase
         .from('emr_billing_details')
-        .insert({
-          ...data,
-          company_id: currentCompany.id,
-          patient_amount: patientAmount,
-          insurance_amount: insuranceAmount,
-        })
+        .insert(insertData)
         .select()
         .single();
 
@@ -152,7 +156,7 @@ export function useEmrBilling(date?: string) {
 }
 
 export function useEmrBillingMasters() {
-  const { currentCompany } = useCompany();
+  const { data: currentCompany } = useCurrentCompany();
   const queryClient = useQueryClient();
 
   const { data: masters, isLoading } = useQuery({
@@ -189,7 +193,7 @@ export function useEmrBillingMasters() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['emr-billing-masters'] });
-      toast.success('診療報酬項目を追加しました');
+      toast.success('診療報酬マスタを追加しました');
     },
   });
 
@@ -197,7 +201,7 @@ export function useEmrBillingMasters() {
 }
 
 export function useEmrReceipts(month?: string) {
-  const { currentCompany } = useCompany();
+  const { data: currentCompany } = useCurrentCompany();
   const queryClient = useQueryClient();
 
   const { data: receipts, isLoading } = useQuery({
@@ -229,9 +233,15 @@ export function useEmrReceipts(month?: string) {
     mutationFn: async (data: Omit<EmrReceipt, 'id' | 'company_id' | 'patient'>) => {
       if (!currentCompany?.id) throw new Error('No company selected');
       
+      const insertData = {
+        ...data,
+        receipt_data: data.receipt_data as unknown as Json,
+        company_id: currentCompany.id,
+      };
+
       const { data: result, error } = await supabase
         .from('emr_receipts')
-        .insert({ ...data, company_id: currentCompany.id })
+        .insert(insertData)
         .select()
         .single();
 

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useCompany } from "@/hooks/useCompany";
+import { useCurrentCompany } from "@/hooks/useCompany";
 import { toast } from "sonner";
 
 export interface EmrAppointment {
@@ -41,7 +41,7 @@ type AppointmentInsert = Omit<EmrAppointment, 'id' | 'created_at' | 'updated_at'
 type AppointmentUpdate = Partial<AppointmentInsert>;
 
 export function useEmrAppointments(date?: string) {
-  const { currentCompany } = useCompany();
+  const { data: currentCompany } = useCurrentCompany();
   const queryClient = useQueryClient();
 
   const { data: appointments, isLoading, error } = useQuery({
@@ -157,7 +157,7 @@ export function useEmrAppointments(date?: string) {
 }
 
 export function useEmrAppointmentSlots() {
-  const { currentCompany } = useCompany();
+  const { data: currentCompany } = useCurrentCompany();
   const queryClient = useQueryClient();
 
   const { data: slots, isLoading } = useQuery({
