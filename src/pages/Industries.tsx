@@ -50,7 +50,7 @@ export default function Industries() {
         <title>業種別テンプレート一覧 | Totonos</title>
         <meta 
           name="description" 
-          content="28業種に対応した業務管理テンプレート。小売、飲食、医療、建設、ITなど、あなたの業種に最適化されたシステムをすぐに使い始められます。" 
+          content="50業種に対応した業務管理テンプレート。小売、飲食、医療、建設、ITなど、あなたの業種に最適化されたシステムをすぐに使い始められます。" 
         />
         <link rel="canonical" href="https://totonos.lovable.app/industries" />
       </Helmet>
@@ -66,7 +66,7 @@ export default function Industries() {
                 業務管理テンプレート
               </h1>
               <p className="text-lg text-muted-foreground mb-8">
-                28業種に対応。業界特有の勘定科目や機能が最初から設定済み。
+                50業種に対応。業界特有の勘定科目や機能が最初から設定済み。
                 <br />
                 面倒な初期設定なしで、すぐに業務を開始できます。
               </p>

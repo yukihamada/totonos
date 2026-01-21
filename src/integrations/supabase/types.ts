@@ -4962,7 +4962,7 @@ export type Database = {
           {
             foreignKeyName: "template_menu_config_template_id_fkey"
             columns: ["template_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "industry_templates"
             referencedColumns: ["id"]
           },
