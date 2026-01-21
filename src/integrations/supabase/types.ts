@@ -727,6 +727,7 @@ export type Database = {
       companies: {
         Row: {
           address: string | null
+          branding_settings: Json | null
           created_at: string
           created_by: string
           display_name: string | null
@@ -748,6 +749,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          branding_settings?: Json | null
           created_at?: string
           created_by: string
           display_name?: string | null
@@ -769,6 +771,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          branding_settings?: Json | null
           created_at?: string
           created_by?: string
           display_name?: string | null
