@@ -133,7 +133,7 @@ export function IndustryFeatureSelector({
               variant="secondary"
               className="text-xs px-2 py-0.5 bg-muted/50 text-muted-foreground"
             >
-              +{totalAvailable - 5}機能
+              +{totalAvailable - primaryFeatures.length - suggestedFeatures.slice(0, 2).length}機能
             </Badge>
           </div>
         )}
