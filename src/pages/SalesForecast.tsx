@@ -144,19 +144,19 @@ export default function SalesForecast() {
     <AppLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <Brain className="h-8 w-8 text-primary" />
+            <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
+              <Brain className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
               AI売上予測
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground text-sm sm:text-base">
               機械学習による売上予測と商談分析
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <Select value={period} onValueChange={setPeriod}>
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="w-28 sm:w-32">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -166,7 +166,7 @@ export default function SalesForecast() {
                 <SelectItem value="Q4">Q4 2024</SelectItem>
               </SelectContent>
             </Select>
-            <Button onClick={handleRefresh} disabled={isRefreshing}>
+            <Button size="sm" onClick={handleRefresh} disabled={isRefreshing}>
               <RefreshCw className={cn('h-4 w-4 mr-2', isRefreshing && 'animate-spin')} />
               予測を更新
             </Button>
@@ -402,7 +402,7 @@ export default function SalesForecast() {
                   </div>
 
                   {/* Risk Factors & Opportunities */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {deal.riskFactors.length > 0 && (
                       <div>
                         <p className="text-sm font-medium flex items-center gap-1 mb-2 text-red-600">

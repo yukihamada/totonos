@@ -59,15 +59,15 @@ export default function Boost() {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-              <Zap className="h-8 w-8 text-yellow-500" />
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex flex-wrap items-center gap-2">
+              <Zap className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-500" />
               Dynamic Boost
-              <Badge variant="secondary" className="ml-2">準備中</Badge>
+              <Badge variant="secondary" className="text-xs">準備中</Badge>
               <Badge variant="outline" className="text-xs">ベータ版</Badge>
             </h1>
-            <p className="text-muted-foreground">請求書の即時資金化で、キャッシュフローを改善</p>
+            <p className="text-muted-foreground text-sm sm:text-base">請求書の即時資金化で、キャッシュフローを改善</p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
@@ -141,7 +141,7 @@ export default function Boost() {
             <CardTitle className="text-lg">Dynamic Boostの仕組み</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex-1 text-center p-4">
                 <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center mx-auto mb-2">
                   <span className="font-bold">1</span>
@@ -149,7 +149,8 @@ export default function Boost() {
                 <p className="text-sm font-medium">請求書を選択</p>
                 <p className="text-xs text-muted-foreground">送付済みの請求書が対象</p>
               </div>
-              <ArrowRight className="h-5 w-5 text-muted-foreground" />
+              <ArrowRight className="hidden md:block h-5 w-5 text-muted-foreground" />
+              <ArrowRight className="block md:hidden h-5 w-5 text-muted-foreground rotate-90" />
               <div className="flex-1 text-center p-4">
                 <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center mx-auto mb-2">
                   <span className="font-bold">2</span>
@@ -157,7 +158,8 @@ export default function Boost() {
                 <p className="text-sm font-medium">審査・承認</p>
                 <p className="text-xs text-muted-foreground">最短30分で完了</p>
               </div>
-              <ArrowRight className="h-5 w-5 text-muted-foreground" />
+              <ArrowRight className="hidden md:block h-5 w-5 text-muted-foreground" />
+              <ArrowRight className="block md:hidden h-5 w-5 text-muted-foreground rotate-90" />
               <div className="flex-1 text-center p-4">
                 <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center mx-auto mb-2">
                   <span className="font-bold">3</span>
@@ -170,7 +172,7 @@ export default function Boost() {
         </Card>
 
         {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
           <Card>
             <CardHeader className="pb-2">
               <CardDescription>累計Boost額</CardDescription>
@@ -209,37 +211,41 @@ export default function Boost() {
                 Boost履歴がありません
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>請求書番号</TableHead>
-                    <TableHead>取引先</TableHead>
-                    <TableHead className="text-right">金額</TableHead>
-                    <TableHead className="text-right">手数料率</TableHead>
-                    <TableHead>申請日</TableHead>
-                    <TableHead>ステータス</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {boostRequests.map((request) => {
-                    const config = statusConfig[request.status];
-                    return (
-                      <TableRow key={request.id}>
-                        <TableCell className="font-mono">{request.invoiceNumber}</TableCell>
-                        <TableCell>{request.clientName}</TableCell>
-                        <TableCell className="text-right font-medium">
-                          {formatCurrency(request.amount)}
-                        </TableCell>
-                        <TableCell className="text-right">{request.feeRate}%</TableCell>
-                        <TableCell>{format(new Date(request.requestedAt), 'yyyy/MM/dd', { locale: ja })}</TableCell>
-                        <TableCell>
-                          <Badge className={config.color}>{config.label}</Badge>
-                        </TableCell>
+              <div className="overflow-x-auto">
+                <div className="min-w-[600px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="whitespace-nowrap">請求書番号</TableHead>
+                        <TableHead className="whitespace-nowrap">取引先</TableHead>
+                        <TableHead className="text-right whitespace-nowrap">金額</TableHead>
+                        <TableHead className="text-right whitespace-nowrap">手数料率</TableHead>
+                        <TableHead className="whitespace-nowrap">申請日</TableHead>
+                        <TableHead className="whitespace-nowrap">ステータス</TableHead>
                       </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {boostRequests.map((request) => {
+                        const config = statusConfig[request.status];
+                        return (
+                          <TableRow key={request.id}>
+                            <TableCell className="font-mono whitespace-nowrap">{request.invoiceNumber}</TableCell>
+                            <TableCell className="whitespace-nowrap">{request.clientName}</TableCell>
+                            <TableCell className="text-right font-medium whitespace-nowrap">
+                              {formatCurrency(request.amount)}
+                            </TableCell>
+                            <TableCell className="text-right whitespace-nowrap">{request.feeRate}%</TableCell>
+                            <TableCell className="whitespace-nowrap">{format(new Date(request.requestedAt), 'yyyy/MM/dd', { locale: ja })}</TableCell>
+                            <TableCell>
+                              <Badge className={config.color}>{config.label}</Badge>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>
