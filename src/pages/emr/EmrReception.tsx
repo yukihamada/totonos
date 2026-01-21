@@ -158,7 +158,7 @@ export default function EmrReception() {
         emergency_contact_phone: null,
         notes: null,
         insurance_number: null,
-        insurer_name: null,
+        is_active: true,
       });
 
       // Then create reception for the new patient
