@@ -49,7 +49,7 @@ vi.mock('@/hooks/useEstimates', () => ({
 
 vi.mock('@/hooks/useDocumentPDF', () => ({
   useDocumentPDF: () => ({
-    downloadEstimatePDF: vi.fn(),
+    downloadEstimatePDF: vi.fn().mockResolvedValue(undefined),
   }),
 }));
 

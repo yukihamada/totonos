@@ -1,4 +1,5 @@
 import jsPDF from 'jspdf';
+import { loadNotoSansJP } from './fonts/noto-sans-jp';
 
 interface CompanyInfo {
   name: string;
@@ -74,25 +75,38 @@ const defaultCompanyInfo: CompanyInfo = {
   accountName: 'カ）サンプル',
 };
 
-// Helper to convert Japanese text to safe ASCII representation
-// This is a workaround since jsPDF doesn't natively support Japanese fonts without embedding
-const toSafeText = (text: string): string => {
-  // Return as-is - the text will be rendered even if it appears as boxes in some PDF viewers
-  // For proper Japanese support, use a CSS-based PDF generation or server-side solution
-  return text;
+// Font initialization state
+let fontInitialized = false;
+
+// Initialize Japanese font for jsPDF
+const initializeJapaneseFont = async (doc: jsPDF): Promise<void> => {
+  if (!fontInitialized) {
+    try {
+      const fontBase64 = await loadNotoSansJP();
+      doc.addFileToVFS('NotoSansJP-Regular.ttf', fontBase64);
+      doc.addFont('NotoSansJP-Regular.ttf', 'NotoSansJP', 'normal');
+      fontInitialized = true;
+    } catch (error) {
+      console.error('Failed to initialize Japanese font:', error);
+      // Fallback to helvetica if font loading fails
+      doc.setFont('helvetica');
+      return;
+    }
+  }
+  doc.setFont('NotoSansJP');
 };
 
-// Helper to draw text with fallback for Japanese
+// Helper to draw text
 const drawText = (doc: jsPDF, text: string, x: number, y: number, options?: { align?: 'left' | 'center' | 'right' }) => {
-  doc.text(toSafeText(text), x, y, options);
+  doc.text(text, x, y, options);
 };
 
-export const generateInvoicePDF = (
+export const generateInvoicePDF = async (
   invoice: InvoiceData,
   company: CompanyInfo = defaultCompanyInfo
-): jsPDF => {
+): Promise<jsPDF> => {
   const doc = new jsPDF('p', 'mm', 'a4');
-  doc.setFont('helvetica');
+  await initializeJapaneseFont(doc);
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 20;
@@ -100,30 +114,23 @@ export const generateInvoicePDF = (
 
   // Header
   doc.setFontSize(24);
-  doc.setFont('helvetica', 'bold');
-  drawText(doc, 'INVOICE', pageWidth / 2, y, { align: 'center' });
-  y += 12;
-  doc.setFontSize(14);
-  drawText(doc, '[ Invoice / Seikyusho ]', pageWidth / 2, y, { align: 'center' });
+  drawText(doc, '請求書', pageWidth / 2, y, { align: 'center' });
   y += 15;
 
   // Invoice details (right side)
   doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
   const rightCol = pageWidth - margin;
-  drawText(doc, `Invoice No: ${invoice.invoiceNumber}`, rightCol, y, { align: 'right' });
+  drawText(doc, `請求書番号: ${invoice.invoiceNumber}`, rightCol, y, { align: 'right' });
   y += 5;
-  drawText(doc, `Issue Date: ${invoice.issueDate}`, rightCol, y, { align: 'right' });
+  drawText(doc, `発行日: ${invoice.issueDate}`, rightCol, y, { align: 'right' });
   y += 5;
-  drawText(doc, `Due Date: ${invoice.dueDate}`, rightCol, y, { align: 'right' });
+  drawText(doc, `支払期限: ${invoice.dueDate}`, rightCol, y, { align: 'right' });
   y += 10;
 
   // Company info (left side)
   doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  drawText(doc, 'From:', margin, y);
+  drawText(doc, '発行者:', margin, y);
   y += 6;
-  doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   drawText(doc, company.name, margin, y);
   y += 5;
@@ -136,17 +143,15 @@ export const generateInvoicePDF = (
   drawText(doc, `Email: ${company.email}`, margin, y);
   y += 5;
   if (company.taxNumber) {
-    drawText(doc, `Registration: ${company.taxNumber}`, margin, y);
+    drawText(doc, `登録番号: ${company.taxNumber}`, margin, y);
     y += 5;
   }
   y += 5;
 
   // Client info
   doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  drawText(doc, 'Bill To:', margin, y);
+  drawText(doc, '請求先:', margin, y);
   y += 6;
-  doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   drawText(doc, invoice.clientName, margin, y);
   y += 5;
@@ -162,21 +167,19 @@ export const generateInvoicePDF = (
 
   doc.setFillColor(240, 240, 240);
   doc.rect(tableX, y, colWidths.reduce((a, b) => a + b, 0), 8, 'F');
-  doc.setFont('helvetica', 'bold');
-  drawText(doc, 'Description', tableX + 2, y + 5.5);
-  drawText(doc, 'Qty', tableX + colWidths[0] + 2, y + 5.5);
-  drawText(doc, 'Unit Price', tableX + colWidths[0] + colWidths[1] + 2, y + 5.5);
-  drawText(doc, 'Amount', tableX + colWidths[0] + colWidths[1] + colWidths[2] + 2, y + 5.5);
+  drawText(doc, '品目', tableX + 2, y + 5.5);
+  drawText(doc, '数量', tableX + colWidths[0] + 2, y + 5.5);
+  drawText(doc, '単価', tableX + colWidths[0] + colWidths[1] + 2, y + 5.5);
+  drawText(doc, '金額', tableX + colWidths[0] + colWidths[1] + colWidths[2] + 2, y + 5.5);
   y += 10;
 
   // Items
-  doc.setFont('helvetica', 'normal');
   invoice.items.forEach((item) => {
     const amount = item.quantity * item.unitPrice;
     drawText(doc, item.name.substring(0, 40), tableX + 2, y + 5);
     drawText(doc, item.quantity.toString(), tableX + colWidths[0] + 2, y + 5);
-    drawText(doc, `JPY ${item.unitPrice.toLocaleString()}`, tableX + colWidths[0] + colWidths[1] + 2, y + 5);
-    drawText(doc, `JPY ${amount.toLocaleString()}`, tableX + colWidths[0] + colWidths[1] + colWidths[2] + 2, y + 5);
+    drawText(doc, `¥${item.unitPrice.toLocaleString()}`, tableX + colWidths[0] + colWidths[1] + 2, y + 5);
+    drawText(doc, `¥${amount.toLocaleString()}`, tableX + colWidths[0] + colWidths[1] + colWidths[2] + 2, y + 5);
 
     // Draw line
     doc.setDrawColor(220, 220, 220);
@@ -188,41 +191,36 @@ export const generateInvoicePDF = (
 
   // Totals
   const totalsX = tableX + colWidths[0] + colWidths[1];
-  drawText(doc, 'Subtotal:', totalsX + 2, y + 5);
-  drawText(doc, `JPY ${invoice.subtotal.toLocaleString()}`, totalsX + colWidths[2] + 2, y + 5);
+  drawText(doc, '小計:', totalsX + 2, y + 5);
+  drawText(doc, `¥${invoice.subtotal.toLocaleString()}`, totalsX + colWidths[2] + 2, y + 5);
   y += 8;
 
-  drawText(doc, 'Tax (10%):', totalsX + 2, y + 5);
-  drawText(doc, `JPY ${invoice.tax.toLocaleString()}`, totalsX + colWidths[2] + 2, y + 5);
+  drawText(doc, '消費税 (10%):', totalsX + 2, y + 5);
+  drawText(doc, `¥${invoice.tax.toLocaleString()}`, totalsX + colWidths[2] + 2, y + 5);
   y += 8;
 
-  doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
-  drawText(doc, 'Total:', totalsX + 2, y + 5);
-  drawText(doc, `JPY ${invoice.total.toLocaleString()}`, totalsX + colWidths[2] + 2, y + 5);
+  drawText(doc, '合計:', totalsX + 2, y + 5);
+  drawText(doc, `¥${invoice.total.toLocaleString()}`, totalsX + colWidths[2] + 2, y + 5);
   y += 15;
 
   // Bank info
   if (company.bankName) {
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    drawText(doc, 'Payment Details:', margin, y);
+    drawText(doc, '振込先:', margin, y);
     y += 6;
-    doc.setFont('helvetica', 'normal');
-    drawText(doc, `Bank: ${company.bankName} ${company.bankBranch}`, margin, y);
+    drawText(doc, `${company.bankName} ${company.bankBranch}`, margin, y);
     y += 5;
-    drawText(doc, `Account: ${company.accountType} ${company.accountNumber}`, margin, y);
+    drawText(doc, `${company.accountType} ${company.accountNumber}`, margin, y);
     y += 5;
-    drawText(doc, `Name: ${company.accountName}`, margin, y);
+    drawText(doc, `口座名義: ${company.accountName}`, margin, y);
     y += 10;
   }
 
   // Notes
   if (invoice.notes) {
-    doc.setFont('helvetica', 'bold');
-    drawText(doc, 'Notes:', margin, y);
+    drawText(doc, '備考:', margin, y);
     y += 6;
-    doc.setFont('helvetica', 'normal');
     const lines = doc.splitTextToSize(invoice.notes, pageWidth - margin * 2);
     doc.text(lines, margin, y);
   }
@@ -230,12 +228,12 @@ export const generateInvoicePDF = (
   return doc;
 };
 
-export const generateEstimatePDF = (
+export const generateEstimatePDF = async (
   estimate: EstimateData,
   company: CompanyInfo = defaultCompanyInfo
-): jsPDF => {
+): Promise<jsPDF> => {
   const doc = new jsPDF('p', 'mm', 'a4');
-  doc.setFont('helvetica');
+  await initializeJapaneseFont(doc);
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 20;
@@ -243,30 +241,23 @@ export const generateEstimatePDF = (
 
   // Header
   doc.setFontSize(24);
-  doc.setFont('helvetica', 'bold');
-  drawText(doc, 'ESTIMATE', pageWidth / 2, y, { align: 'center' });
-  y += 12;
-  doc.setFontSize(14);
-  drawText(doc, '[ Quotation / Mitsumorisho ]', pageWidth / 2, y, { align: 'center' });
+  drawText(doc, '見積書', pageWidth / 2, y, { align: 'center' });
   y += 15;
 
   // Estimate details (right side)
   doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
   const rightCol = pageWidth - margin;
-  drawText(doc, `Estimate No: ${estimate.estimateNumber}`, rightCol, y, { align: 'right' });
+  drawText(doc, `見積書番号: ${estimate.estimateNumber}`, rightCol, y, { align: 'right' });
   y += 5;
-  drawText(doc, `Issue Date: ${estimate.issueDate}`, rightCol, y, { align: 'right' });
+  drawText(doc, `発行日: ${estimate.issueDate}`, rightCol, y, { align: 'right' });
   y += 5;
-  drawText(doc, `Valid Until: ${estimate.validUntil}`, rightCol, y, { align: 'right' });
+  drawText(doc, `有効期限: ${estimate.validUntil}`, rightCol, y, { align: 'right' });
   y += 10;
 
   // Company info (left side)
   doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  drawText(doc, 'From:', margin, y);
+  drawText(doc, '発行者:', margin, y);
   y += 6;
-  doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   drawText(doc, company.name, margin, y);
   y += 5;
@@ -281,10 +272,8 @@ export const generateEstimatePDF = (
 
   // Client info
   doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  drawText(doc, 'To:', margin, y);
+  drawText(doc, '宛先:', margin, y);
   y += 6;
-  doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   drawText(doc, estimate.clientName, margin, y);
   y += 5;
@@ -300,21 +289,19 @@ export const generateEstimatePDF = (
 
   doc.setFillColor(240, 240, 240);
   doc.rect(tableX, y, colWidths.reduce((a, b) => a + b, 0), 8, 'F');
-  doc.setFont('helvetica', 'bold');
-  drawText(doc, 'Description', tableX + 2, y + 5.5);
-  drawText(doc, 'Qty', tableX + colWidths[0] + 2, y + 5.5);
-  drawText(doc, 'Unit Price', tableX + colWidths[0] + colWidths[1] + 2, y + 5.5);
-  drawText(doc, 'Amount', tableX + colWidths[0] + colWidths[1] + colWidths[2] + 2, y + 5.5);
+  drawText(doc, '品目', tableX + 2, y + 5.5);
+  drawText(doc, '数量', tableX + colWidths[0] + 2, y + 5.5);
+  drawText(doc, '単価', tableX + colWidths[0] + colWidths[1] + 2, y + 5.5);
+  drawText(doc, '金額', tableX + colWidths[0] + colWidths[1] + colWidths[2] + 2, y + 5.5);
   y += 10;
 
   // Items
-  doc.setFont('helvetica', 'normal');
   estimate.items.forEach((item) => {
     const amount = item.quantity * item.unitPrice;
     drawText(doc, item.name.substring(0, 40), tableX + 2, y + 5);
     drawText(doc, item.quantity.toString(), tableX + colWidths[0] + 2, y + 5);
-    drawText(doc, `JPY ${item.unitPrice.toLocaleString()}`, tableX + colWidths[0] + colWidths[1] + 2, y + 5);
-    drawText(doc, `JPY ${amount.toLocaleString()}`, tableX + colWidths[0] + colWidths[1] + colWidths[2] + 2, y + 5);
+    drawText(doc, `¥${item.unitPrice.toLocaleString()}`, tableX + colWidths[0] + colWidths[1] + 2, y + 5);
+    drawText(doc, `¥${amount.toLocaleString()}`, tableX + colWidths[0] + colWidths[1] + colWidths[2] + 2, y + 5);
 
     doc.setDrawColor(220, 220, 220);
     doc.line(tableX, y + 8, tableX + colWidths.reduce((a, b) => a + b, 0), y + 8);
@@ -325,28 +312,24 @@ export const generateEstimatePDF = (
 
   // Totals
   const totalsX = tableX + colWidths[0] + colWidths[1];
-  drawText(doc, 'Subtotal:', totalsX + 2, y + 5);
-  drawText(doc, `JPY ${estimate.subtotal.toLocaleString()}`, totalsX + colWidths[2] + 2, y + 5);
+  drawText(doc, '小計:', totalsX + 2, y + 5);
+  drawText(doc, `¥${estimate.subtotal.toLocaleString()}`, totalsX + colWidths[2] + 2, y + 5);
   y += 8;
 
-  drawText(doc, 'Tax (10%):', totalsX + 2, y + 5);
-  drawText(doc, `JPY ${estimate.tax.toLocaleString()}`, totalsX + colWidths[2] + 2, y + 5);
+  drawText(doc, '消費税 (10%):', totalsX + 2, y + 5);
+  drawText(doc, `¥${estimate.tax.toLocaleString()}`, totalsX + colWidths[2] + 2, y + 5);
   y += 8;
 
-  doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
-  drawText(doc, 'Total:', totalsX + 2, y + 5);
-  drawText(doc, `JPY ${estimate.total.toLocaleString()}`, totalsX + colWidths[2] + 2, y + 5);
+  drawText(doc, '合計:', totalsX + 2, y + 5);
+  drawText(doc, `¥${estimate.total.toLocaleString()}`, totalsX + colWidths[2] + 2, y + 5);
   y += 15;
 
   // Notes
   if (estimate.notes) {
-    doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    drawText(doc, 'Notes:', margin, y);
+    drawText(doc, '備考:', margin, y);
     y += 6;
-    doc.setFont('helvetica', 'normal');
     const lines = doc.splitTextToSize(estimate.notes, pageWidth - margin * 2);
     doc.text(lines, margin, y);
   }
@@ -354,12 +337,12 @@ export const generateEstimatePDF = (
   return doc;
 };
 
-export const generateContractPDF = (
+export const generateContractPDF = async (
   contract: ContractData,
   company: CompanyInfo = defaultCompanyInfo
-): jsPDF => {
+): Promise<jsPDF> => {
   const doc = new jsPDF('p', 'mm', 'a4');
-  doc.setFont('helvetica');
+  await initializeJapaneseFont(doc);
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 20;
@@ -367,39 +350,31 @@ export const generateContractPDF = (
 
   // Header
   doc.setFontSize(24);
-  doc.setFont('helvetica', 'bold');
-  drawText(doc, 'CONTRACT', pageWidth / 2, y, { align: 'center' });
-  y += 12;
-  doc.setFontSize(14);
-  drawText(doc, '[ Agreement / Keiyakusho ]', pageWidth / 2, y, { align: 'center' });
+  drawText(doc, '契約書', pageWidth / 2, y, { align: 'center' });
   y += 15;
 
   // Contract details (right side)
   doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
   const rightCol = pageWidth - margin;
-  drawText(doc, `Contract No: ${contract.contractNumber}`, rightCol, y, { align: 'right' });
+  drawText(doc, `契約書番号: ${contract.contractNumber}`, rightCol, y, { align: 'right' });
   y += 5;
-  drawText(doc, `Issue Date: ${contract.issueDate}`, rightCol, y, { align: 'right' });
+  drawText(doc, `発行日: ${contract.issueDate}`, rightCol, y, { align: 'right' });
   y += 5;
   if (contract.validUntil) {
-    drawText(doc, `Valid Until: ${contract.validUntil}`, rightCol, y, { align: 'right' });
+    drawText(doc, `有効期限: ${contract.validUntil}`, rightCol, y, { align: 'right' });
     y += 5;
   }
   y += 5;
 
   // Contract Title
   doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
   drawText(doc, contract.title, pageWidth / 2, y, { align: 'center' });
   y += 15;
 
   // Parties
   doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  drawText(doc, 'Party A (Provider):', margin, y);
+  drawText(doc, '甲（提供者）:', margin, y);
   y += 6;
-  doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   drawText(doc, company.name, margin, y);
   y += 5;
@@ -413,10 +388,8 @@ export const generateContractPDF = (
   y += 10;
 
   doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  drawText(doc, 'Party B (Client):', margin, y);
+  drawText(doc, '乙（依頼者）:', margin, y);
   y += 6;
-  doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   drawText(doc, contract.clientName, margin, y);
   y += 5;
@@ -429,10 +402,8 @@ export const generateContractPDF = (
   // Contract Content
   if (contract.content) {
     doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    drawText(doc, 'Terms and Conditions:', margin, y);
+    drawText(doc, '契約条件:', margin, y);
     y += 6;
-    doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     const contentLines = doc.splitTextToSize(contract.content, pageWidth - margin * 2);
     doc.text(contentLines, margin, y);
@@ -445,43 +416,38 @@ export const generateContractPDF = (
   y += 8;
   
   doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  drawText(doc, `Subtotal: JPY ${contract.amount.toLocaleString()}`, margin + 5, y);
+  drawText(doc, `小計: ¥${contract.amount.toLocaleString()}`, margin + 5, y);
   y += 7;
-  drawText(doc, `Tax (10%): JPY ${contract.taxAmount.toLocaleString()}`, margin + 5, y);
+  drawText(doc, `消費税 (10%): ¥${contract.taxAmount.toLocaleString()}`, margin + 5, y);
   y += 7;
-  doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
-  drawText(doc, `Total Amount: JPY ${contract.totalAmount.toLocaleString()}`, margin + 5, y);
+  drawText(doc, `合計金額: ¥${contract.totalAmount.toLocaleString()}`, margin + 5, y);
   y += 15;
 
   // Signature area
   y += 10;
-  doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
-  drawText(doc, 'Signatures:', margin, y);
+  drawText(doc, '署名:', margin, y);
   y += 10;
 
   // Party A signature
-  drawText(doc, 'Party A:', margin, y);
+  drawText(doc, '甲:', margin, y);
   doc.line(margin + 20, y, margin + 70, y);
-  drawText(doc, 'Date:', margin + 80, y);
+  drawText(doc, '日付:', margin + 80, y);
   doc.line(margin + 95, y, margin + 130, y);
   y += 15;
 
   // Party B signature  
-  drawText(doc, 'Party B:', margin, y);
+  drawText(doc, '乙:', margin, y);
   doc.line(margin + 20, y, margin + 70, y);
-  drawText(doc, 'Date:', margin + 80, y);
+  drawText(doc, '日付:', margin + 80, y);
   doc.line(margin + 95, y, margin + 130, y);
 
   // Notes
   if (contract.notes) {
     y += 15;
-    doc.setFont('helvetica', 'bold');
-    drawText(doc, 'Notes:', margin, y);
+    drawText(doc, '備考:', margin, y);
     y += 6;
-    doc.setFont('helvetica', 'normal');
     const lines = doc.splitTextToSize(contract.notes, pageWidth - margin * 2);
     doc.text(lines, margin, y);
   }

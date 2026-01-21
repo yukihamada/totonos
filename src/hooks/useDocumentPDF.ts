@@ -1,9 +1,9 @@
 import { useCallback } from 'react';
-import { generateInvoicePDF, generateEstimatePDF, downloadPDF } from '@/lib/pdf-generator';
-import type { InvoiceData, EstimateData } from '@/lib/pdf-generator';
+import { generateInvoicePDF, generateEstimatePDF, generateContractPDF, downloadPDF } from '@/lib/pdf-generator';
+import type { InvoiceData, EstimateData, ContractData } from '@/lib/pdf-generator';
 
 export function useDocumentPDF() {
-  const downloadInvoicePDF = useCallback((invoice: {
+  const downloadInvoicePDF = useCallback(async (invoice: {
     invoice_number: string;
     issue_date: string;
     due_date: string;
@@ -33,11 +33,11 @@ export function useDocumentPDF() {
       notes: invoice.description || undefined,
     };
 
-    const doc = generateInvoicePDF(invoiceData);
+    const doc = await generateInvoicePDF(invoiceData);
     downloadPDF(doc, `請求書_${invoice.invoice_number}.pdf`);
   }, []);
 
-  const downloadEstimatePDF = useCallback((estimate: {
+  const downloadEstimatePDF = useCallback(async (estimate: {
     estimate_number: string;
     issue_date: string;
     valid_until: string;
@@ -67,11 +67,11 @@ export function useDocumentPDF() {
       notes: estimate.description || undefined,
     };
 
-    const doc = generateEstimatePDF(estimateData);
+    const doc = await generateEstimatePDF(estimateData);
     downloadPDF(doc, `見積書_${estimate.estimate_number}.pdf`);
   }, []);
 
-  const downloadContractPDF = useCallback((contract: {
+  const downloadContractPDF = useCallback(async (contract: {
     contract_number: string;
     issue_date: string;
     valid_until?: string | null;
@@ -82,27 +82,20 @@ export function useDocumentPDF() {
     total_amount: number;
     content?: string | null;
   }) => {
-    // Contracts use a simplified format - reuse estimate PDF with adjusted content
-    const contractData: EstimateData = {
-      estimateNumber: contract.contract_number,
+    const contractData: ContractData = {
+      contractNumber: contract.contract_number,
+      title: contract.title,
       issueDate: contract.issue_date,
-      validUntil: contract.valid_until || contract.issue_date,
+      validUntil: contract.valid_until || undefined,
       clientName: contract.client?.name || '—',
       clientAddress: contract.client?.address || undefined,
-      items: [{
-        name: contract.title,
-        quantity: 1,
-        unitPrice: contract.amount,
-        taxRate: 0.1,
-      }],
-      subtotal: contract.amount,
-      tax: contract.tax_amount || 0,
-      total: contract.total_amount,
-      notes: contract.content || undefined,
+      content: contract.content || undefined,
+      amount: contract.amount,
+      taxAmount: contract.tax_amount || 0,
+      totalAmount: contract.total_amount,
     };
 
-    const doc = generateEstimatePDF(contractData);
-    // Update the title on the PDF
+    const doc = await generateContractPDF(contractData);
     downloadPDF(doc, `契約書_${contract.contract_number}.pdf`);
   }, []);
 

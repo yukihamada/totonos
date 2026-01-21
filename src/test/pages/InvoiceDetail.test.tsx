@@ -45,7 +45,7 @@ vi.mock('@/hooks/useInvoices', () => ({
 
 vi.mock('@/hooks/useDocumentPDF', () => ({
   useDocumentPDF: () => ({
-    downloadInvoicePDF: vi.fn(),
+    downloadInvoicePDF: vi.fn().mockResolvedValue(undefined),
   }),
 }));
 
