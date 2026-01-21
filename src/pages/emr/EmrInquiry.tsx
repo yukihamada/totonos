@@ -78,7 +78,6 @@ export default function EmrInquiry() {
       description: formData.description || null,
       questions,
       is_active: formData.is_active,
-      updated_at: new Date().toISOString(),
     });
     setDialogOpen(false);
     setFormData({ name: "", description: "", is_active: true });

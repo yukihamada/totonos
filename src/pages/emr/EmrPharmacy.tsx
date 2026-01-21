@@ -92,7 +92,6 @@ export default function EmrPharmacy() {
       pharmacy_notes: formData.pharmacy_notes || null,
       issued_at: null,
       status: "draft",
-      updated_at: new Date().toISOString(),
     });
     setDialogOpen(false);
     setPrescriptionMeds([]);

@@ -114,7 +114,6 @@ export default function EmrHealthCheckup() {
       appointment_date: appointmentForm.appointment_date,
       appointment_time: appointmentForm.appointment_time,
       status: "scheduled",
-      updated_at: new Date().toISOString(),
     });
     setAppointmentDialogOpen(false);
     setAppointmentForm({ patient_id: "", course_id: "", appointment_date: format(new Date(), "yyyy-MM-dd"), appointment_time: "09:00" });
@@ -169,7 +168,6 @@ export default function EmrHealthCheckup() {
       overall_judgement: resultForm.overall_judgement || null,
       doctor_comment: resultForm.doctor_comment || null,
       pdf_url: null,
-      updated_at: new Date().toISOString(),
     });
     await updateStatus.mutateAsync({ id: selectedAppointment, status: "completed" });
     setResultDialogOpen(false);
