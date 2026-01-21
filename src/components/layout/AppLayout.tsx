@@ -31,23 +31,24 @@ export function AppLayout({ children }: AppLayoutProps) {
   const updateCompany = useUpdateCompany();
   const ensureDefaultCompany = useEnsureDefaultCompany();
 
-  // Check if company needs setup (name is "会社名未登録")
+  // Check if company needs setup (name is "会社名未登録" or no company at all)
   const needsCompanySetup = user && currentCompany && currentCompany.name === "会社名未登録";
+  const noCompanySelected = user && !companyLoading && !currentCompany;
   const [showSetupDialog, setShowSetupDialog] = useState(false);
 
   // Ensure user has a company when logged in
   useEffect(() => {
-    if (user && !companyLoading && !currentCompany) {
+    if (noCompanySelected) {
       ensureDefaultCompany.mutate();
     }
-  }, [user, companyLoading, currentCompany]);
+  }, [noCompanySelected]);
 
-  // Show setup dialog when company name is not set
+  // Show setup dialog when company name is not set or no company exists
   useEffect(() => {
-    if (needsCompanySetup) {
+    if (needsCompanySetup || noCompanySelected) {
       setShowSetupDialog(true);
     }
-  }, [needsCompanySetup]);
+  }, [needsCompanySetup, noCompanySelected]);
 
   const handleCompanySetup = async (companyName: string, displayName?: string) => {
     if (!currentCompany) return;
