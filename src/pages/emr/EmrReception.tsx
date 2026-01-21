@@ -29,8 +29,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   ClipboardCheck,
   Search,
@@ -46,7 +48,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import { useEmrReceptions, type EmrReception as EmrReceptionType } from "@/hooks/emr/useEmrReceptions";
+import { useEmrReceptions } from "@/hooks/emr/useEmrReceptions";
 import { useEmrPatients } from "@/hooks/emr/useEmrPatients";
 import { VisitTypeIndicator } from "@/components/emr/VisitTypeIndicator";
 
@@ -71,16 +73,28 @@ export default function EmrReception() {
   
   const [searchQuery, setSearchQuery] = useState("");
   const [newReceptionOpen, setNewReceptionOpen] = useState(!!preselectedPatientId);
+  const [activeTab, setActiveTab] = useState<"existing" | "new">("existing");
   
   const { receptions, isLoading, createReception, updateStatus, refetch } = useEmrReceptions();
-  const { patients } = useEmrPatients();
+  const { patients, createPatient } = useEmrPatients();
 
-  // Form state
+  // Existing patient form state
   const [formData, setFormData] = useState({
     patient_id: preselectedPatientId || "",
     visit_type: "follow_up" as "initial" | "follow_up" | "emergency",
     chief_complaint: "",
     scheduled_time: format(new Date(), "HH:mm"),
+  });
+
+  // New patient form state
+  const [newPatientData, setNewPatientData] = useState({
+    name: "",
+    name_kana: "",
+    birth_date: "",
+    gender: "male" as "male" | "female" | "other",
+    insurance_type: "national" as "national" | "social" | "elderly_front" | "elderly_back" | "self_pay",
+    phone: "",
+    address: "",
   });
 
   const filteredReceptions = receptions.filter(
@@ -100,7 +114,7 @@ export default function EmrReception() {
     updateStatus.mutate({ id, status: newStatus });
   };
 
-  const handleSubmit = async () => {
+  const handleSubmitExisting = async () => {
     if (!formData.patient_id) return;
 
     await createReception.mutateAsync({
@@ -123,6 +137,66 @@ export default function EmrReception() {
     });
     setNewReceptionOpen(false);
   };
+
+  const handleSubmitNewPatient = async () => {
+    if (!newPatientData.name || !newPatientData.birth_date) return;
+
+    try {
+      // Create patient first
+      const patient = await createPatient.mutateAsync({
+        name: newPatientData.name,
+        name_kana: newPatientData.name_kana || null,
+        birth_date: newPatientData.birth_date,
+        gender: newPatientData.gender,
+        insurance_type: newPatientData.insurance_type,
+        phone: newPatientData.phone || null,
+        address: newPatientData.address || null,
+        email: null,
+        blood_type: null,
+        allergies: null,
+        emergency_contact_name: null,
+        emergency_contact_phone: null,
+        notes: null,
+        insurance_number: null,
+        insurer_name: null,
+      });
+
+      // Then create reception for the new patient
+      await createReception.mutateAsync({
+        patient_id: patient.id,
+        reception_date: new Date().toISOString().split("T")[0],
+        reception_time: formData.scheduled_time,
+        status: "waiting",
+        visit_type: "initial", // New patients are always initial visit
+        chief_complaint: formData.chief_complaint || null,
+        department: null,
+        assigned_doctor_name: null,
+        notes: null,
+      });
+
+      // Reset forms
+      setNewPatientData({
+        name: "",
+        name_kana: "",
+        birth_date: "",
+        gender: "male",
+        insurance_type: "national",
+        phone: "",
+        address: "",
+      });
+      setFormData({
+        patient_id: "",
+        visit_type: "follow_up",
+        chief_complaint: "",
+        scheduled_time: format(new Date(), "HH:mm"),
+      });
+      setNewReceptionOpen(false);
+    } catch (error) {
+      console.error("Failed to create patient and reception:", error);
+    }
+  };
+
+  const isNewPatientFormValid = newPatientData.name && newPatientData.birth_date;
 
   return (
     <AppLayout>
@@ -152,85 +226,212 @@ export default function EmrReception() {
                 新規受付
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-lg">
               <DialogHeader>
                 <DialogTitle>新規受付</DialogTitle>
                 <DialogDescription>
-                  患者を選択して受付処理を行います
+                  既存患者を選択するか、新規患者を登録して受付処理を行います
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label>患者 *</Label>
-                  <Select 
-                    value={formData.patient_id} 
-                    onValueChange={(v) => setFormData({ ...formData, patient_id: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="患者を選択..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {patients.map((patient) => (
-                        <SelectItem key={patient.id} value={patient.id}>
-                          {patient.patient_number} - {patient.name} ({patient.name_kana})
+              
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "existing" | "new")}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="existing">既存患者</TabsTrigger>
+                  <TabsTrigger value="new">新規患者登録</TabsTrigger>
+                </TabsList>
+
+                {/* Existing Patient Tab */}
+                <TabsContent value="existing" className="space-y-4 mt-4">
+                  <div className="space-y-2">
+                    <Label>患者 *</Label>
+                    <Select 
+                      value={formData.patient_id} 
+                      onValueChange={(v) => setFormData({ ...formData, patient_id: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="患者を選択..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {patients.map((patient) => (
+                          <SelectItem key={patient.id} value={patient.id}>
+                            {patient.patient_number} - {patient.name} ({patient.name_kana})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>来院区分</Label>
+                    <Select 
+                      value={formData.visit_type} 
+                      onValueChange={(v) => setFormData({ ...formData, visit_type: v as "initial" | "follow_up" | "emergency" })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="来院区分を選択" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="initial">
+                          <div className="flex items-center gap-2">
+                            <UserRoundPlus className="h-4 w-4 text-blue-500" />
+                            <span>新患（初診）</span>
+                          </div>
                         </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>来院区分</Label>
-                  <Select 
-                    value={formData.visit_type} 
-                    onValueChange={(v) => setFormData({ ...formData, visit_type: v as "initial" | "follow_up" | "emergency" })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="来院区分を選択" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="initial">
-                        <div className="flex items-center gap-2">
-                          <UserRoundPlus className="h-4 w-4 text-blue-500" />
-                          <span>新患（初診）</span>
+                        <SelectItem value="follow_up">
+                          <div className="flex items-center gap-2">
+                            <RotateCw className="h-4 w-4 text-green-500" />
+                            <span>再診</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>予約時刻</Label>
+                    <Input 
+                      type="time" 
+                      value={formData.scheduled_time}
+                      onChange={(e) => setFormData({ ...formData, scheduled_time: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>主訴</Label>
+                    <Textarea 
+                      placeholder="来院理由・症状を入力..." 
+                      value={formData.chief_complaint}
+                      onChange={(e) => setFormData({ ...formData, chief_complaint: e.target.value })}
+                    />
+                  </div>
+                </TabsContent>
+
+                {/* New Patient Tab */}
+                <TabsContent value="new" className="space-y-4 mt-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>氏名 *</Label>
+                      <Input 
+                        placeholder="山田 太郎"
+                        value={newPatientData.name}
+                        onChange={(e) => setNewPatientData({ ...newPatientData, name: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>フリガナ</Label>
+                      <Input 
+                        placeholder="ヤマダ タロウ"
+                        value={newPatientData.name_kana}
+                        onChange={(e) => setNewPatientData({ ...newPatientData, name_kana: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>生年月日 *</Label>
+                      <Input 
+                        type="date"
+                        value={newPatientData.birth_date}
+                        onChange={(e) => setNewPatientData({ ...newPatientData, birth_date: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>性別</Label>
+                      <RadioGroup
+                        value={newPatientData.gender}
+                        onValueChange={(v) => setNewPatientData({ ...newPatientData, gender: v as "male" | "female" | "other" })}
+                        className="flex gap-4 pt-2"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="male" id="male" />
+                          <Label htmlFor="male" className="font-normal">男性</Label>
                         </div>
-                      </SelectItem>
-                      <SelectItem value="follow_up">
-                        <div className="flex items-center gap-2">
-                          <RotateCw className="h-4 w-4 text-green-500" />
-                          <span>再診</span>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="female" id="female" />
+                          <Label htmlFor="female" className="font-normal">女性</Label>
                         </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>予約時刻</Label>
-                  <Input 
-                    type="time" 
-                    value={formData.scheduled_time}
-                    onChange={(e) => setFormData({ ...formData, scheduled_time: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>主訴</Label>
-                  <Textarea 
-                    placeholder="来院理由・症状を入力..." 
-                    value={formData.chief_complaint}
-                    onChange={(e) => setFormData({ ...formData, chief_complaint: e.target.value })}
-                  />
-                </div>
-              </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="other" id="other" />
+                          <Label htmlFor="other" className="font-normal">その他</Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>保険種別</Label>
+                    <Select 
+                      value={newPatientData.insurance_type}
+                      onValueChange={(v) => setNewPatientData({ ...newPatientData, insurance_type: v as typeof newPatientData.insurance_type })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="national">国民健康保険</SelectItem>
+                        <SelectItem value="social">社会保険</SelectItem>
+                        <SelectItem value="elderly_front">後期高齢者（前期）</SelectItem>
+                        <SelectItem value="elderly_back">後期高齢者（後期）</SelectItem>
+                        <SelectItem value="self_pay">自費</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>電話番号</Label>
+                      <Input 
+                        placeholder="090-1234-5678"
+                        value={newPatientData.phone}
+                        onChange={(e) => setNewPatientData({ ...newPatientData, phone: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>予約時刻</Label>
+                      <Input 
+                        type="time" 
+                        value={formData.scheduled_time}
+                        onChange={(e) => setFormData({ ...formData, scheduled_time: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>住所</Label>
+                    <Input 
+                      placeholder="東京都..."
+                      value={newPatientData.address}
+                      onChange={(e) => setNewPatientData({ ...newPatientData, address: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>主訴</Label>
+                    <Textarea 
+                      placeholder="来院理由・症状を入力..." 
+                      value={formData.chief_complaint}
+                      onChange={(e) => setFormData({ ...formData, chief_complaint: e.target.value })}
+                    />
+                  </div>
+                </TabsContent>
+              </Tabs>
+
               <DialogFooter>
                 <Button variant="outline" onClick={() => setNewReceptionOpen(false)}>
                   キャンセル
                 </Button>
-                <Button 
-                  onClick={handleSubmit} 
-                  disabled={createReception.isPending || !formData.patient_id}
-                >
-                  {createReception.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  受付登録
-                </Button>
+                {activeTab === "existing" ? (
+                  <Button 
+                    onClick={handleSubmitExisting} 
+                    disabled={createReception.isPending || !formData.patient_id}
+                  >
+                    {createReception.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    受付登録
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={handleSubmitNewPatient} 
+                    disabled={createPatient.isPending || createReception.isPending || !isNewPatientFormValid}
+                  >
+                    {(createPatient.isPending || createReception.isPending) && (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    )}
+                    患者登録 & 受付
+                  </Button>
+                )}
               </DialogFooter>
             </DialogContent>
           </Dialog>
