@@ -11,6 +11,8 @@ import type {
 export interface TemplateWithMenuConfig extends IndustryTemplate {
   menu_config?: {
     menu_groups: Array<{ id: string; priority?: number }>;
+    hidden_features?: string[];
+    emphasized_features?: string[];
   };
 }
 
@@ -46,18 +48,20 @@ export function useIndustryTemplatesWithConfig() {
       // Fetch all menu configs
       const { data: menuConfigs } = await supabase
         .from('template_menu_config')
-        .select('template_id, menu_groups');
+        .select('template_id, menu_groups, hidden_features, emphasized_features');
 
       // Map menu configs to templates
       const configMap = new Map(
-        menuConfigs?.map(mc => [mc.template_id, mc.menu_groups]) || []
+        menuConfigs?.map(mc => [mc.template_id, {
+          menu_groups: mc.menu_groups as Array<{ id: string; priority?: number }>,
+          hidden_features: mc.hidden_features as string[] | undefined,
+          emphasized_features: mc.emphasized_features as string[] | undefined,
+        }]) || []
       );
 
       return (templates as IndustryTemplate[]).map(template => ({
         ...template,
-        menu_config: configMap.get(template.id) 
-          ? { menu_groups: configMap.get(template.id) as Array<{ id: string; priority?: number }> }
-          : undefined,
+        menu_config: configMap.get(template.id),
       }));
     },
   });
@@ -139,18 +143,20 @@ export function useFeaturedTemplatesWithConfig() {
       // Fetch all menu configs
       const { data: menuConfigs } = await supabase
         .from('template_menu_config')
-        .select('template_id, menu_groups');
+        .select('template_id, menu_groups, hidden_features, emphasized_features');
 
       // Map menu configs to templates
       const configMap = new Map(
-        menuConfigs?.map(mc => [mc.template_id, mc.menu_groups]) || []
+        menuConfigs?.map(mc => [mc.template_id, {
+          menu_groups: mc.menu_groups as Array<{ id: string; priority?: number }>,
+          hidden_features: mc.hidden_features as string[] | undefined,
+          emphasized_features: mc.emphasized_features as string[] | undefined,
+        }]) || []
       );
 
       return (templates as IndustryTemplate[]).map(template => ({
         ...template,
-        menu_config: configMap.get(template.id) 
-          ? { menu_groups: configMap.get(template.id) as Array<{ id: string; priority?: number }> }
-          : undefined,
+        menu_config: configMap.get(template.id),
       }));
     },
   });

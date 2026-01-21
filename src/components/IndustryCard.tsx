@@ -45,6 +45,8 @@ interface IndustryCardProps {
   template: IndustryTemplate & {
     menu_config?: {
       menu_groups: MenuGroupConfig[];
+      hidden_features?: string[];
+      emphasized_features?: string[];
     };
   };
 }
@@ -113,11 +115,17 @@ export function IndustryCard({ template }: IndustryCardProps) {
   // Get the icon component from the map, or use a default
   const IconComponent = template.icon ? iconMap[template.icon] : null;
 
-  // Get enabled features from menu_config
+  // Get enabled features from menu_config (default ON)
   const enabledFeatures = template.menu_config?.menu_groups
     ?.sort((a, b) => (a.priority || 99) - (b.priority || 99))
     ?.slice(0, 3)
     ?.map(group => menuGroupLabels[group.id] || group.id)
+    ?.filter(Boolean) || [];
+
+  // Get suggested features that are hidden but can be easily added (default OFF but recommended)
+  const suggestedFeatures = template.menu_config?.hidden_features
+    ?.slice(0, 2)
+    ?.map(id => menuGroupLabels[id] || id)
     ?.filter(Boolean) || [];
 
   return (
@@ -154,20 +162,57 @@ export function IndustryCard({ template }: IndustryCardProps) {
             {template.description || `${template.name}に特化した業務管理テンプレート`}
           </p>
 
-          {/* Display enabled features */}
+          {/* Default ON features */}
           {enabledFeatures.length > 0 && (
-            <div className="flex flex-wrap gap-1 mb-3">
-              {enabledFeatures.map((feature, index) => (
-                <Badge 
-                  key={index} 
-                  variant="outline" 
-                  className="text-xs px-2 py-0.5"
-                >
-                  {feature}
-                </Badge>
-              ))}
+            <div className="mb-2">
+              <div className="flex items-center gap-1 mb-1">
+                <span className="text-xs text-muted-foreground">デフォルトON:</span>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {enabledFeatures.map((feature, index) => (
+                  <Badge 
+                    key={index} 
+                    variant="default" 
+                    className="text-xs px-2 py-0.5"
+                  >
+                    {feature}
+                  </Badge>
+                ))}
+              </div>
             </div>
           )}
+
+          {/* Suggested features (easy to add) */}
+          {suggestedFeatures.length > 0 && (
+            <div className="mb-3">
+              <div className="flex items-center gap-1 mb-1">
+                <span className="text-xs text-muted-foreground">簡単に追加可能:</span>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {suggestedFeatures.map((feature, index) => (
+                  <Badge 
+                    key={index} 
+                    variant="outline" 
+                    className="text-xs px-2 py-0.5 text-muted-foreground"
+                  >
+                    + {feature}
+                  </Badge>
+                ))}
+                <Badge 
+                  variant="secondary" 
+                  className="text-xs px-2 py-0.5 bg-transparent text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  他多数...
+                </Badge>
+              </div>
+            </div>
+          )}
+
+          {/* Note about customization */}
+          <p className="text-xs text-muted-foreground mb-3 flex items-center gap-1">
+            <span className="inline-block w-1 h-1 rounded-full bg-primary"></span>
+            すべての機能は後から自由に変更可能
+          </p>
 
           <div className="flex items-center text-sm text-primary font-medium">
             詳細を見る
