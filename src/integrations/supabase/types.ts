@@ -615,6 +615,79 @@ export type Database = {
           },
         ]
       }
+      cleaning_tasks: {
+        Row: {
+          assigned_to: string | null
+          booking_id: string | null
+          checklist: Json | null
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          photos: Json | null
+          property_id: string
+          scheduled_date: string
+          scheduled_time: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          booking_id?: string | null
+          checklist?: Json | null
+          company_id: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          photos?: Json | null
+          property_id: string
+          scheduled_date: string
+          scheduled_time?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          booking_id?: string | null
+          checklist?: Json | null
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          photos?: Json | null
+          property_id?: string
+          scheduled_date?: string
+          scheduled_time?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cleaning_tasks_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "vacation_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cleaning_tasks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cleaning_tasks_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "vacation_rentals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           address: string | null
@@ -5229,6 +5302,289 @@ export type Database = {
           },
         ]
       }
+      vacation_bookings: {
+        Row: {
+          check_in_date: string
+          check_out_date: string
+          cleaning_fee: number | null
+          company_id: string
+          created_at: string
+          external_booking_id: string | null
+          guest_count: number
+          guest_email: string | null
+          guest_id: string | null
+          guest_name: string | null
+          guest_phone: string | null
+          id: string
+          notes: string | null
+          property_id: string
+          source: string | null
+          special_requests: Json | null
+          status: string
+          total_price: number
+          updated_at: string
+        }
+        Insert: {
+          check_in_date: string
+          check_out_date: string
+          cleaning_fee?: number | null
+          company_id: string
+          created_at?: string
+          external_booking_id?: string | null
+          guest_count?: number
+          guest_email?: string | null
+          guest_id?: string | null
+          guest_name?: string | null
+          guest_phone?: string | null
+          id?: string
+          notes?: string | null
+          property_id: string
+          source?: string | null
+          special_requests?: Json | null
+          status?: string
+          total_price?: number
+          updated_at?: string
+        }
+        Update: {
+          check_in_date?: string
+          check_out_date?: string
+          cleaning_fee?: number | null
+          company_id?: string
+          created_at?: string
+          external_booking_id?: string | null
+          guest_count?: number
+          guest_email?: string | null
+          guest_id?: string | null
+          guest_name?: string | null
+          guest_phone?: string | null
+          id?: string
+          notes?: string | null
+          property_id?: string
+          source?: string | null
+          special_requests?: Json | null
+          status?: string
+          total_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vacation_bookings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vacation_bookings_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "vacation_rentals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vacation_guests: {
+        Row: {
+          address: string | null
+          company_id: string
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          name_kana: string | null
+          nationality: string | null
+          notes: string | null
+          passport_number: string | null
+          phone: string | null
+          previous_stays: number | null
+          rating: number | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          company_id: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          name_kana?: string | null
+          nationality?: string | null
+          notes?: string | null
+          passport_number?: string | null
+          phone?: string | null
+          previous_stays?: number | null
+          rating?: number | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          company_id?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          name_kana?: string | null
+          nationality?: string | null
+          notes?: string | null
+          passport_number?: string | null
+          phone?: string | null
+          previous_stays?: number | null
+          rating?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vacation_guests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vacation_pricing: {
+        Row: {
+          base_price: number
+          company_id: string
+          created_at: string
+          date: string
+          id: string
+          is_available: boolean | null
+          min_stay: number | null
+          price_type: string | null
+          property_id: string
+        }
+        Insert: {
+          base_price: number
+          company_id: string
+          created_at?: string
+          date: string
+          id?: string
+          is_available?: boolean | null
+          min_stay?: number | null
+          price_type?: string | null
+          property_id: string
+        }
+        Update: {
+          base_price?: number
+          company_id?: string
+          created_at?: string
+          date?: string
+          id?: string
+          is_available?: boolean | null
+          min_stay?: number | null
+          price_type?: string | null
+          property_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vacation_pricing_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vacation_pricing_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "vacation_rentals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vacation_rentals: {
+        Row: {
+          address: string | null
+          amenities: Json | null
+          annual_limit_days: number
+          base_price: number | null
+          bathrooms: number | null
+          bedrooms: number | null
+          check_in_time: string | null
+          check_out_time: string | null
+          cleaning_fee: number | null
+          company_id: string
+          created_at: string
+          description: string | null
+          house_rules: string | null
+          id: string
+          images: Json | null
+          location_lat: number | null
+          location_lng: number | null
+          max_guests: number
+          name: string
+          property_type: string
+          registration_date: string | null
+          registration_number: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          amenities?: Json | null
+          annual_limit_days?: number
+          base_price?: number | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          check_in_time?: string | null
+          check_out_time?: string | null
+          cleaning_fee?: number | null
+          company_id: string
+          created_at?: string
+          description?: string | null
+          house_rules?: string | null
+          id?: string
+          images?: Json | null
+          location_lat?: number | null
+          location_lng?: number | null
+          max_guests?: number
+          name: string
+          property_type?: string
+          registration_date?: string | null
+          registration_number?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          amenities?: Json | null
+          annual_limit_days?: number
+          base_price?: number | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          check_in_time?: string | null
+          check_out_time?: string | null
+          cleaning_fee?: number | null
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          house_rules?: string | null
+          id?: string
+          images?: Json | null
+          location_lat?: number | null
+          location_lng?: number | null
+          max_guests?: number
+          name?: string
+          property_type?: string
+          registration_date?: string | null
+          registration_number?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vacation_rentals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wiki_pages: {
         Row: {
           category: Database["public"]["Enums"]["wiki_category"] | null
@@ -5619,6 +5975,10 @@ export type Database = {
         Returns: {
           user_id: string
         }[]
+      }
+      get_operating_days: {
+        Args: { p_property_id: string; p_year?: number }
+        Returns: number
       }
       has_hr_access: {
         Args: { _company_id: string; _user_id: string }
