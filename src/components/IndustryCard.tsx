@@ -36,8 +36,17 @@ import {
 } from 'lucide-react';
 import type { IndustryTemplate } from '@/types/industry-template';
 
+interface MenuGroupConfig {
+  id: string;
+  priority?: number;
+}
+
 interface IndustryCardProps {
-  template: IndustryTemplate;
+  template: IndustryTemplate & {
+    menu_config?: {
+      menu_groups: MenuGroupConfig[];
+    };
+  };
 }
 
 // Map icon names from database to Lucide components
@@ -72,9 +81,44 @@ const iconMap: Record<string, LucideIcon> = {
   GraduationCap,
 };
 
+// Map menu group IDs to display labels
+const menuGroupLabels: Record<string, string> = {
+  crm: 'CRM',
+  sales: '営業',
+  documents: '帳票',
+  finance: 'ファイナンス',
+  accounting: '会計',
+  'expense-reimbursement': '経費精算',
+  expenses: '経費精算',
+  'project-management': 'プロジェクト',
+  projects: 'プロジェクト',
+  recruiting: '採用',
+  hr: '人事・労務',
+  info: '情報管理',
+  integrations: '連携',
+  billing: '課金',
+  support: 'サポート',
+  marketing: 'マーケ',
+  retail: '小売',
+  lms: 'LMS',
+  legal: '法務',
+  emr: '電子カルテ',
+  members: '会員管理',
+  inventory: '在庫管理',
+  purchasing: '仕入管理',
+  contracts: '契約管理',
+};
+
 export function IndustryCard({ template }: IndustryCardProps) {
   // Get the icon component from the map, or use a default
   const IconComponent = template.icon ? iconMap[template.icon] : null;
+
+  // Get enabled features from menu_config
+  const enabledFeatures = template.menu_config?.menu_groups
+    ?.sort((a, b) => (a.priority || 99) - (b.priority || 99))
+    ?.slice(0, 3)
+    ?.map(group => menuGroupLabels[group.id] || group.id)
+    ?.filter(Boolean) || [];
 
   return (
     <Link to={`/lp/${template.template_key}`}>
@@ -106,9 +150,24 @@ export function IndustryCard({ template }: IndustryCardProps) {
             {template.name}
           </h3>
 
-          <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
             {template.description || `${template.name}に特化した業務管理テンプレート`}
           </p>
+
+          {/* Display enabled features */}
+          {enabledFeatures.length > 0 && (
+            <div className="flex flex-wrap gap-1 mb-3">
+              {enabledFeatures.map((feature, index) => (
+                <Badge 
+                  key={index} 
+                  variant="outline" 
+                  className="text-xs px-2 py-0.5"
+                >
+                  {feature}
+                </Badge>
+              ))}
+            </div>
+          )}
 
           <div className="flex items-center text-sm text-primary font-medium">
             詳細を見る
