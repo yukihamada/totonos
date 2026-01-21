@@ -378,6 +378,23 @@ const defaultMenuGroups: MenuGroupConfig[] = [
       { id: 'ip-management', title: '知財管理', visible: false, enabled: true, order: 4 },
     ],
   },
+  // === 民泊管理 ===
+  {
+    id: 'vacation-rental',
+    label: '民泊管理',
+    visible: false,
+    enabled: false, // 専門機能のためデフォルトOFF
+    order: 21,
+    items: [
+      { id: 'vacation-dashboard', title: '民泊ダッシュボード', visible: false, enabled: false, order: 0 },
+      { id: 'vacation-properties', title: '物件管理', visible: false, enabled: false, order: 1 },
+      { id: 'vacation-calendar', title: '予約カレンダー', visible: false, enabled: false, order: 2 },
+      { id: 'vacation-bookings', title: '予約一覧', visible: false, enabled: false, order: 3 },
+      { id: 'vacation-guests', title: 'ゲスト管理', visible: false, enabled: false, order: 4 },
+      { id: 'vacation-cleaning', title: '清掃スケジュール', visible: false, enabled: false, order: 5 },
+      { id: 'vacation-operating-days', title: '営業日数管理', visible: false, enabled: false, order: 6 },
+    ],
+  },
 ];
 
 const defaultSettings: AppSettings = {

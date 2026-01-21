@@ -261,6 +261,14 @@ const iconMap: Record<string, LucideIcon> = {
   'whistleblowing': AlertTriangle,
   'antisocial-check': Shield,
   'ip-management': Lightbulb,
+  // Vacation Rental
+  'vacation-dashboard': Palmtree,
+  'vacation-properties': Home,
+  'vacation-bookings': CalendarDays,
+  'vacation-calendar': CalendarCheck,
+  'vacation-guests': Users,
+  'vacation-cleaning': Sparkles,
+  'vacation-operating-days': CalendarDays,
 };
 
 // URL mapping
@@ -404,6 +412,14 @@ const urlMap: Record<string, string> = {
   'whistleblowing': '/legal/whistleblowing',
   'antisocial-check': '/legal/antisocial-check',
   'ip-management': '/legal/ip',
+  // Vacation Rental
+  'vacation-dashboard': '/vacation-rental',
+  'vacation-properties': '/vacation-rental/properties',
+  'vacation-bookings': '/vacation-rental/bookings',
+  'vacation-calendar': '/vacation-rental/calendar',
+  'vacation-guests': '/vacation-rental/guests',
+  'vacation-cleaning': '/vacation-rental/cleaning',
+  'vacation-operating-days': '/vacation-rental/operating-days',
 };
 
 export function AppSidebar({ onChatOpen }: AppSidebarProps) {

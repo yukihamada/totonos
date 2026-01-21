@@ -210,6 +210,14 @@ import CorporateRegistry from "./pages/legal-governance/CorporateRegistry";
 import Whistleblowing from "./pages/legal-governance/Whistleblowing";
 import AntisocialCheck from "./pages/legal-governance/AntisocialCheck";
 import IPManagement from "./pages/legal-governance/IPManagement";
+// Vacation Rental
+import VacationDashboard from "./pages/vacation-rental/VacationDashboard";
+import VacationProperties from "./pages/vacation-rental/Properties";
+import VacationBookings from "./pages/vacation-rental/Bookings";
+import VacationBookingCalendar from "./pages/vacation-rental/BookingCalendar";
+import VacationGuests from "./pages/vacation-rental/Guests";
+import VacationCleaningSchedule from "./pages/vacation-rental/CleaningSchedule";
+import VacationOperatingDays from "./pages/vacation-rental/OperatingDays";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -451,6 +459,15 @@ function AppRoutes() {
       <Route path="/legal/whistleblowing" element={<ProtectedRoute><Whistleblowing /></ProtectedRoute>} />
       <Route path="/legal/antisocial-check" element={<ProtectedRoute><AntisocialCheck /></ProtectedRoute>} />
       <Route path="/legal/ip" element={<ProtectedRoute><IPManagement /></ProtectedRoute>} />
+      {/* Vacation Rental */}
+      <Route path="/vacation-rental" element={<ProtectedRoute><VacationDashboard /></ProtectedRoute>} />
+      <Route path="/vacation-rental/properties" element={<ProtectedRoute><VacationProperties /></ProtectedRoute>} />
+      <Route path="/vacation-rental/properties/:id" element={<ProtectedRoute><VacationProperties /></ProtectedRoute>} />
+      <Route path="/vacation-rental/bookings" element={<ProtectedRoute><VacationBookings /></ProtectedRoute>} />
+      <Route path="/vacation-rental/calendar" element={<ProtectedRoute><VacationBookingCalendar /></ProtectedRoute>} />
+      <Route path="/vacation-rental/guests" element={<ProtectedRoute><VacationGuests /></ProtectedRoute>} />
+      <Route path="/vacation-rental/cleaning" element={<ProtectedRoute><VacationCleaningSchedule /></ProtectedRoute>} />
+      <Route path="/vacation-rental/operating-days" element={<ProtectedRoute><VacationOperatingDays /></ProtectedRoute>} />
       {/* Not Found */}
       <Route path="*" element={<NotFound />} />
     </Routes>
