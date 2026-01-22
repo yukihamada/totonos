@@ -90,15 +90,15 @@ export default function Clients() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">取引先</h1>
-            <p className="text-muted-foreground">取引先の管理</p>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">取引先</h1>
+            <p className="text-sm text-muted-foreground">取引先の管理</p>
           </div>
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button onClick={resetForm}>
+              <Button onClick={resetForm} className="w-full sm:w-auto">
                 <Plus className="mr-2 h-4 w-4" />
                 取引先を追加
               </Button>
@@ -166,7 +166,7 @@ export default function Clients() {
         </div>
 
         {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-3 md:gap-4">
           <Card>
             <CardHeader className="pb-2">
               <CardDescription>取引先数</CardDescription>

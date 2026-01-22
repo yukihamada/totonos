@@ -284,7 +284,7 @@ export default function Estimates() {
         </div>
 
         {/* 統計カード */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-3 grid-cols-2 md:grid-cols-4 md:gap-4">
           <Card>
             <CardHeader className="pb-2">
               <CardDescription>送付済</CardDescription>

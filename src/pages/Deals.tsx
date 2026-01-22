@@ -57,15 +57,15 @@ export default function Deals() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold">商談パイプライン</h1>
-            <p className="text-muted-foreground">商談をドラッグ&ドロップでステージ移動</p>
+            <h1 className="text-2xl md:text-3xl font-bold">商談パイプライン</h1>
+            <p className="text-sm text-muted-foreground">商談をドラッグ&ドロップでステージ移動</p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button><Plus className="mr-2 h-4 w-4" />商談を追加</Button>
+              <Button className="w-full sm:w-auto"><Plus className="mr-2 h-4 w-4" />商談を追加</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>新規商談登録</DialogTitle></DialogHeader>
@@ -93,43 +93,45 @@ export default function Deals() {
         {isLoading ? (
           <LoadingWithTips module="deals" skeletonType="grid" rows={6} columns={6} />
         ) : (
-          <div className="grid grid-cols-6 gap-4 overflow-x-auto">
-            {stages.map(stage => (
-              <div
-                key={stage}
-                className="min-w-[200px]"
-                onDragOver={e => e.preventDefault()}
-                onDrop={e => handleDrop(e, stage)}
-              >
-                <div className={`p-2 rounded-t-lg ${stageColors[stage]} font-medium text-center`}>
-                  {stageLabels[stage]} ({dealsByStage[stage].length})
+          <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+            <div className="grid grid-flow-col auto-cols-[minmax(160px,1fr)] sm:auto-cols-[minmax(180px,1fr)] md:grid-cols-6 gap-3 md:gap-4 min-w-[960px] md:min-w-0">
+              {stages.map(stage => (
+                <div
+                  key={stage}
+                  className="min-w-0"
+                  onDragOver={e => e.preventDefault()}
+                  onDrop={e => handleDrop(e, stage)}
+                >
+                  <div className={`p-2 rounded-t-lg ${stageColors[stage]} font-medium text-center text-xs sm:text-sm`}>
+                    {stageLabels[stage]} ({dealsByStage[stage].length})
+                  </div>
+                  <div className="bg-muted/50 rounded-b-lg p-2 min-h-[300px] sm:min-h-[400px] space-y-2">
+                    {dealsByStage[stage].map(deal => (
+                      <Card
+                        key={deal.id}
+                        draggable
+                        onDragStart={e => handleDragStart(e, deal.id)}
+                        className="cursor-move hover:shadow-md transition-shadow"
+                      >
+                        <CardHeader className="p-2 sm:p-3 pb-1">
+                          <CardTitle className="text-xs sm:text-sm font-medium truncate">{deal.deal_name}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-2 sm:p-3 pt-0">
+                          <p className="text-sm sm:text-lg font-bold">¥{deal.amount.toLocaleString()}</p>
+                          <p className="text-xs text-muted-foreground">確度: {deal.probability}%</p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                    {dealsByStage[stage].length === 0 && (
+                      <div className="text-center py-6 sm:py-8 text-muted-foreground text-xs sm:text-sm">
+                        <Target className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2 opacity-50" />
+                        ここにドロップ
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="bg-muted/50 rounded-b-lg p-2 min-h-[400px] space-y-2">
-                  {dealsByStage[stage].map(deal => (
-                    <Card
-                      key={deal.id}
-                      draggable
-                      onDragStart={e => handleDragStart(e, deal.id)}
-                      className="cursor-move hover:shadow-md transition-shadow"
-                    >
-                      <CardHeader className="p-3 pb-1">
-                        <CardTitle className="text-sm font-medium truncate">{deal.deal_name}</CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-3 pt-0">
-                        <p className="text-lg font-bold">¥{deal.amount.toLocaleString()}</p>
-                        <p className="text-xs text-muted-foreground">確度: {deal.probability}%</p>
-                      </CardContent>
-                    </Card>
-                  ))}
-                  {dealsByStage[stage].length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground text-sm">
-                      <Target className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      ここにドロップ
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
       </div>
