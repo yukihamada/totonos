@@ -35,14 +35,23 @@ Totonos は、中小企業・スタートアップ向けの統合ビジネスプ
 ## クイックスタート（1コマンド）
 
 ```bash
+# 完全自動セットアップ（Supabase + Vercel）
+curl -fsSL https://raw.githubusercontent.com/yukihamada/totonos/main/quickstart.sh | bash -s -- --auto
+
+# 対話モード
 curl -fsSL https://raw.githubusercontent.com/yukihamada/totonos/main/quickstart.sh | bash
+
+# ローカル開発のみ
+./quickstart.sh --local
 ```
 
 これだけで:
 1. ✅ リポジトリをクローン
 2. ✅ 依存関係をインストール
-3. ✅ Supabase をセットアップ（対話式）
+3. ✅ Supabase をセットアップ（APIキー自動取得）
 4. ✅ 選択したクラウドにデプロイ
+
+**詳細な設定方法**: [デプロイガイド](docs/DEPLOYMENT.md)
 
 ## 手動セットアップ
 
@@ -81,20 +90,55 @@ VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key
 
 様々なクラウドプラットフォームに対応しています。
 
-| プラットフォーム | ワンクリックデプロイ |
-|-----------------|---------------------|
-| **Vercel** | [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yukihamada/totonos) |
-| **Netlify** | [![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/yukihamada/totonos) |
-| **Cloudflare Pages** | `wrangler pages deploy dist` |
-| **AWS Amplify** | AWS Console から GitHub 連携 |
-| **Firebase** | `firebase deploy --only hosting` |
-| **Fly.io** | `fly deploy` |
-| **Railway** | GitHub 連携で自動デプロイ |
-| **Render** | GitHub 連携で自動デプロイ |
-| **Azure** | Static Web Apps で GitHub 連携 |
-| **Docker** | `docker-compose up -d` |
+### ワンクリックデプロイ
 
-詳細は [デプロイガイド](docs/DEPLOYMENT.md) を参照してください。
+| プラットフォーム | デプロイ |
+|-----------------|---------|
+| **Vercel** | [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yukihamada/totonos&env=VITE_SUPABASE_URL,VITE_SUPABASE_PUBLISHABLE_KEY) |
+| **Netlify** | [![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/yukihamada/totonos) |
+
+### CLI デプロイ
+
+```bash
+# デプロイスクリプトを使用
+./deploy.sh vercel --prod      # Vercel
+./deploy.sh cloudflare         # Cloudflare Pages
+./deploy.sh netlify --prod     # Netlify
+./deploy.sh firebase           # Firebase
+./deploy.sh fly                # Fly.io
+./deploy.sh docker             # Docker イメージ作成
+```
+
+### 対応プラットフォーム
+
+| プラットフォーム | 設定ファイル | 特徴 |
+|-----------------|-------------|------|
+| Vercel | `vercel.json` | 最も簡単、自動デプロイ |
+| Cloudflare Pages | `wrangler.toml` | 最速CDN、無制限帯域 |
+| Netlify | `netlify.toml` | 豊富な機能 |
+| AWS Amplify | `amplify.yml` | AWS統合 |
+| Firebase | `firebase.json` | Google統合 |
+| Fly.io | `fly.toml` | エッジコンピューティング |
+| Railway | `railway.json` | シンプル |
+| Render | `render.yaml` | 無料枠充実 |
+| Azure | `staticwebapp.config.json` | Microsoft統合 |
+| Docker | `Dockerfile` | 完全なコントロール |
+
+### Supabase（データベース）
+
+バックエンドには Supabase を使用します。
+
+```bash
+# Supabase Cloud（推奨）
+# https://supabase.com でプロジェクト作成後:
+VITE_SUPABASE_URL=https://xxxxx.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=eyJhbGci...
+
+# Self-hosted Supabase
+./deploy.sh supabase
+```
+
+**詳細なセットアップ手順**: [デプロイガイド](docs/DEPLOYMENT.md)
 
 ## 機能詳細
 
