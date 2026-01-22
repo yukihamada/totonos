@@ -13,9 +13,9 @@ interface HpkiBridgeDownloadProps {
 
 // GitHub Release URLs
 const DOWNLOAD_URLS = {
-  mac: "https://github.com/totonos/hpki-bridge/releases/latest/download/hpki-bridge-macos.dmg",
-  windows: "https://github.com/totonos/hpki-bridge/releases/latest/download/hpki-bridge-windows.exe",
-  source: "https://github.com/totonos/hpki-bridge",
+  mac: "https://github.com/yukihamada/totonos/releases/download/hpki-bridge-v1.0.0/hpki-bridge-macos.dmg",
+  windows: "https://github.com/yukihamada/totonos/releases/download/hpki-bridge-v1.0.0/hpki-bridge-windows.exe",
+  source: "https://github.com/yukihamada/totonos/tree/main/hpki-bridge",
 };
 
 const BRIDGE_URL = "http://localhost:8000";
