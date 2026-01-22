@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useTwoFactor } from "@/hooks/useTwoFactor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
-import { Mail, ArrowRight, CheckCircle } from "lucide-react";
+import { Mail, ArrowRight, CheckCircle, Key, Eye, EyeOff, Shield, Loader2 } from "lucide-react";
 
 const emailSchema = z.object({
   email: z.string().email("有効なメールアドレスを入力してください"),
@@ -38,12 +40,22 @@ const GoogleIcon = () => (
 
 const PENDING_TEMPLATE_KEY = 'pending_industry_template';
 
+type AuthStep = 'login' | 'twoFactor';
+
 export default function Auth() {
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<'google' | null>(null);
   const [emailSent, setEmailSent] = useState(false);
-  const { signInWithMagicLink, signInWithOAuth, user } = useAuth();
+  const [authStep, setAuthStep] = useState<AuthStep>('login');
+  const [pendingUserId, setPendingUserId] = useState<string | null>(null);
+  const [totpCode, setTotpCode] = useState('');
+  const [useRecoveryCode, setUseRecoveryCode] = useState(false);
+  
+  const { signInWithMagicLink, signInWithOAuth, signIn, user } = useAuth();
+  const { verifyLogin } = useTwoFactor();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -63,7 +75,7 @@ export default function Auth() {
     }
   }, [user, navigate]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleMagicLinkSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const validation = emailSchema.safeParse({ email });
@@ -105,6 +117,73 @@ export default function Auth() {
     }
   };
 
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const validation = emailSchema.safeParse({ email });
+    if (!validation.success) {
+      toast({
+        title: "入力エラー",
+        description: validation.error.errors[0].message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!password) {
+      toast({
+        title: "入力エラー",
+        description: "パスワードを入力してください",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { error } = await signIn(email, password);
+      if (error) {
+        toast({
+          title: "ログインエラー",
+          description: "メールアドレスまたはパスワードが正しくありません",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Login successful - redirect will happen via useEffect
+      toast({
+        title: "ログイン成功",
+        description: "ダッシュボードに移動します",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTwoFactorSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!pendingUserId || totpCode.length !== 6) return;
+
+    setLoading(true);
+    try {
+      const result = await verifyLogin(pendingUserId, totpCode, useRecoveryCode);
+      if (result.success) {
+        navigate('/dashboard', { replace: true });
+      } else {
+        toast({
+          title: "認証エラー",
+          description: "認証コードが正しくありません",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleGoogleLogin = async () => {
     setOauthLoading('google');
     try {
@@ -121,6 +200,81 @@ export default function Auth() {
     }
   };
 
+  // 2FA verification step
+  if (authStep === 'twoFactor') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md border-2 border-foreground shadow-md">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Shield className="h-8 w-8" />
+              </div>
+            </div>
+            <CardTitle className="text-2xl font-bold">二要素認証</CardTitle>
+            <CardDescription>
+              認証アプリに表示されている6桁のコードを入力してください
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <form onSubmit={handleTwoFactorSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="totp-code">認証コード</Label>
+                <Input
+                  id="totp-code"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={useRecoveryCode ? 10 : 6}
+                  placeholder={useRecoveryCode ? "リカバリーコード" : "000000"}
+                  value={totpCode}
+                  onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ''))}
+                  className="font-mono text-center text-2xl tracking-widest border-2"
+                  autoFocus
+                />
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loading || totpCode.length < 6}
+              >
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "確認"
+                )}
+              </Button>
+            </form>
+
+            <div className="text-center">
+              <Button
+                variant="link"
+                className="text-sm"
+                onClick={() => setUseRecoveryCode(!useRecoveryCode)}
+              >
+                {useRecoveryCode ? "認証アプリを使用" : "リカバリーコードを使用"}
+              </Button>
+            </div>
+
+            <Button
+              variant="outline"
+              className="w-full border-2"
+              onClick={() => {
+                setAuthStep('login');
+                setPendingUserId(null);
+                setTotpCode('');
+              }}
+            >
+              戻る
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Email sent confirmation screen
   if (emailSent) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -188,6 +342,7 @@ export default function Auth() {
     );
   }
 
+  // Main login screen
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md border-2 border-foreground shadow-md">
@@ -203,39 +358,124 @@ export default function Auth() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Magic Link Form - メールログインを優先表示 */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">メールアドレス</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={loading || oauthLoading !== null}
-                  className="border-2 pl-10"
-                />
-              </div>
-            </div>
+          <Tabs defaultValue="magiclink" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="magiclink" className="flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                メールリンク
+              </TabsTrigger>
+              <TabsTrigger value="password" className="flex items-center gap-2">
+                <Key className="h-4 w-4" />
+                パスワード
+              </TabsTrigger>
+            </TabsList>
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={loading || oauthLoading !== null}
-            >
-              {loading ? (
-                "送信中..."
-              ) : (
-                <>
-                  メールでログイン
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </>
-              )}
-            </Button>
-          </form>
+            <TabsContent value="magiclink" className="space-y-4 mt-4">
+              <form onSubmit={handleMagicLinkSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email-magic">メールアドレス</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="email-magic"
+                      type="email"
+                      placeholder="your@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={loading || oauthLoading !== null}
+                      className="border-2 pl-10"
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={loading || oauthLoading !== null}
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      メールでログイン
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </>
+                  )}
+                </Button>
+              </form>
+              <p className="text-xs text-muted-foreground text-center">
+                パスワード不要。メールのリンクをクリックするだけでログインできます。
+              </p>
+            </TabsContent>
+
+            <TabsContent value="password" className="space-y-4 mt-4">
+              <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email-password">メールアドレス</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="email-password"
+                      type="email"
+                      placeholder="your@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={loading || oauthLoading !== null}
+                      className="border-2 pl-10"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password">パスワード</Label>
+                  <div className="relative">
+                    <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={loading || oauthLoading !== null}
+                      className="border-2 pl-10 pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full px-3"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={loading || oauthLoading !== null}
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      ログイン
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </>
+                  )}
+                </Button>
+              </form>
+              <p className="text-xs text-muted-foreground text-center">
+                パスワードを設定している場合のみ使用できます。
+                未設定の方はメールリンクをご利用ください。
+              </p>
+            </TabsContent>
+          </Tabs>
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
@@ -256,7 +496,7 @@ export default function Auth() {
             disabled={oauthLoading !== null}
           >
             {oauthLoading === 'google' ? (
-              <span className="animate-spin mr-2">...</span>
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <GoogleIcon />
             )}
@@ -265,7 +505,6 @@ export default function Auth() {
 
           <p className="text-xs text-muted-foreground text-center">
             アカウントをお持ちでない場合は自動的に作成されます。
-            パスワードは不要です。
           </p>
         </CardContent>
       </Card>
