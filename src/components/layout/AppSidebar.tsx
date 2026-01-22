@@ -451,31 +451,33 @@ export function AppSidebar({ onChatOpen }: AppSidebarProps) {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-border p-4">
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 overflow-hidden">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               {/* Custom logo from branding settings */}
               {logoUrl && brandingSettings.showLogoSidebar ? (
                 <img 
                   src={logoUrl} 
                   alt="Company Logo" 
-                  className="h-8 w-auto max-w-[120px] object-contain"
+                  className="h-8 w-8 shrink-0 object-contain group-data-[collapsible=icon]:w-8"
                 />
               ) : (
                 <>
-                  <div className="flex h-8 w-8 items-center justify-center border-2 border-foreground bg-foreground text-background font-bold">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center border-2 border-foreground bg-foreground text-background font-bold">
                     T
                   </div>
-                  {!collapsed && (
-                    <span className="text-xl font-bold tracking-tight">Totonos</span>
-                  )}
+                  <span className="text-xl font-bold tracking-tight group-data-[collapsible=icon]:hidden">Totonos</span>
                 </>
               )}
             </div>
-            {!collapsed && <ThemeToggle />}
+            <div className="group-data-[collapsible=icon]:hidden">
+              <ThemeToggle />
+            </div>
           </div>
           {/* Company Switcher */}
-          <CompanySwitcher collapsed={collapsed} />
+          <div className="group-data-[collapsible=icon]:hidden">
+            <CompanySwitcher collapsed={collapsed} />
+          </div>
         </div>
       </SidebarHeader>
 
@@ -498,14 +500,14 @@ export function AppSidebar({ onChatOpen }: AppSidebarProps) {
 
                     return (
                       <SidebarMenuItem key={item.id}>
-                        <SidebarMenuButton asChild>
+                        <SidebarMenuButton asChild tooltip={item.title}>
                           <NavLink
                             to={url}
                             className="flex items-center gap-2 hover:bg-accent"
                             activeClassName="bg-accent font-medium"
                           >
-                            <Icon className="h-4 w-4" />
-                            <span>{item.title}</span>
+                            <Icon className="h-4 w-4 shrink-0" />
+                            <span className="truncate group-data-[collapsible=icon]:hidden">{item.title}</span>
                           </NavLink>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
@@ -518,53 +520,58 @@ export function AppSidebar({ onChatOpen }: AppSidebarProps) {
         })}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border p-4">
-        <div className="flex flex-col gap-2">
+      <SidebarFooter className="border-t border-border p-2">
+        <div className="flex flex-col gap-1">
           {onChatOpen && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onChatOpen}
-              className="w-full justify-start gap-2 bg-primary/5 hover:bg-primary/10 border-primary/20"
-            >
-              <MessageCircle className="h-4 w-4 text-primary" />
-              {!collapsed && <span>AIアシスタント</span>}
-            </Button>
+            <SidebarMenuButton asChild tooltip="AIアシスタント">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onChatOpen}
+                className="w-full justify-start gap-2 hover:bg-primary/10"
+              >
+                <MessageCircle className="h-4 w-4 shrink-0 text-primary" />
+                <span className="truncate group-data-[collapsible=icon]:hidden">AIアシスタント</span>
+              </Button>
+            </SidebarMenuButton>
           )}
-          {collapsed && (
+          <div className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center hidden">
             <ThemeToggle />
-          )}
-          {!collapsed && user && (
-            <p className="text-xs text-muted-foreground truncate">
-              {user.email}
-            </p>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={signOut}
-            className="w-full justify-start gap-2"
-          >
-            <LogOut className="h-4 w-4" />
-            {!collapsed && <span>ログアウト</span>}
-          </Button>
-          
-          {/* Feedback & Beta - Below logout */}
-          <div className="pt-2 border-t border-border mt-2">
-            <div className="flex items-center gap-2 mb-2">
-              <Badge variant="secondary" className="bg-amber-500/90 text-amber-950 hover:bg-amber-500 border-0 font-semibold px-2 py-0.5 text-[10px] leading-tight">
-                🚧 ベータ版
-              </Badge>
-            </div>
+          </div>
+          <p className="text-xs text-muted-foreground truncate px-2 group-data-[collapsible=icon]:hidden">
+            {user?.email}
+          </p>
+          <SidebarMenuButton asChild tooltip="ログアウト">
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setFeedbackOpen(true)}
-              className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+              onClick={signOut}
+              className="w-full justify-start gap-2"
             >
-              <MessageSquarePlus className="h-4 w-4" />
-              {!collapsed && <span>バグ報告・機能要望</span>}
+              <LogOut className="h-4 w-4 shrink-0" />
+              <span className="truncate group-data-[collapsible=icon]:hidden">ログアウト</span>
             </Button>
+          </SidebarMenuButton>
+          
+          {/* Feedback & Beta - Below logout */}
+          <div className="pt-2 border-t border-border mt-2 group-data-[collapsible=icon]:pt-1 group-data-[collapsible=icon]:mt-1">
+            <div className="flex items-center gap-2 mb-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:mb-1">
+              <Badge variant="secondary" className="bg-amber-500/90 text-amber-950 hover:bg-amber-500 border-0 font-semibold px-2 py-0.5 text-[10px] leading-tight group-data-[collapsible=icon]:px-1">
+                <span className="group-data-[collapsible=icon]:hidden">🚧 ベータ版</span>
+                <span className="hidden group-data-[collapsible=icon]:inline">β</span>
+              </Badge>
+            </div>
+            <SidebarMenuButton asChild tooltip="バグ報告・機能要望">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setFeedbackOpen(true)}
+                className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+              >
+                <MessageSquarePlus className="h-4 w-4 shrink-0" />
+                <span className="truncate group-data-[collapsible=icon]:hidden">バグ報告・機能要望</span>
+              </Button>
+            </SidebarMenuButton>
           </div>
         </div>
         
