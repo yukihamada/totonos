@@ -4347,6 +4347,138 @@ export type Database = {
           },
         ]
       }
+      lms_courses: {
+        Row: {
+          category: string | null
+          company_id: string
+          created_at: string
+          description: string | null
+          duration_hours: number | null
+          id: string
+          instructor_id: string | null
+          is_published: boolean | null
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          company_id: string
+          created_at?: string
+          description?: string | null
+          duration_hours?: number | null
+          id?: string
+          instructor_id?: string | null
+          is_published?: boolean | null
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          duration_hours?: number | null
+          id?: string
+          instructor_id?: string | null
+          is_published?: boolean | null
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_courses_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lms_enrollments: {
+        Row: {
+          completed_at: string | null
+          course_id: string
+          id: string
+          last_accessed_at: string | null
+          progress: number | null
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          course_id: string
+          id?: string
+          last_accessed_at?: string | null
+          progress?: number | null
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          course_id?: string
+          id?: string
+          last_accessed_at?: string | null
+          progress?: number | null
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_enrollments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "lms_courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lms_lessons: {
+        Row: {
+          content_text: string | null
+          content_type: string | null
+          content_url: string | null
+          course_id: string
+          created_at: string
+          duration_minutes: number | null
+          id: string
+          sort_order: number | null
+          title: string
+        }
+        Insert: {
+          content_text?: string | null
+          content_type?: string | null
+          content_url?: string | null
+          course_id: string
+          created_at?: string
+          duration_minutes?: number | null
+          id?: string
+          sort_order?: number | null
+          title: string
+        }
+        Update: {
+          content_text?: string | null
+          content_type?: string | null
+          content_url?: string | null
+          course_id?: string
+          created_at?: string
+          duration_minutes?: number | null
+          id?: string
+          sort_order?: number | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_lessons_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "lms_courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       member_checkins: {
         Row: {
           booking_id: string | null
@@ -5533,6 +5665,66 @@ export type Database = {
           },
         ]
       }
+      support_tickets: {
+        Row: {
+          assigned_to: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          description: string | null
+          id: string
+          priority: string
+          resolved_at: string | null
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          description?: string | null
+          id?: string
+          priority?: string
+          resolved_at?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          description?: string | null
+          id?: string
+          priority?: string
+          resolved_at?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tickets_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       synced_calendar_events: {
         Row: {
           attendees: Json | null
@@ -5967,6 +6159,41 @@ export type Database = {
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "industry_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ticket_replies: {
+        Row: {
+          created_at: string
+          id: string
+          is_internal: boolean | null
+          message: string
+          ticket_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_internal?: boolean | null
+          message: string
+          ticket_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_internal?: boolean | null
+          message?: string
+          ticket_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_replies_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
             referencedColumns: ["id"]
           },
         ]
