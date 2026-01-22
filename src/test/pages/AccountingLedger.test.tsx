@@ -15,6 +15,11 @@ vi.mock('@/hooks/useAccounting', () => ({
     isLoading: false,
     error: null,
   }),
+  useGeneralLedger: () => ({
+    data: null,
+    isLoading: false,
+    error: null,
+  }),
 }));
 
 describe('AccountingLedger Page', () => {
@@ -22,28 +27,28 @@ describe('AccountingLedger Page', () => {
     it('should render page title', async () => {
       render(<AccountingLedger />);
       await waitFor(() => {
-        expect(screen.getByText('元帳')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: '総勘定元帳' })).toBeInTheDocument();
       });
     });
 
     it('should render page description', async () => {
       render(<AccountingLedger />);
       await waitFor(() => {
-        expect(screen.getByText('勘定科目別の取引履歴')).toBeInTheDocument();
+        expect(screen.getByText('勘定科目別の取引一覧')).toBeInTheDocument();
+      });
+    });
+
+    it('should render search section', async () => {
+      render(<AccountingLedger />);
+      await waitFor(() => {
+        expect(screen.getByText('検索条件')).toBeInTheDocument();
       });
     });
 
     it('should render account selector', async () => {
       render(<AccountingLedger />);
       await waitFor(() => {
-        expect(screen.getByText('勘定科目を選択')).toBeInTheDocument();
-      });
-    });
-
-    it('should render export button', async () => {
-      render(<AccountingLedger />);
-      await waitFor(() => {
-        expect(screen.getByText('エクスポート')).toBeInTheDocument();
+        expect(screen.getByText('科目を選択')).toBeInTheDocument();
       });
     });
   });
