@@ -1,0 +1,157 @@
+# マルチプラットフォーム自動デプロイ
+#
+# 使い方:
+#   1. GitHub Secrets に以下を設定:
+#      - VITE_SUPABASE_URL
+#      - VITE_SUPABASE_PUBLISHABLE_KEY
+#      - (各プラットフォームのトークン)
+#
+#   2. Actions タブから手動実行、またはmainブランチへのpushで自動実行
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Deploy to'
+        required: true
+        default: 'vercel'
+        type: choice
+        options:
+          - vercel
+          - cloudflare
+          - netlify
+          - firebase
+          - all
+
+env:
+  VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+  VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+  # Vercel
+  deploy-vercel:
+    needs: build
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'push' ||
+      github.event.inputs.platform == 'vercel' ||
+      github.event.inputs.platform == 'all'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Vercel CLI
+        run: npm i -g vercel
+
+      - name: Deploy to Vercel
+        run: |
+          vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+          vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+          vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+  # Cloudflare Pages
+  deploy-cloudflare:
+    needs: build
+    runs-on: ubuntu-latest
+    if: |
+      github.event.inputs.platform == 'cloudflare' ||
+      github.event.inputs.platform == 'all'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: totonos
+          directory: dist
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+
+  # Netlify
+  deploy-netlify:
+    needs: build
+    runs-on: ubuntu-latest
+    if: |
+      github.event.inputs.platform == 'netlify' ||
+      github.event.inputs.platform == 'all'
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Deploy to Netlify
+        uses: nwtgck/actions-netlify@v2
+        with:
+          publish-dir: './dist'
+          production-deploy: true
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+
+  # Firebase
+  deploy-firebase:
+    needs: build
+    runs-on: ubuntu-latest
+    if: |
+      github.event.inputs.platform == 'firebase' ||
+      github.event.inputs.platform == 'all'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Deploy to Firebase
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+          channelId: live
+          projectId: ${{ secrets.FIREBASE_PROJECT_ID }}

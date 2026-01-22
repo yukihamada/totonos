@@ -32,13 +32,27 @@ Totonos は、中小企業・スタートアップ向けの統合ビジネスプ
 - **AI**: Anthropic Claude API
 - **決済**: Stripe
 
-## セットアップ
+## クイックスタート（1コマンド）
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/yukihamada/totonos/main/quickstart.sh | bash
+```
+
+これだけで:
+1. ✅ リポジトリをクローン
+2. ✅ 依存関係をインストール
+3. ✅ Supabase をセットアップ（対話式）
+4. ✅ 選択したクラウドにデプロイ
+
+## 手動セットアップ
+
+<details>
+<summary>詳細な手順を見る</summary>
 
 ### 必要条件
 
 - Node.js 18+
 - npm または pnpm
-- Supabase アカウント
 
 ### インストール
 
@@ -50,10 +64,6 @@ cd totonos
 # 依存関係をインストール
 npm install
 
-# 環境変数を設定
-cp .env.example .env
-# .env ファイルを編集して必要な値を設定
-
 # 開発サーバーを起動
 npm run dev
 ```
@@ -64,6 +74,8 @@ npm run dev
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key
 ```
+
+</details>
 
 ## デプロイ
 
