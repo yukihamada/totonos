@@ -7,8 +7,14 @@ import { TrustPassportMini } from "./TrustPassportMini";
 import { StatsCard } from "./StatsCard";
 import { DashboardWidgetConfig } from "@/config/dashboard-widgets";
 import { formatCurrency } from "@/types/database";
-import { FileText, Wallet, Target, TrendingUp, Users, Stethoscope, Calendar, Briefcase, Clock } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FileText, Wallet, Target, TrendingUp, Users } from "lucide-react";
+
+// Industry-specific widgets
+import { DailyPatientsWidget } from "./widgets/DailyPatientsWidget";
+import { InsuranceClaimsWidget } from "./widgets/InsuranceClaimsWidget";
+import { ActiveProjectsWidget } from "./widgets/ActiveProjectsWidget";
+import { BillableHoursWidget } from "./widgets/BillableHoursWidget";
+import { TodayAppointmentsWidget } from "./widgets/TodayAppointmentsWidget";
 
 interface WidgetRendererProps {
   widget: DashboardWidgetConfig;
@@ -27,22 +33,6 @@ interface WidgetRendererProps {
   };
   clientsCount?: number;
   isLoading?: boolean;
-}
-
-// Placeholder widget for unimplemented types
-function PlaceholderWidget({ title, icon: Icon, description }: { title: string; icon: React.ElementType; description?: string }) {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">-</div>
-        <p className="text-xs text-muted-foreground">{description || "データを取得中..."}</p>
-      </CardContent>
-    </Card>
-  );
 }
 
 export function WidgetRenderer({ widget, stats, clientsCount, isLoading }: WidgetRendererProps) {
@@ -137,23 +127,25 @@ export function WidgetRenderer({ widget, stats, clientsCount, isLoading }: Widge
     case "activity-feed":
       return <ActivityFeed limit={5} />;
 
-    // Industry-specific widgets (placeholders for now)
+    // Healthcare industry widgets
     case "daily-patients":
-      return <PlaceholderWidget title="本日の患者数" icon={Stethoscope} description="本日の来院予定を表示" />;
+      return <DailyPatientsWidget />;
 
     case "insurance-claims":
-      return <PlaceholderWidget title="保険請求状況" icon={FileText} description="レセプト処理状況を表示" />;
+      return <InsuranceClaimsWidget />;
 
+    // Service industry widgets
     case "today-appointments":
-      return <PlaceholderWidget title="本日の予約" icon={Calendar} description="本日の予約一覧を表示" />;
+      return <TodayAppointmentsWidget />;
 
+    // Project management widgets (IT, Construction, Consulting)
     case "active-projects":
-      return <PlaceholderWidget title="進行中プロジェクト" icon={Briefcase} description="アクティブなプロジェクトを表示" />;
+      return <ActiveProjectsWidget />;
 
     case "billable-hours":
-      return <PlaceholderWidget title="請求可能時間" icon={Clock} description="今月の稼働時間を表示" />;
+      return <BillableHoursWidget />;
 
     default:
-      return <PlaceholderWidget title={widget.title} icon={FileText} description="このウィジェットは準備中です" />;
+      return null;
   }
 }
