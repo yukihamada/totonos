@@ -28,7 +28,16 @@
     "test:integration:reset": "supabase db reset && vitest run --config vitest.config.integration.ts",
     "typecheck": "tsc --noEmit",
     "screenshots": "node scripts/capture-screenshots.mjs",
-    "screenshots:dev": "npm run dev & sleep 3 && npm run screenshots && pkill -f 'vite'"
+    "screenshots:dev": "npm run dev & sleep 3 && npm run screenshots && pkill -f 'vite'",
+    "deploy": "./deploy.sh",
+    "deploy:vercel": "./deploy.sh vercel --prod",
+    "deploy:cloudflare": "./deploy.sh cloudflare",
+    "deploy:netlify": "./deploy.sh netlify --prod",
+    "deploy:firebase": "./deploy.sh firebase",
+    "deploy:fly": "./deploy.sh fly",
+    "deploy:railway": "./deploy.sh railway",
+    "deploy:docker": "./deploy.sh docker",
+    "deploy:supabase": "./deploy.sh supabase"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
