@@ -39,6 +39,8 @@ import { DesignTemplateSelector } from '@/components/settings/DesignTemplateSele
 import { AccentColorPicker } from '@/components/settings/AccentColorPicker';
 import { FontSelector } from '@/components/settings/FontSelector';
 import { LogoUploader } from '@/components/settings/LogoUploader';
+import { PasswordSettings } from '@/components/settings/PasswordSettings';
+import { TwoFactorSettings } from '@/components/settings/TwoFactorSettings';
 import { LetterSpacingType } from '@/types/design-templates';
 
 export default function Settings() {
@@ -669,13 +671,14 @@ export default function Settings() {
 
           {/* Security Tab */}
           <TabsContent value="security" className="space-y-4">
+            {/* Account Email */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Shield className="h-5 w-5" />
-                  セキュリティ
+                  アカウント情報
                 </CardTitle>
-                <CardDescription>アカウントとセキュリティの設定</CardDescription>
+                <CardDescription>ログインに使用するメールアドレス</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -683,27 +686,27 @@ export default function Settings() {
                   <Input value={user?.email || ''} disabled />
                   <p className="text-xs text-muted-foreground">メールアドレスの変更はサポートにお問い合わせください</p>
                 </div>
-                <Separator />
-                <div className="space-y-2">
-                  <Label>パスワード変更</Label>
-                  <Button variant="outline">パスワードを変更</Button>
-                </div>
-                <Separator />
-                <div className="space-y-2">
-                  <Label>二要素認証</Label>
-                  <div className="flex items-center gap-4">
-                    <Button variant="outline">二要素認証を設定</Button>
-                    <span className="text-sm text-muted-foreground">未設定</span>
-                  </div>
-                </div>
-                <Separator />
-                <div className="space-y-2">
-                  <Label>セッション管理</Label>
-                  <Button variant="outline">すべてのセッションからログアウト</Button>
-                </div>
               </CardContent>
             </Card>
 
+            {/* Password Settings */}
+            <PasswordSettings />
+
+            {/* Two Factor Authentication */}
+            <TwoFactorSettings />
+
+            {/* Session Management */}
+            <Card>
+              <CardHeader>
+                <CardTitle>セッション管理</CardTitle>
+                <CardDescription>ログイン中のデバイスを管理</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button variant="outline">すべてのセッションからログアウト</Button>
+              </CardContent>
+            </Card>
+
+            {/* Danger Zone */}
             <Card className="border-destructive">
               <CardHeader>
                 <CardTitle className="text-destructive">危険な操作</CardTitle>
