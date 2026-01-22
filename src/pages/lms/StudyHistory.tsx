@@ -3,17 +3,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { History, BookOpen, ClipboardList, CheckCircle, Clock, Trophy, TrendingUp } from "lucide-react";
-import { useMyLearning, useTestResults, useLMSStats } from "@/hooks/useLMS";
+import { History, BookOpen, ClipboardList, CheckCircle, Trophy, TrendingUp } from "lucide-react";
+import { useMyLearning } from "@/hooks/useLMS";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-
-const COLORS = ["hsl(var(--primary))", "hsl(var(--muted))", "hsl(var(--secondary))"];
+import { StudyProgressCharts } from "@/components/lms/StudyProgressCharts";
 
 export default function StudyHistory() {
   const { myEnrollments, myResults, isLoading } = useMyLearning();
-  const { stats } = useLMSStats();
 
   const completedCourses = myEnrollments.filter(e => e.completed_at);
   const inProgressCourses = myEnrollments.filter(e => !e.completed_at && e.progress > 0);
@@ -90,60 +87,7 @@ export default function StudyHistory() {
         </div>
 
         {/* Charts */}
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>コース進捗状況</CardTitle>
-              <CardDescription>受講コースのステータス分布</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {myEnrollments.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">データがありません</p>
-              ) : (
-                <ResponsiveContainer width="100%" height={200}>
-                  <PieChart>
-                    <Pie
-                      data={progressData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={80}
-                      dataKey="value"
-                      label={({ name, value }) => `${name}: ${value}`}
-                    >
-                      {progressData.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>テストスコア</CardTitle>
-              <CardDescription>直近10件のテスト結果</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {myResults.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">データがありません</p>
-              ) : (
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={testScoreData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                    <YAxis domain={[0, 100]} />
-                    <Tooltip formatter={(value) => [`${value}%`, "スコア"]} />
-                    <Bar dataKey="score" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        <StudyProgressCharts enrollments={myEnrollments} testResults={myResults} />
 
         {/* Detailed Lists */}
         <Tabs defaultValue="courses">
