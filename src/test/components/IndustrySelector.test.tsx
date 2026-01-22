@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { IndustrySelector } from '@/components/IndustrySelector';
 import type { IndustryTemplate } from '@/types/industry-template';
@@ -18,6 +18,11 @@ vi.mock('@/hooks/useIndustryTemplates', () => ({
           icon: '🛒',
           color: '#3B82F6',
           is_featured: true,
+          is_active: true,
+          sort_order: 1,
+          hero_image_url: null,
+          keywords: [],
+          created_at: '2024-01-01',
         },
       ],
       service: [
@@ -31,6 +36,11 @@ vi.mock('@/hooks/useIndustryTemplates', () => ({
           icon: '🍽️',
           color: '#F59E0B',
           is_featured: false,
+          is_active: true,
+          sort_order: 1,
+          hero_image_url: null,
+          keywords: [],
+          created_at: '2024-01-01',
         },
       ],
       professional: [],
@@ -47,6 +57,11 @@ vi.mock('@/hooks/useIndustryTemplates', () => ({
           icon: '💻',
           color: '#10B981',
           is_featured: true,
+          is_active: true,
+          sort_order: 1,
+          hero_image_url: null,
+          keywords: [],
+          created_at: '2024-01-01',
         },
       ],
       logistics: [],
@@ -68,9 +83,11 @@ describe('IndustrySelector', () => {
     icon: '🛒',
     color: '#3B82F6',
     is_featured: true,
+    is_active: true,
+    sort_order: 1,
+    hero_image_url: null,
     keywords: [],
     created_at: '2024-01-01',
-    menu_config: null,
   };
 
   beforeEach(() => {
@@ -136,7 +153,6 @@ describe('IndustrySelector', () => {
       />
     );
 
-    // Selected template should have ring styling
     const templateCard = screen.getByText('小売店').closest('[class*="cursor-pointer"]');
     expect(templateCard?.className).toContain('ring');
   });
