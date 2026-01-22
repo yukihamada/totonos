@@ -72,7 +72,8 @@ export async function signInAsTestUser(): Promise<User> {
       try {
         // Check if user already exists (might have been created by another test)
         const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-        const existingUser = existingUsers?.users?.find(u => u.email === TEST_USER_EMAIL);
+        const users = existingUsers?.users || [];
+        const existingUser = users.find((u: { email?: string }) => u.email === TEST_USER_EMAIL);
 
         if (!existingUser) {
           const { error: signUpError } = await supabaseAdmin.auth.admin.createUser({
@@ -135,11 +136,11 @@ export function getTestUser(): User | null {
  */
 export async function cleanupTable(tableName: string, userId?: string): Promise<void> {
   if (userId) {
-    // Delete records for specific user
-    await supabaseAdmin.from(tableName).delete().eq("user_id", userId);
+    // Delete records for specific user - use any to bypass strict typing for dynamic table names
+    await (supabaseAdmin as any).from(tableName).delete().eq("user_id", userId);
   } else {
     // Delete all records (be careful!)
-    await supabaseAdmin.from(tableName).delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    await (supabaseAdmin as any).from(tableName).delete().neq("id", "00000000-0000-0000-0000-000000000000");
   }
 }
 
