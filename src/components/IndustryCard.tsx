@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,9 +9,16 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { IndustryFeatureSelector } from './IndustryFeatureSelector';
-import { 
+import { useAuth } from '@/hooks/useAuth';
+import { useSettings } from '@/hooks/useSettings';
+import { useCurrentCompany } from '@/hooks/useCompany';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import {
   ArrowRight, 
   Star,
   ShoppingCart,
@@ -62,6 +69,8 @@ import {
   Languages,
   Users,
   type LucideIcon,
+  Check,
+  Loader2,
 } from 'lucide-react';
 import type { IndustryTemplate } from '@/types/industry-template';
 
@@ -170,10 +179,21 @@ const menuGroupLabels: Record<string, string> = {
 
 export function IndustryCard({ template }: IndustryCardProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [applyDialogOpen, setApplyDialogOpen] = useState(false);
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
+  const [isApplying, setIsApplying] = useState(false);
+  
+  const { user } = useAuth();
+  const { data: currentCompany } = useCurrentCompany();
+  const { applyTemplateByDbKey } = useSettings();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
   
   // Get the icon component from the map, or use a default
   const IconComponent = template.icon ? iconMap[template.icon] : null;
+
+  // Check if this template is currently applied
+  const isCurrentTemplate = currentCompany?.template_id === template.id;
 
   // Get enabled features from menu_config (default ON)
   const enabledFeatures = template.menu_config?.menu_groups
@@ -199,6 +219,40 @@ export function IndustryCard({ template }: IndustryCardProps) {
     window.location.href = `/auth?template=${template.template_key}${featuresParam}`;
   };
 
+  const handleApplyTemplate = async () => {
+    if (!currentCompany) return;
+    
+    setIsApplying(true);
+    try {
+      // Update company with template
+      const { error } = await supabase
+        .from("companies")
+        .update({ 
+          template_id: template.id,
+          template_applied_at: new Date().toISOString()
+        })
+        .eq("id", currentCompany.id);
+
+      if (error) throw error;
+
+      // Apply menu template
+      applyTemplateByDbKey(template.template_key);
+
+      // Refresh company data
+      queryClient.invalidateQueries({ queryKey: ["current-company"] });
+      
+      toast.success(`${template.name}テンプレートを適用しました`);
+      setApplyDialogOpen(false);
+      
+      // Navigate to dashboard
+      navigate('/dashboard');
+    } catch (error: any) {
+      toast.error("テンプレートの適用に失敗しました", { description: error.message });
+    } finally {
+      setIsApplying(false);
+    }
+  };
+
   return (
     <Card className="h-full transition-all duration-300 ease-out hover:shadow-xl hover:shadow-primary/10 hover:border-primary/50 hover:-translate-y-1 group cursor-pointer">
       <CardContent className="p-6 flex flex-col h-full">
@@ -217,12 +271,20 @@ export function IndustryCard({ template }: IndustryCardProps) {
               <span className="text-2xl transition-transform duration-300 group-hover:scale-110">{template.icon || '🏢'}</span>
             )}
           </div>
-          {template.is_featured && (
-            <Badge variant="secondary" className="gap-1 transition-all duration-300 group-hover:bg-primary group-hover:text-primary-foreground">
-              <Star className="h-3 w-3 transition-transform duration-300 group-hover:rotate-12" />
-              おすすめ
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {isCurrentTemplate && (
+              <Badge variant="default" className="gap-1">
+                <Check className="h-3 w-3" />
+                適用中
+              </Badge>
+            )}
+            {template.is_featured && !isCurrentTemplate && (
+              <Badge variant="secondary" className="gap-1 transition-all duration-300 group-hover:bg-primary group-hover:text-primary-foreground">
+                <Star className="h-3 w-3 transition-transform duration-300 group-hover:rotate-12" />
+                おすすめ
+              </Badge>
+            )}
+          </div>
         </div>
 
         {/* Title & Description */}
@@ -243,7 +305,7 @@ export function IndustryCard({ template }: IndustryCardProps) {
           />
         </div>
 
-        {/* Actions */}
+        {/* Actions - Different based on login status */}
         <div className="flex gap-2 mt-auto pt-3 border-t transition-all duration-300 group-hover:border-primary/30">
           <Link to={`/lp/${template.template_key}`} className="flex-1">
             <Button variant="outline" size="sm" className="w-full text-xs transition-all duration-300 group-hover:border-primary/50 group-hover:text-primary">
@@ -252,54 +314,124 @@ export function IndustryCard({ template }: IndustryCardProps) {
             </Button>
           </Link>
           
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" className="flex-1 text-xs">
-                機能を選んで始める
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  {IconComponent && (
-                    <div 
-                      className="w-8 h-8 rounded-lg flex items-center justify-center"
-                      style={{ backgroundColor: `${template.color || 'hsl(var(--primary))'}20` }}
-                    >
-                      <IconComponent 
-                        className="h-4 w-4" 
-                        style={{ color: template.color || 'hsl(var(--primary))' }}
-                      />
-                    </div>
-                  )}
-                  {template.name}
-                </DialogTitle>
-              </DialogHeader>
-              
-              <IndustryFeatureSelector
-                menuGroups={template.menu_config?.menu_groups}
-                hiddenFeatures={template.menu_config?.hidden_features}
-                emphasizedFeatures={template.menu_config?.emphasized_features}
-                onFeaturesChange={setSelectedFeatures}
-              />
+          {user && currentCompany ? (
+            // Logged in user - show apply button
+            <Dialog open={applyDialogOpen} onOpenChange={setApplyDialogOpen}>
+              <DialogTrigger asChild>
+                <Button 
+                  size="sm" 
+                  className="flex-1 text-xs"
+                  variant={isCurrentTemplate ? "secondary" : "default"}
+                  disabled={isCurrentTemplate}
+                >
+                  {isCurrentTemplate ? "適用中" : "このテンプレートを適用"}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    {IconComponent && (
+                      <div 
+                        className="w-8 h-8 rounded-lg flex items-center justify-center"
+                        style={{ backgroundColor: `${template.color || 'hsl(var(--primary))'}20` }}
+                      >
+                        <IconComponent 
+                          className="h-4 w-4" 
+                          style={{ color: template.color || 'hsl(var(--primary))' }}
+                        />
+                      </div>
+                    )}
+                    {template.name}
+                  </DialogTitle>
+                  <DialogDescription>
+                    このテンプレートを適用すると、メニュー構成が業種に最適化されます。
+                    既存のデータは影響を受けません。
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <IndustryFeatureSelector
+                  menuGroups={template.menu_config?.menu_groups}
+                  hiddenFeatures={template.menu_config?.hidden_features}
+                  emphasizedFeatures={template.menu_config?.emphasized_features}
+                />
 
-              <div className="flex gap-2 pt-4">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => setDialogOpen(false)}
-                >
-                  キャンセル
+                <div className="flex gap-2 pt-4">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setApplyDialogOpen(false)}
+                    disabled={isApplying}
+                  >
+                    キャンセル
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    onClick={handleApplyTemplate}
+                    disabled={isApplying}
+                  >
+                    {isApplying ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        適用中...
+                      </>
+                    ) : (
+                      "テンプレートを適用"
+                    )}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          ) : (
+            // Not logged in - show feature selector dialog
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="flex-1 text-xs">
+                  機能を選んで始める
                 </Button>
-                <Button
-                  className="flex-1"
-                  onClick={handleStartWithFeatures}
-                >
-                  この構成で始める
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    {IconComponent && (
+                      <div 
+                        className="w-8 h-8 rounded-lg flex items-center justify-center"
+                        style={{ backgroundColor: `${template.color || 'hsl(var(--primary))'}20` }}
+                      >
+                        <IconComponent 
+                          className="h-4 w-4" 
+                          style={{ color: template.color || 'hsl(var(--primary))' }}
+                        />
+                      </div>
+                    )}
+                    {template.name}
+                  </DialogTitle>
+                </DialogHeader>
+                
+                <IndustryFeatureSelector
+                  menuGroups={template.menu_config?.menu_groups}
+                  hiddenFeatures={template.menu_config?.hidden_features}
+                  emphasizedFeatures={template.menu_config?.emphasized_features}
+                  onFeaturesChange={setSelectedFeatures}
+                />
+
+                <div className="flex gap-2 pt-4">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setDialogOpen(false)}
+                  >
+                    キャンセル
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    onClick={handleStartWithFeatures}
+                  >
+                    この構成で始める
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </CardContent>
     </Card>
