@@ -504,6 +504,58 @@ export function useSettings() {
     setSettings(prev => ({ ...prev, mobileNavItems: items }));
   }, []);
 
+  // Reorder groups by swapping positions
+  const reorderGroups = useCallback((sourceId: string, targetId: string) => {
+    setSettings(prev => {
+      const groups = [...prev.menuGroups];
+      const sourceIndex = groups.findIndex(g => g.id === sourceId);
+      const targetIndex = groups.findIndex(g => g.id === targetId);
+      
+      if (sourceIndex === -1 || targetIndex === -1) return prev;
+
+      // Swap order values
+      const sourceOrder = groups[sourceIndex].order;
+      const targetOrder = groups[targetIndex].order;
+      
+      const newGroups = groups.map(g => {
+        if (g.id === sourceId) return { ...g, order: targetOrder };
+        if (g.id === targetId) return { ...g, order: sourceOrder };
+        return g;
+      });
+      
+      return { ...prev, menuGroups: newGroups };
+    });
+  }, []);
+
+  // Reorder items within a group
+  const reorderItems = useCallback((groupId: string, sourceId: string, targetId: string) => {
+    setSettings(prev => {
+      const newGroups = prev.menuGroups.map(group => {
+        if (group.id !== groupId) return group;
+        
+        const items = [...group.items];
+        const sourceIndex = items.findIndex(i => i.id === sourceId);
+        const targetIndex = items.findIndex(i => i.id === targetId);
+        
+        if (sourceIndex === -1 || targetIndex === -1) return group;
+
+        // Swap order values
+        const sourceOrder = items[sourceIndex].order;
+        const targetOrder = items[targetIndex].order;
+        
+        const newItems = items.map(i => {
+          if (i.id === sourceId) return { ...i, order: targetOrder };
+          if (i.id === targetId) return { ...i, order: sourceOrder };
+          return i;
+        });
+        
+        return { ...group, items: newItems };
+      });
+      
+      return { ...prev, menuGroups: newGroups };
+    });
+  }, []);
+
   const applyTemplate = useCallback((templateId: string) => {
     const template = industryTemplates.find(t => t.id === templateId);
     if (template) {
@@ -607,6 +659,8 @@ export function useSettings() {
     updateMenuItem,
     resetToDefaults,
     updateMobileNavItems,
+    reorderGroups,
+    reorderItems,
     applyTemplate,
     applyTemplateByDbKey,
     isProtectedItem,

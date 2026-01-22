@@ -534,8 +534,8 @@ export function AppSidebar({ onChatOpen }: AppSidebarProps) {
                       <SidebarMenuButton asChild tooltip={item.title}>
                         <NavLink
                           to={url}
-                          className="flex items-center gap-2 hover:bg-accent"
-                          activeClassName="bg-accent font-medium"
+                          className="flex items-center gap-2.5 hover:bg-accent rounded-md transition-colors border-l-2 border-transparent"
+                          activeClassName="bg-primary/10 text-primary font-semibold border-l-2 !border-primary"
                         >
                           <Icon className="h-4 w-4 shrink-0" />
                           <span className="truncate group-data-[collapsible=icon]:hidden">{item.title}</span>
@@ -557,13 +557,15 @@ export function AppSidebar({ onChatOpen }: AppSidebarProps) {
             >
               <SidebarGroup className="py-1">
                 <CollapsibleTrigger asChild>
-                  <SidebarGroupLabel className="cursor-pointer hover:bg-accent/50 rounded-md transition-colors px-2 py-1.5 flex items-center justify-between text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    <div className="flex items-center gap-2">
-                      <GroupIcon className="h-3.5 w-3.5 shrink-0 group-data-[collapsible=icon]:hidden" />
+                  <SidebarGroupLabel className="cursor-pointer hover:bg-accent rounded-md transition-colors px-3 py-2 flex items-center justify-between text-xs font-semibold text-foreground/80 uppercase tracking-wider">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-1 rounded-md bg-primary/10 group-data-[collapsible=icon]:hidden">
+                        <GroupIcon className="h-4 w-4 shrink-0 text-primary" />
+                      </div>
                       <span className="group-data-[collapsible=icon]:hidden">{group.label}</span>
                     </div>
                     <ChevronDown className={cn(
-                      "h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-data-[collapsible=icon]:hidden",
+                      "h-4 w-4 shrink-0 transition-transform duration-200 group-data-[collapsible=icon]:hidden text-muted-foreground",
                       isCollapsed ? "-rotate-90" : "rotate-0"
                     )} />
                   </SidebarGroupLabel>
@@ -580,8 +582,8 @@ export function AppSidebar({ onChatOpen }: AppSidebarProps) {
                             <SidebarMenuButton asChild tooltip={item.title}>
                               <NavLink
                                 to={url}
-                                className="flex items-center gap-2 hover:bg-accent"
-                                activeClassName="bg-accent font-medium"
+                                className="flex items-center gap-2.5 hover:bg-accent rounded-md transition-colors ml-1 border-l-2 border-transparent"
+                                activeClassName="bg-primary/10 text-primary font-semibold border-l-2 !border-primary"
                               >
                                 <Icon className="h-4 w-4 shrink-0" />
                                 <span className="truncate group-data-[collapsible=icon]:hidden">{item.title}</span>
