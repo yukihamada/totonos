@@ -21,10 +21,11 @@ import { toast } from "sonner";
 interface CompanySetupDialogProps {
   open: boolean;
   onComplete: (companyName: string, displayName?: string) => Promise<void>;
+  onDialogClose?: () => void;
   isLoading?: boolean;
 }
 
-export function CompanySetupDialog({ open, onComplete, isLoading }: CompanySetupDialogProps) {
+export function CompanySetupDialog({ open, onComplete, onDialogClose, isLoading }: CompanySetupDialogProps) {
   const [step, setStep] = useState<"company" | "industry">("company");
   const [companyName, setCompanyName] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -93,6 +94,9 @@ export function CompanySetupDialog({ open, onComplete, isLoading }: CompanySetup
         queryClient.invalidateQueries({ queryKey: ["current-company"] });
         
         toast.success("業種テンプレートを適用しました");
+        
+        // Close dialog after template is applied
+        onDialogClose?.();
       }
     } catch (err) {
       console.error("Failed to apply template:", err);
