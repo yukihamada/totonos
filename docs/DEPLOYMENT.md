@@ -2,9 +2,81 @@
 
 Totonos は様々なクラウドプラットフォームにデプロイできます。
 
+## アーキテクチャ
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    クライアント (ブラウザ)                      │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│           フロントエンド (React/Vite)                         │
+│  Vercel / Cloudflare / Netlify / AWS / Firebase / Docker    │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│              バックエンド (Supabase)                          │
+│     Supabase Cloud / Self-hosted (Docker)                   │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐       │
+│  │PostgreSQL│ │   Auth   │ │ Storage  │ │ Realtime │       │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Supabase（データベース）の選択肢
+
+### Option 1: Supabase Cloud（推奨）
+
+最も簡単な方法。[supabase.com](https://supabase.com) でプロジェクトを作成。
+
+```bash
+# プロジェクト作成後、以下を取得:
+VITE_SUPABASE_URL=https://xxxxx.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+**料金:**
+- Free: 500MB DB, 1GB Storage, 2GB Transfer
+- Pro: $25/月〜
+
+### Option 2: Self-hosted Supabase
+
+完全なコントロールが必要な場合。
+
+```bash
+# 環境変数を設定
+cp .env.supabase.example .env.supabase
+# .env.supabase を編集
+
+# 起動
+docker-compose -f docker-compose.supabase.yml up -d
+
+# アクセス
+# - Totonos: http://localhost:3000
+# - Supabase API: http://localhost:8000
+# - Supabase Studio: http://localhost:3001
+```
+
+**必要なリソース:**
+- メモリ: 4GB以上推奨
+- ストレージ: 20GB以上
+
+### Option 3: 各クラウドのマネージドPostgreSQL
+
+Supabase の代わりに以下を使用可能（要カスタマイズ）:
+- **AWS RDS** (PostgreSQL)
+- **Google Cloud SQL**
+- **Azure Database for PostgreSQL**
+- **PlanetScale** (MySQL互換)
+- **Neon** (Serverless PostgreSQL)
+
+---
+
 ## 必要な環境変数
 
-すべてのプラットフォームで以下の環境変数を設定してください：
+すべてのフロントエンドプラットフォームで以下を設定：
 
 | 変数名 | 説明 |
 |--------|------|
@@ -12,6 +84,8 @@ Totonos は様々なクラウドプラットフォームにデプロイできま
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase anon key |
 
 ---
+
+## フロントエンドのデプロイ
 
 ## Vercel
 
