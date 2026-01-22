@@ -1059,14 +1059,14 @@ export const industryTemplates: IndustryTemplate[] = [
       },
       {
         id: 'emr',
-        label: '電子カルテ',
+        label: 'EMR',
         visible: true,
         order: 1,
         items: [
-          { id: 'emr-dashboard', title: '電子カルテ', visible: true, order: 0 },
+          { id: 'emr-dashboard', title: 'EMRダッシュボード', visible: true, order: 0 },
           { id: 'emr-reception', title: '受付', visible: true, order: 1 },
           { id: 'emr-patients', title: '患者管理', visible: true, order: 2 },
-          { id: 'emr-records', title: 'カルテ', visible: true, order: 3 },
+          { id: 'emr-records', title: '診療記録', visible: true, order: 3 },
           { id: 'emr-hpki', title: 'HPKI署名', visible: true, order: 4 },
         ],
       },

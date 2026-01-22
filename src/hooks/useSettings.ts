@@ -268,10 +268,10 @@ const defaultMenuGroups: MenuGroupConfig[] = [
     enabled: false, // 専門機能のためデフォルトOFF
     order: 14,
     items: [
-      { id: 'emr-dashboard', title: '電子カルテ', visible: false, enabled: false, order: 0 },
+      { id: 'emr-dashboard', title: 'EMRダッシュボード', visible: false, enabled: false, order: 0 },
       { id: 'emr-reception', title: '受付', visible: false, enabled: false, order: 1 },
       { id: 'emr-patients', title: '患者管理', visible: false, enabled: false, order: 2 },
-      { id: 'emr-records', title: 'カルテ', visible: false, enabled: false, order: 3 },
+      { id: 'emr-records', title: '診療記録', visible: false, enabled: false, order: 3 },
       { id: 'emr-sales', title: '売上レポート', visible: false, enabled: false, order: 4 },
       { id: 'emr-hpki', title: 'HPKI署名', visible: false, enabled: false, order: 5 },
       { id: 'emr-inquiry', title: 'Web問診', visible: false, enabled: false, order: 6 },
