@@ -2,21 +2,17 @@
 #
 # Totonos ワンコマンドセットアップ
 #
-# これ1つで:
-#   1. 依存関係インストール
-#   2. Supabase プロジェクト作成
-#   3. データベースマイグレーション
-#   4. 選択したクラウドにデプロイ
+# 完全自動:
+#   1. CLIをインストール
+#   2. Supabase プロジェクト作成 & 設定を自動取得
+#   3. クラウドにデプロイ
 #
 # 使い方:
 #   curl -fsSL https://raw.githubusercontent.com/yukihamada/totonos/main/quickstart.sh | bash
-#   または
-#   ./quickstart.sh
 #
 
 set -e
 
-# 色
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -25,7 +21,6 @@ CYAN='\033[0;36m'
 BOLD='\033[1m'
 NC='\033[0m'
 
-# ロゴ
 logo() {
   clear
   echo -e "${CYAN}"
@@ -36,164 +31,201 @@ logo() {
   echo "     ██║   ╚██████╔╝   ██║   ╚██████╔╝██║ ╚████║╚██████╔╝███████║"
   echo "     ╚═╝    ╚═════╝    ╚═╝    ╚═════╝ ╚═╝  ╚═══╝ ╚═════╝ ╚══════╝"
   echo -e "${NC}"
-  echo -e "${BOLD}  10-in-1 Business OS - ワンコマンドセットアップ${NC}"
+  echo -e "${BOLD}  完全自動セットアップ${NC}"
   echo ""
 }
 
-# スピナー
-spinner() {
-  local pid=$1
-  local delay=0.1
-  local spinstr='|/-\'
-  while [ "$(ps a | awk '{print $1}' | grep $pid)" ]; do
-    local temp=${spinstr#?}
-    printf " [%c]  " "$spinstr"
-    local spinstr=$temp${spinstr%"$temp"}
-    sleep $delay
-    printf "\b\b\b\b\b\b"
-  done
-  printf "    \b\b\b\b"
-}
+step() { echo -e "${BLUE}▶${NC} $1"; }
+success() { echo -e "${GREEN}✓${NC} $1"; }
+error() { echo -e "${RED}✗${NC} $1"; }
+warn() { echo -e "${YELLOW}⚠${NC} $1"; }
 
-# ステップ表示
-step() {
-  echo -e "${BLUE}▶${NC} $1"
-}
+check_command() { command -v $1 &> /dev/null; }
 
-# 成功表示
-success() {
-  echo -e "${GREEN}✓${NC} $1"
-}
-
-# エラー表示
-error() {
-  echo -e "${RED}✗${NC} $1"
-}
-
-# 警告表示
-warn() {
-  echo -e "${YELLOW}⚠${NC} $1"
-}
-
-# コマンド存在チェック
-check_command() {
-  if command -v $1 &> /dev/null; then
-    return 0
-  else
-    return 1
-  fi
-}
-
-# Node.js チェック・インストール
+# ===================
+# Node.js
+# ===================
 setup_node() {
   step "Node.js をチェック..."
 
   if check_command node; then
     NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
     if [ "$NODE_VERSION" -ge 18 ]; then
-      success "Node.js $(node -v) が見つかりました"
+      success "Node.js $(node -v)"
       return 0
     fi
   fi
 
-  warn "Node.js 18+ が必要です"
-  echo ""
-  echo "インストール方法:"
-  echo "  macOS:   brew install node"
-  echo "  Ubuntu:  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && sudo apt-get install -y nodejs"
-  echo "  Windows: https://nodejs.org/ からダウンロード"
-  echo ""
-  exit 1
+  warn "Node.js 18+ をインストール中..."
+
+  if check_command brew; then
+    brew install node
+  elif check_command apt-get; then
+    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+    sudo apt-get install -y nodejs
+  else
+    error "Node.js を手動でインストールしてください: https://nodejs.org/"
+    exit 1
+  fi
+
+  success "Node.js インストール完了"
 }
 
-# Git チェック
-setup_git() {
-  step "Git をチェック..."
+# ===================
+# Supabase CLI
+# ===================
+setup_supabase_cli() {
+  step "Supabase CLI をチェック..."
 
-  if check_command git; then
-    success "Git が見つかりました"
+  if check_command supabase; then
+    success "Supabase CLI が見つかりました"
     return 0
   fi
 
-  error "Git がインストールされていません"
-  exit 1
-}
+  warn "Supabase CLI をインストール中..."
 
-# リポジトリクローン
-clone_repo() {
-  step "リポジトリをクローン..."
-
-  if [ -d "totonos" ]; then
-    warn "totonos ディレクトリが既に存在します"
-    cd totonos
-    git pull origin main
+  if check_command brew; then
+    brew install supabase/tap/supabase
+  elif check_command npm; then
+    npm i -g supabase
   else
-    git clone https://github.com/yukihamada/totonos.git
-    cd totonos
+    error "Supabase CLI をインストールできません"
+    exit 1
   fi
 
-  success "リポジトリ準備完了"
+  success "Supabase CLI インストール完了"
 }
 
-# 依存関係インストール
-install_deps() {
-  step "依存関係をインストール..."
-  npm install --silent
-  success "依存関係インストール完了"
+# ===================
+# Supabase ログイン & プロジェクト作成
+# ===================
+setup_supabase_auto() {
+  step "Supabase にログイン..."
+
+  # ログイン状態確認
+  if ! supabase projects list &>/dev/null; then
+    echo ""
+    echo "ブラウザが開きます。Supabase にログインしてください。"
+    echo ""
+    supabase login
+  fi
+
+  success "Supabase ログイン完了"
+
+  # プロジェクト選択または作成
+  echo ""
+  echo -e "${BOLD}Supabase プロジェクト${NC}"
+  echo ""
+  echo "  1) 新規プロジェクトを作成"
+  echo "  2) 既存プロジェクトを使用"
+  echo ""
+  read -p "選択 [1-2]: " project_choice
+
+  if [ "$project_choice" = "1" ]; then
+    create_supabase_project
+  else
+    select_supabase_project
+  fi
 }
 
-# Supabase セットアップ
-setup_supabase() {
-  echo ""
-  echo -e "${BOLD}Supabase のセットアップ${NC}"
-  echo ""
-  echo "Supabase はデータベースと認証を提供します。"
-  echo ""
-  echo "選択してください:"
-  echo "  1) Supabase Cloud を使用 (推奨・無料枠あり)"
-  echo "  2) 既存の Supabase プロジェクトを使用"
-  echo "  3) Self-hosted Supabase (Docker)"
-  echo "  4) デモモード (機能制限あり)"
-  echo ""
-  read -p "選択 [1-4]: " supabase_choice
+# Supabase プロジェクト新規作成
+create_supabase_project() {
+  step "新規プロジェクトを作成..."
 
-  case $supabase_choice in
-    1)
-      setup_supabase_cloud
-      ;;
-    2)
-      setup_supabase_existing
-      ;;
-    3)
-      setup_supabase_selfhosted
-      ;;
-    4)
-      setup_demo_mode
-      ;;
-    *)
-      setup_supabase_cloud
-      ;;
+  # 組織一覧を取得
+  echo ""
+  echo "組織を選択:"
+  ORGS=$(supabase orgs list --output json 2>/dev/null || echo "[]")
+
+  if [ "$ORGS" = "[]" ]; then
+    error "組織が見つかりません。https://supabase.com で組織を作成してください。"
+    exit 1
+  fi
+
+  echo "$ORGS" | jq -r '.[] | "\(.id): \(.name)"'
+  echo ""
+  read -p "組織ID: " ORG_ID
+
+  # プロジェクト名
+  read -p "プロジェクト名 [totonos]: " PROJECT_NAME
+  PROJECT_NAME=${PROJECT_NAME:-totonos}
+
+  # DBパスワード生成
+  DB_PASS=$(openssl rand -base64 24 | tr -d '/+=' | cut -c1-24)
+
+  # リージョン
+  echo ""
+  echo "リージョン:"
+  echo "  1) ap-northeast-1 (東京)"
+  echo "  2) ap-southeast-1 (シンガポール)"
+  echo "  3) us-west-1 (米国西部)"
+  read -p "選択 [1]: " region_choice
+
+  case $region_choice in
+    2) REGION="ap-southeast-1" ;;
+    3) REGION="us-west-1" ;;
+    *) REGION="ap-northeast-1" ;;
   esac
+
+  # プロジェクト作成
+  step "プロジェクトを作成中 (数分かかります)..."
+
+  PROJECT_OUTPUT=$(supabase projects create "$PROJECT_NAME" \
+    --org-id "$ORG_ID" \
+    --db-password "$DB_PASS" \
+    --region "$REGION" \
+    --output json 2>&1)
+
+  PROJECT_ID=$(echo "$PROJECT_OUTPUT" | jq -r '.id // empty')
+
+  if [ -z "$PROJECT_ID" ]; then
+    error "プロジェクト作成に失敗しました"
+    echo "$PROJECT_OUTPUT"
+    exit 1
+  fi
+
+  success "プロジェクト作成完了: $PROJECT_ID"
+
+  # API キー取得
+  get_project_keys "$PROJECT_ID"
 }
 
-# Supabase Cloud 新規作成
-setup_supabase_cloud() {
-  step "Supabase Cloud をセットアップ..."
+# 既存プロジェクト選択
+select_supabase_project() {
+  step "プロジェクト一覧を取得..."
 
   echo ""
-  echo "1. https://supabase.com にアクセス"
-  echo "2. GitHub でサインアップ/ログイン"
-  echo "3. 「New Project」をクリック"
-  echo "4. プロジェクト名: totonos"
-  echo "5. パスワードを設定"
-  echo "6. リージョン: Northeast Asia (Tokyo)"
-  echo "7. 「Create new project」をクリック"
+  supabase projects list
   echo ""
-  echo "プロジェクト作成後、Settings > API から:"
-  echo ""
+  read -p "プロジェクトID (例: abcdefghijklmnop): " PROJECT_ID
 
-  read -p "Project URL を入力: " SUPABASE_URL
-  read -p "anon public key を入力: " SUPABASE_ANON_KEY
+  get_project_keys "$PROJECT_ID"
+}
+
+# APIキー取得
+get_project_keys() {
+  local PROJECT_ID=$1
+
+  step "API キーを取得中..."
+
+  # プロジェクトにリンク
+  supabase link --project-ref "$PROJECT_ID" 2>/dev/null || true
+
+  # API キー取得
+  KEYS_OUTPUT=$(supabase projects api-keys --project-ref "$PROJECT_ID" --output json 2>/dev/null)
+
+  if [ -z "$KEYS_OUTPUT" ]; then
+    # 別の方法で取得
+    warn "API キーを手動で入力してください"
+    echo ""
+    echo "https://supabase.com/dashboard/project/$PROJECT_ID/settings/api"
+    echo ""
+    read -p "Project URL: " SUPABASE_URL
+    read -p "anon public key: " SUPABASE_ANON_KEY
+  else
+    SUPABASE_ANON_KEY=$(echo "$KEYS_OUTPUT" | jq -r '.[] | select(.name=="anon") | .api_key')
+    SUPABASE_URL="https://${PROJECT_ID}.supabase.co"
+  fi
 
   # .env 作成
   cat > .env << EOF
@@ -202,258 +234,200 @@ VITE_SUPABASE_PUBLISHABLE_KEY=$SUPABASE_ANON_KEY
 EOF
 
   success "Supabase 設定完了"
+  echo ""
+  echo "  URL: $SUPABASE_URL"
+  echo "  Key: ${SUPABASE_ANON_KEY:0:20}..."
+  echo ""
 
   # マイグレーション
-  run_migrations
+  run_migrations "$PROJECT_ID"
 }
 
-# 既存 Supabase
-setup_supabase_existing() {
-  step "既存の Supabase プロジェクトを設定..."
-
-  read -p "Project URL (例: https://xxxxx.supabase.co): " SUPABASE_URL
-  read -p "anon public key: " SUPABASE_ANON_KEY
-
-  cat > .env << EOF
-VITE_SUPABASE_URL=$SUPABASE_URL
-VITE_SUPABASE_PUBLISHABLE_KEY=$SUPABASE_ANON_KEY
-EOF
-
-  success "Supabase 設定完了"
-  run_migrations
-}
-
-# Self-hosted Supabase
-setup_supabase_selfhosted() {
-  step "Self-hosted Supabase をセットアップ..."
-
-  if ! check_command docker; then
-    error "Docker が必要です"
-    echo "インストール: https://docs.docker.com/get-docker/"
-    exit 1
-  fi
-
-  # 環境変数生成
-  JWT_SECRET=$(openssl rand -base64 32)
-  POSTGRES_PASSWORD=$(openssl rand -base64 24)
-
-  cat > .env.supabase << EOF
-POSTGRES_PASSWORD=$POSTGRES_PASSWORD
-POSTGRES_DB=postgres
-JWT_SECRET=$JWT_SECRET
-JWT_EXPIRY=3600
-ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
-SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
-SITE_URL=http://localhost:3000
-API_EXTERNAL_URL=http://localhost:8000
-SMTP_HOST=
-SMTP_PORT=587
-SMTP_USER=
-SMTP_PASS=
-SMTP_ADMIN_EMAIL=admin@example.com
-DISABLE_SIGNUP=false
-ENABLE_EMAIL_AUTOCONFIRM=true
-ENABLE_EMAIL_SIGNUP=true
-EOF
-
-  cat > .env << EOF
-VITE_SUPABASE_URL=http://localhost:8000
-VITE_SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
-EOF
-
-  step "Docker コンテナを起動..."
-  docker-compose -f docker-compose.supabase.yml up -d
-
-  echo "Supabase の起動を待機中..."
-  sleep 30
-
-  success "Self-hosted Supabase 起動完了"
-}
-
-# デモモード
-setup_demo_mode() {
-  step "デモモードを設定..."
-
-  warn "デモモードでは一部機能が制限されます"
-
-  cat > .env << EOF
-VITE_SUPABASE_URL=https://demo.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=demo-key
-VITE_DEMO_MODE=true
-EOF
-
-  success "デモモード設定完了"
-}
-
-# マイグレーション実行
+# マイグレーション
 run_migrations() {
-  step "データベースマイグレーションを実行..."
+  local PROJECT_ID=$1
 
-  if check_command supabase; then
-    supabase db push --linked || true
+  step "データベースをセットアップ..."
+
+  if [ -d "supabase/migrations" ]; then
+    supabase db push --linked 2>/dev/null || supabase db push --project-ref "$PROJECT_ID" 2>/dev/null || true
     success "マイグレーション完了"
-  else
-    warn "Supabase CLI がないためマイグレーションをスキップ"
-    echo "  手動で実行: npx supabase db push"
   fi
 }
 
+# ===================
 # デプロイ先選択
+# ===================
 choose_deploy() {
   echo ""
   echo -e "${BOLD}デプロイ先を選択${NC}"
   echo ""
-  echo "  1) Vercel (推奨・最速)"
-  echo "  2) Cloudflare Pages"
-  echo "  3) Netlify"
-  echo "  4) Firebase Hosting"
-  echo "  5) Fly.io"
-  echo "  6) ローカルで実行のみ"
+  echo "  1) Vercel      - 最速、推奨"
+  echo "  2) Cloudflare  - 高速CDN"
+  echo "  3) Netlify     - 簡単"
+  echo "  4) ローカルのみ"
   echo ""
-  read -p "選択 [1-6]: " deploy_choice
+  read -p "選択 [1-4]: " deploy_choice
 
   case $deploy_choice in
-    1) deploy_to_vercel ;;
-    2) deploy_to_cloudflare ;;
-    3) deploy_to_netlify ;;
-    4) deploy_to_firebase ;;
-    5) deploy_to_fly ;;
-    6) run_local ;;
-    *) deploy_to_vercel ;;
+    1) deploy_vercel ;;
+    2) deploy_cloudflare ;;
+    3) deploy_netlify ;;
+    *) run_local ;;
   esac
 }
 
-# Vercel デプロイ
-deploy_to_vercel() {
+# ===================
+# Vercel デプロイ (自動設定)
+# ===================
+deploy_vercel() {
   step "Vercel にデプロイ..."
 
+  # Vercel CLI インストール
   if ! check_command vercel; then
     npm i -g vercel
   fi
 
-  vercel --prod
+  # ログイン確認
+  if ! vercel whoami &>/dev/null; then
+    echo ""
+    echo "Vercel にログインしてください:"
+    vercel login
+  fi
 
+  # 環境変数を設定してデプロイ
+  echo ""
+  step "環境変数を設定..."
+
+  # .env から読み込み
+  source .env
+
+  # デプロイ (初回は対話式、2回目以降は自動)
+  vercel --prod \
+    -e VITE_SUPABASE_URL="$VITE_SUPABASE_URL" \
+    -e VITE_SUPABASE_PUBLISHABLE_KEY="$VITE_SUPABASE_PUBLISHABLE_KEY"
+
+  echo ""
   success "Vercel デプロイ完了!"
+
+  # デプロイURLを取得
+  DEPLOY_URL=$(vercel inspect --output json 2>/dev/null | jq -r '.url // empty')
+  if [ -n "$DEPLOY_URL" ]; then
+    echo ""
+    echo -e "${GREEN}🚀 https://$DEPLOY_URL${NC}"
+  fi
 }
 
-# Cloudflare デプロイ
-deploy_to_cloudflare() {
+# ===================
+# Cloudflare デプロイ (自動設定)
+# ===================
+deploy_cloudflare() {
   step "Cloudflare Pages にデプロイ..."
 
   if ! check_command wrangler; then
     npm i -g wrangler
+  fi
+
+  # ログイン確認
+  if ! wrangler whoami &>/dev/null; then
+    echo ""
     wrangler login
   fi
 
+  # ビルド
   npm run build
+
+  # デプロイ
   wrangler pages deploy dist --project-name=totonos
 
   success "Cloudflare デプロイ完了!"
 }
 
-# Netlify デプロイ
-deploy_to_netlify() {
+# ===================
+# Netlify デプロイ (自動設定)
+# ===================
+deploy_netlify() {
   step "Netlify にデプロイ..."
 
   if ! check_command netlify; then
     npm i -g netlify-cli
+  fi
+
+  # ログイン確認
+  if ! netlify status &>/dev/null; then
     netlify login
   fi
 
+  # ビルド
   npm run build
-  netlify deploy --prod --dir=dist
+
+  # 環境変数設定 & デプロイ
+  source .env
+
+  netlify deploy --prod --dir=dist \
+    --build-env VITE_SUPABASE_URL="$VITE_SUPABASE_URL" \
+    --build-env VITE_SUPABASE_PUBLISHABLE_KEY="$VITE_SUPABASE_PUBLISHABLE_KEY"
 
   success "Netlify デプロイ完了!"
 }
 
-# Firebase デプロイ
-deploy_to_firebase() {
-  step "Firebase にデプロイ..."
-
-  if ! check_command firebase; then
-    npm i -g firebase-tools
-    firebase login
-  fi
-
-  npm run build
-  firebase deploy --only hosting
-
-  success "Firebase デプロイ完了!"
-}
-
-# Fly.io デプロイ
-deploy_to_fly() {
-  step "Fly.io にデプロイ..."
-
-  if ! check_command flyctl; then
-    curl -L https://fly.io/install.sh | sh
-    export PATH="$HOME/.fly/bin:$PATH"
-    flyctl auth login
-  fi
-
-  flyctl launch --now
-
-  success "Fly.io デプロイ完了!"
-}
-
+# ===================
 # ローカル実行
+# ===================
 run_local() {
-  step "ローカルサーバーを起動..."
-
   echo ""
-  echo -e "${GREEN}セットアップ完了!${NC}"
+  success "セットアップ完了!"
   echo ""
-  echo "以下のコマンドでローカル起動:"
-  echo ""
-  echo "  cd totonos"
+  echo "ローカル起動:"
   echo "  npm run dev"
   echo ""
   echo "ブラウザで http://localhost:5173 を開く"
   echo ""
 
-  read -p "今すぐ起動しますか? [y/N]: " run_now
-
-  if [ "$run_now" = "y" ] || [ "$run_now" = "Y" ]; then
+  read -p "今すぐ起動? [Y/n]: " run_now
+  if [ "$run_now" != "n" ] && [ "$run_now" != "N" ]; then
     npm run dev
   fi
 }
 
-# 完了メッセージ
-finish() {
-  echo ""
-  echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-  echo -e "${GREEN}  🎉 セットアップ完了!${NC}"
-  echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-  echo ""
-  echo "次のステップ:"
-  echo "  1. デプロイされたURLにアクセス"
-  echo "  2. アカウントを作成"
-  echo "  3. 業種を選択して開始!"
-  echo ""
-  echo "ドキュメント: https://github.com/yukihamada/totonos"
-  echo ""
+# ===================
+# リポジトリ準備
+# ===================
+prepare_repo() {
+  if [ -f "package.json" ] && grep -q '"name": "totonos"' package.json 2>/dev/null; then
+    step "既存プロジェクトを使用"
+  else
+    step "リポジトリをクローン..."
+    git clone https://github.com/yukihamada/totonos.git
+    cd totonos
+  fi
+
+  step "依存関係をインストール..."
+  npm install --silent
+  success "準備完了"
 }
 
 # ===================
-# メイン処理
+# メイン
 # ===================
 
 logo
 
-# 前提条件チェック
+# 前提条件
 setup_node
-setup_git
+check_command git || { error "Git が必要です"; exit 1; }
+
+# リポジトリ準備
+prepare_repo
+
+# Supabase セットアップ
+setup_supabase_cli
+setup_supabase_auto
+
+# デプロイ
+choose_deploy
 
 echo ""
-
-# 既にtotonos内にいるか確認
-if [ -f "package.json" ] && grep -q '"name": "totonos"' package.json; then
-  step "既存のプロジェクトを使用..."
-else
-  clone_repo
-fi
-
-install_deps
-setup_supabase
-choose_deploy
-finish
+echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${GREEN}  🎉 完了！${NC}"
+echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
