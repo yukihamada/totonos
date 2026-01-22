@@ -675,6 +675,13 @@ export type Database = {
             referencedRelation: "members"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "class_bookings_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       class_schedules: {
@@ -4841,6 +4848,13 @@ export type Database = {
             referencedRelation: "members"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "member_checkins_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       member_permissions: {
@@ -4940,6 +4954,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "member_purchases_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members_safe"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "member_purchases_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
@@ -5003,6 +5024,13 @@ export type Database = {
             columns: ["member_id"]
             isOneToOne: false
             referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_subscriptions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members_safe"
             referencedColumns: ["id"]
           },
           {
@@ -7633,49 +7661,31 @@ export type Database = {
       }
       contract_signatures_safe: {
         Row: {
-          blockchain_tx_hash: string | null
-          blockchain_verified_at: string | null
           contract_id: string | null
           created_at: string | null
           id: string | null
-          signatory_email_masked: string | null
+          signatory_email: string | null
           signatory_name: string | null
           signatory_type: Database["public"]["Enums"]["signatory_type"] | null
-          signature_method:
-            | Database["public"]["Enums"]["signature_method"]
-            | null
           signed_at: string | null
-          updated_at: string | null
         }
         Insert: {
-          blockchain_tx_hash?: string | null
-          blockchain_verified_at?: string | null
           contract_id?: string | null
           created_at?: string | null
           id?: string | null
-          signatory_email_masked?: never
+          signatory_email?: string | null
           signatory_name?: string | null
           signatory_type?: Database["public"]["Enums"]["signatory_type"] | null
-          signature_method?:
-            | Database["public"]["Enums"]["signature_method"]
-            | null
           signed_at?: string | null
-          updated_at?: string | null
         }
         Update: {
-          blockchain_tx_hash?: string | null
-          blockchain_verified_at?: string | null
           contract_id?: string | null
           created_at?: string | null
           id?: string | null
-          signatory_email_masked?: never
+          signatory_email?: string | null
           signatory_name?: string | null
           signatory_type?: Database["public"]["Enums"]["signatory_type"] | null
-          signature_method?:
-            | Database["public"]["Enums"]["signature_method"]
-            | null
           signed_at?: string | null
-          updated_at?: string | null
         }
         Relationships: [
           {
@@ -7688,6 +7698,69 @@ export type Database = {
         ]
       }
       employees_public: {
+        Row: {
+          company_id: string | null
+          created_at: string | null
+          department: string | null
+          employee_number: string | null
+          employment_type: Database["public"]["Enums"]["employment_type"] | null
+          hire_date: string | null
+          id: string | null
+          name: string | null
+          name_kana: string | null
+          position: string | null
+          resignation_date: string | null
+          status: Database["public"]["Enums"]["employee_status"] | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string | null
+          department?: string | null
+          employee_number?: string | null
+          employment_type?:
+            | Database["public"]["Enums"]["employment_type"]
+            | null
+          hire_date?: string | null
+          id?: string | null
+          name?: string | null
+          name_kana?: string | null
+          position?: string | null
+          resignation_date?: string | null
+          status?: Database["public"]["Enums"]["employee_status"] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string | null
+          department?: string | null
+          employee_number?: string | null
+          employment_type?:
+            | Database["public"]["Enums"]["employment_type"]
+            | null
+          hire_date?: string | null
+          id?: string | null
+          name?: string | null
+          name_kana?: string | null
+          position?: string | null
+          resignation_date?: string | null
+          status?: Database["public"]["Enums"]["employee_status"] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employees_safe: {
         Row: {
           company_id: string | null
           created_at: string | null
@@ -7756,62 +7829,55 @@ export type Database = {
           },
         ]
       }
-      employees_safe: {
+      members_safe: {
         Row: {
           company_id: string | null
           created_at: string | null
-          department: string | null
-          employee_number: string | null
-          employment_type: Database["public"]["Enums"]["employment_type"] | null
-          hire_date: string | null
+          expire_date: string | null
           id: string | null
+          join_date: string | null
+          member_number: string | null
+          membership_type: string | null
           name: string | null
           name_kana: string | null
-          position: string | null
-          resignation_date: string | null
-          status: Database["public"]["Enums"]["employee_status"] | null
+          notes: string | null
+          photo_url: string | null
+          status: string | null
           updated_at: string | null
-          user_id: string | null
         }
         Insert: {
           company_id?: string | null
           created_at?: string | null
-          department?: string | null
-          employee_number?: string | null
-          employment_type?:
-            | Database["public"]["Enums"]["employment_type"]
-            | null
-          hire_date?: string | null
+          expire_date?: string | null
           id?: string | null
+          join_date?: string | null
+          member_number?: string | null
+          membership_type?: string | null
           name?: string | null
           name_kana?: string | null
-          position?: string | null
-          resignation_date?: string | null
-          status?: Database["public"]["Enums"]["employee_status"] | null
+          notes?: string | null
+          photo_url?: string | null
+          status?: string | null
           updated_at?: string | null
-          user_id?: string | null
         }
         Update: {
           company_id?: string | null
           created_at?: string | null
-          department?: string | null
-          employee_number?: string | null
-          employment_type?:
-            | Database["public"]["Enums"]["employment_type"]
-            | null
-          hire_date?: string | null
+          expire_date?: string | null
           id?: string | null
+          join_date?: string | null
+          member_number?: string | null
+          membership_type?: string | null
           name?: string | null
           name_kana?: string | null
-          position?: string | null
-          resignation_date?: string | null
-          status?: Database["public"]["Enums"]["employee_status"] | null
+          notes?: string | null
+          photo_url?: string | null
+          status?: string | null
           updated_at?: string | null
-          user_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "employees_company_id_fkey"
+            foreignKeyName: "members_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
@@ -7873,11 +7939,15 @@ export type Database = {
         Returns: boolean
       }
       has_hr_payroll_permission: {
-        Args: { p_company_id?: string }
+        Args: { user_uuid: string }
         Returns: boolean
       }
       has_medical_permission: {
         Args: { p_company_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      has_member_admin_permission: {
+        Args: { user_uuid: string }
         Returns: boolean
       }
       has_permission: {

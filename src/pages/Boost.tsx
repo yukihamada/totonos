@@ -63,22 +63,21 @@ export default function Boost() {
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex flex-wrap items-center gap-2">
               <Zap className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-500" />
-              Dynamic Boost
+              ダイナミックブースト
               <Badge variant="secondary" className="text-xs">準備中</Badge>
-              <Badge variant="outline" className="text-xs">ベータ版</Badge>
             </h1>
             <p className="text-muted-foreground text-sm sm:text-base">請求書の即時資金化で、キャッシュフローを改善</p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button disabled>
                 <Zap className="mr-2 h-4 w-4" />
-                Boostを申請
+                申請する
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>Dynamic Boost申請</DialogTitle>
+                <DialogTitle>ダイナミックブースト申請</DialogTitle>
                 <DialogDescription>
                   請求書を選択して即時資金化を申請します
                 </DialogDescription>

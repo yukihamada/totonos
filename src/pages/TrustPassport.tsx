@@ -77,7 +77,8 @@ export default function TrustPassport() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
               <Shield className="h-8 w-8 text-blue-500" />
-              Trust Passport
+              トラストパスポート
+              <Badge variant="secondary" className="text-xs">準備中</Badge>
             </h1>
             <p className="text-muted-foreground">あなたの信用スコアとランク</p>
           </div>

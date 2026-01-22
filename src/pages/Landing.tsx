@@ -42,35 +42,35 @@ import { FeedbackButton } from "@/components/FeedbackButton";
 const features = [
   {
     icon: FileText,
-    title: "Smart Invoice",
+    title: "スマート請求書",
     description: "請求書作成からバーチャル口座発行まで、すべてをワンストップで。",
     badge: "準備中",
   },
   {
     icon: ArrowLeftRight,
-    title: "Auto-Reconciliation",
+    title: "自動消込",
     description: "入金を自動検知し、消込からお礼メールまで全自動化。",
     badge: "準備中",
   },
   {
     icon: Zap,
-    title: "Dynamic Boost",
+    title: "ダイナミックブースト",
     description: "AI与信で最適な手数料を算出。最短即日で資金調達。",
     badge: "準備中",
   },
   {
     icon: Shield,
-    title: "Trust Passport",
+    title: "トラストパスポート",
     description: "信用スコアを可視化し、より有利な条件でファイナンスを。",
   },
   {
     icon: Calculator,
-    title: "Full Accounting",
+    title: "フル会計",
     description: "仕訳帳・総勘定元帳から決算書まで、フル会計機能を無料で。",
   },
   {
     icon: FileSignature,
-    title: "Smart Contract",
+    title: "スマート契約",
     description: "電子署名・ブロックチェーン証明で法的に有効な契約締結。",
   },
   {
