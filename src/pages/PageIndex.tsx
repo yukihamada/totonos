@@ -134,11 +134,11 @@ const allPages: PageInfo[] = [
   { title: '契約アラート', url: '/contract-alerts', icon: Bell, description: '契約更新・期限アラート', category: 'ドキュメント' },
 
   // ファイナンス
-  { title: '自動消込', url: '/reconciliation', icon: ArrowLeftRight, description: '入金と請求書の自動マッチング', category: 'ファイナンス' },
-  { title: '銀行連携', url: '/bank-connections', icon: Building2, description: '銀行口座API連携・明細自動取込', category: 'ファイナンス' },
-  { title: 'Dynamic Boost', url: '/boost', icon: Zap, description: '請求書の即時資金化', category: 'ファイナンス' },
-  { title: 'Trust Passport', url: '/trust-passport', icon: Shield, description: '信用スコアとランク確認', category: 'ファイナンス' },
-  { title: '決済リンク', url: '/payment-links', icon: CreditCard, description: 'オンライン決済リンク生成', category: 'ファイナンス' },
+  { title: '自動消込', url: '/reconciliation', icon: ArrowLeftRight, description: '入金と請求書の自動マッチング（準備中）', category: 'ファイナンス' },
+  { title: '銀行連携', url: '/bank-connections', icon: Building2, description: '銀行口座API連携・明細自動取込（準備中）', category: 'ファイナンス' },
+  { title: 'ダイナミックブースト', url: '/boost', icon: Zap, description: '請求書の即時資金化（準備中）', category: 'ファイナンス' },
+  { title: 'トラストパスポート', url: '/trust-passport', icon: Shield, description: '信用スコアとランク確認（準備中）', category: 'ファイナンス' },
+  { title: '決済リンク', url: '/payment-links', icon: CreditCard, description: 'オンライン決済リンク生成（準備中）', category: 'ファイナンス' },
 
   // 会計
   { title: '会計ダッシュボード', url: '/accounting', icon: Calculator, description: '会計概要と残高確認', category: '会計' },

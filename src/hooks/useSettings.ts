@@ -89,9 +89,10 @@ const defaultMenuGroups: MenuGroupConfig[] = [
       { id: 'contracts', title: '契約書', visible: true, enabled: true, order: 3 },
       { id: 'contract-alerts', title: '契約期限アラート', visible: true, enabled: true, order: 4 },
       { id: 'delivery-notes', title: '納品書', visible: true, enabled: true, order: 5 },
-      { id: 'boost', title: 'Dynamic Boost', visible: true, enabled: true, order: 6 },
-      { id: 'trust-passport', title: 'Trust Passport', visible: true, enabled: true, order: 7 },
-      { id: 'payment-links', title: '決済リンク', visible: true, enabled: true, order: 8 },
+      // ファイナンス機能（準備中 - デフォルトOFF）
+      { id: 'boost', title: 'ダイナミックブースト', visible: false, enabled: false, order: 6 },
+      { id: 'trust-passport', title: 'トラストパスポート', visible: false, enabled: false, order: 7 },
+      { id: 'payment-links', title: '決済リンク', visible: false, enabled: false, order: 8 },
     ],
   },
   // 4. 会計・経費
