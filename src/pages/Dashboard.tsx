@@ -1,26 +1,29 @@
 import { useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { StatsCard } from "@/components/dashboard/StatsCard";
-import { RevenueChart } from "@/components/dashboard/RevenueChart";
-import { PipelineOverview } from "@/components/dashboard/PipelineOverview";
-import { UnpaidInvoicesAlert } from "@/components/dashboard/UnpaidInvoicesAlert";
-import { RecentActivity } from "@/components/dashboard/RecentActivity";
-import { TrustPassportMini } from "@/components/dashboard/TrustPassportMini";
 import { OnboardingGuide } from "@/components/dashboard/OnboardingGuide";
-import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
-import { InventoryAlertWidget } from "@/components/dashboard/InventoryAlertWidget";
 import { IndustryTemplateAppliedDialog } from "@/components/IndustryTemplateAppliedDialog";
+import { DashboardGrid } from "@/components/dashboard/DashboardGrid";
+import { DashboardEditor } from "@/components/dashboard/DashboardEditor";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
-import { Wallet, FileText, Target, TrendingUp, Users } from "lucide-react";
-import { formatCurrency } from "@/types/database";
+import { useDashboardWidgets } from "@/hooks/useDashboardWidgets";
 import { useClients } from "@/hooks/useClients";
-import { TableSkeleton } from "@/components/TableSkeleton";
-import { LoadingWithTips } from "@/components/LoadingWithTips";
+import { Button } from "@/components/ui/button";
+import { Settings2 } from "lucide-react";
 
 export default function Dashboard() {
-  const [chatOpen, setChatOpen] = useState(false);
-  const { data: stats, isLoading, error } = useDashboardStats();
+  const [editMode, setEditMode] = useState(false);
+  const { data: stats, isLoading: statsLoading, error } = useDashboardStats();
   const { data: clients, isLoading: clientsLoading } = useClients();
+  const {
+    widgets,
+    allWidgets,
+    isLoading: widgetsLoading,
+    industryKey,
+    saveWidgets,
+    resetToDefault,
+    isSaving,
+    isResetting,
+  } = useDashboardWidgets();
 
   if (error) {
     return (
@@ -32,129 +35,64 @@ export default function Dashboard() {
     );
   }
 
-  // Convert recent activities to the format expected by RecentActivity component
-  const formattedActivities = stats?.recentActivities.map(activity => ({
-    id: activity.id,
-    type: activity.type === 'payment' ? 'payment' as const :
-          activity.type === 'invoice' ? 'invoice' as const :
-          activity.type === 'deal' ? 'boost' as const : 'invoice' as const,
-    title: activity.title,
-    amount: activity.amount,
-    status: activity.status as 'paid' | 'sent' | 'draft' | undefined,
-    date: activity.date,
-  })) || [];
-
   // Function to open chat - will be passed to ChatWidget via global event
   const handleChatOpen = () => {
-    // Dispatch custom event to open chat
     window.dispatchEvent(new CustomEvent('open-chat'));
   };
+
+  const isLoading = statsLoading || widgetsLoading;
 
   return (
     <AppLayout>
       <div className="space-y-4 md:space-y-6">
-        <h1 className="text-2xl md:text-3xl font-bold">ダッシュボード</h1>
+        {/* Header with customize button */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl md:text-3xl font-bold">ダッシュボード</h1>
+          <Button
+            variant={editMode ? "secondary" : "outline"}
+            size="sm"
+            onClick={() => setEditMode(!editMode)}
+          >
+            <Settings2 className="h-4 w-4 mr-2" />
+            {editMode ? "編集中" : "カスタマイズ"}
+          </Button>
+        </div>
 
         {/* Onboarding Guide - shows until all steps are completed */}
         <OnboardingGuide onChatOpen={handleChatOpen} />
 
-        {/* KPI Cards - Mobile: 2 cols, Tablet: 3 cols, Desktop: 5 cols */}
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5 md:gap-4">
-          <StatsCard
-            title="今月の請求額"
-            value={isLoading ? "-" : formatCurrency(stats?.monthlyInvoiced || 0)}
-            description={isLoading ? "-" : `合計: ${formatCurrency(stats?.totalInvoiced || 0)}`}
-            icon={<FileText className="h-4 w-4 text-muted-foreground" />}
-            isLoading={isLoading}
+        {/* Dashboard Editor (when in edit mode) */}
+        {editMode && (
+          <DashboardEditor
+            widgets={allWidgets}
+            industryKey={industryKey}
+            onSave={saveWidgets}
+            onReset={resetToDefault}
+            onClose={() => setEditMode(false)}
+            isSaving={isSaving}
+            isResetting={isResetting}
           />
-          <StatsCard
-            title="入金待ち"
-            value={isLoading ? "-" : formatCurrency(stats?.unpaidAmount || 0)}
-            description={isLoading ? "-" : `${stats?.unpaidCount || 0}件`}
-            icon={<Wallet className="h-4 w-4 text-muted-foreground" />}
-            trend={stats?.overdueCount ? { value: `${stats.overdueCount}件期限超過`, positive: false } : undefined}
-            isLoading={isLoading}
-          />
-          <StatsCard
-            title="パイプライン"
-            value={isLoading ? "-" : formatCurrency(stats?.pipelineValue || 0)}
-            description={isLoading ? "-" : `${stats?.dealsCount || 0}件の商談`}
-            icon={<Target className="h-4 w-4 text-muted-foreground" />}
-            isLoading={isLoading}
-          />
-          <StatsCard
-            title="成約済み"
-            value={isLoading ? "-" : formatCurrency(stats?.wonDealsValue || 0)}
-            description="今期の成約"
-            icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />}
-            trend={stats?.wonDealsValue ? { value: "成約", positive: true } : undefined}
-            isLoading={isLoading}
-          />
-          <StatsCard
-            title="取引先数"
-            value={clientsLoading ? "-社" : `${clients?.length || 0}社`}
-            description="登録済み取引先"
-            icon={<Users className="h-4 w-4 text-muted-foreground" />}
-            isLoading={clientsLoading}
-            className="col-span-2 md:col-span-1"
-          />
-        </div>
+        )}
 
-        {/* Charts Row - Stack on mobile */}
-        <div className="grid gap-4 md:gap-6 lg:grid-cols-2">
-          <RevenueChart data={stats?.monthlyRevenue || []} />
-          <PipelineOverview
-            data={stats?.pipelineByStage || []}
-            totalValue={stats?.pipelineByStage?.reduce((sum, item) => sum + item.value, 0) || 0}
-          />
-        </div>
-
-        {/* Alerts and Activity Row - Mobile: 1-2 cols, Desktop: 4 cols */}
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 md:gap-6">
-          <UnpaidInvoicesAlert
-            unpaidAmount={stats?.unpaidAmount || 0}
-            unpaidCount={stats?.unpaidCount || 0}
-            overdueAmount={stats?.overdueAmount || 0}
-            overdueCount={stats?.overdueCount || 0}
-          />
-          <InventoryAlertWidget />
-          <TrustPassportMini score={782} rank="A" previousScore={759} />
-          <ActivityFeed limit={5} />
-        </div>
-
-        {/* Quick Stats - Mobile: 2 cols */}
-        <div className="grid gap-3 grid-cols-2 lg:grid-cols-4 md:gap-4">
-          <StatsCard
-            title="送付中の見積書"
-            value={isLoading ? "-" : formatCurrency(stats?.sentEstimates || 0)}
-            description="承諾待ち"
-            icon={<FileText className="h-4 w-4 text-muted-foreground" />}
-            isLoading={isLoading}
-          />
-          <StatsCard
-            title="承諾済み見積書"
-            value={isLoading ? "-" : formatCurrency(stats?.acceptedEstimates || 0)}
-            description="請求書変換可能"
-            icon={<FileText className="h-4 w-4 text-muted-foreground" />}
-            trend={{ value: "変換可能", positive: true }}
-            isLoading={isLoading}
-          />
-          <StatsCard
-            title="期限超過"
-            value={isLoading ? "-" : formatCurrency(stats?.overdueAmount || 0)}
-            description={isLoading ? "-" : `${stats?.overdueCount || 0}件`}
-            icon={<Wallet className="h-4 w-4 text-destructive" />}
-            className={stats?.overdueCount ? "border-destructive" : ""}
-            isLoading={isLoading}
-          />
-          <StatsCard
-            title="合計請求額"
-            value={isLoading ? "-" : formatCurrency(stats?.totalInvoiced || 0)}
-            description="全期間"
-            icon={<TrendingUp className="h-4 w-4 text-muted-foreground" />}
-            isLoading={isLoading}
-          />
-        </div>
+        {/* Dynamic Dashboard Grid */}
+        <DashboardGrid
+          widgets={widgets}
+          stats={stats ? {
+            monthlyInvoiced: stats.monthlyInvoiced,
+            totalInvoiced: stats.totalInvoiced,
+            unpaidAmount: stats.unpaidAmount,
+            unpaidCount: stats.unpaidCount,
+            overdueAmount: stats.overdueAmount,
+            overdueCount: stats.overdueCount,
+            pipelineValue: stats.pipelineValue,
+            dealsCount: stats.dealsCount,
+            wonDealsValue: stats.wonDealsValue,
+            monthlyRevenue: stats.monthlyRevenue,
+            pipelineByStage: stats.pipelineByStage,
+          } : undefined}
+          clientsCount={clients?.length}
+          isLoading={isLoading}
+        />
       </div>
 
       {/* Industry template applied notification */}
