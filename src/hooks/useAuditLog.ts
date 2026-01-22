@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useCurrentCompany } from '@/hooks/useCompany';
 
 export interface AuditLogEntry {
   id: string;
@@ -19,110 +21,6 @@ export interface AuditLogEntry {
 
 export type AuditActionType = AuditLogEntry['action'];
 
-// Mock audit log data
-const mockAuditLogs: AuditLogEntry[] = [
-  {
-    id: '1',
-    timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-    userId: 'user-1',
-    userName: '山田 太郎',
-    userEmail: 'yamada@example.com',
-    action: 'create',
-    resource: 'invoices',
-    resourceId: 'INV-2024-001',
-    resourceName: '請求書 INV-2024-001',
-    details: '新規請求書を作成しました',
-    ipAddress: '192.168.1.100',
-    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
-    status: 'success',
-  },
-  {
-    id: '2',
-    timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-    userId: 'user-1',
-    userName: '山田 太郎',
-    userEmail: 'yamada@example.com',
-    action: 'update',
-    resource: 'contracts',
-    resourceId: 'CON-001',
-    resourceName: '業務委託契約',
-    details: '契約ステータスを「締結済み」に変更',
-    ipAddress: '192.168.1.100',
-    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
-    status: 'success',
-  },
-  {
-    id: '3',
-    timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-    userId: 'user-2',
-    userName: '佐藤 花子',
-    userEmail: 'sato@example.com',
-    action: 'export',
-    resource: 'employees',
-    resourceName: '従業員一覧',
-    details: 'CSV形式でエクスポート（50件）',
-    ipAddress: '192.168.1.101',
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-    status: 'success',
-  },
-  {
-    id: '4',
-    timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    userId: 'user-3',
-    userName: '鈴木 一郎',
-    userEmail: 'suzuki@example.com',
-    action: 'login',
-    resource: 'auth',
-    details: 'ログインに成功しました',
-    ipAddress: '192.168.1.102',
-    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0)',
-    status: 'success',
-  },
-  {
-    id: '5',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-    userId: 'user-unknown',
-    userName: '不明',
-    userEmail: 'unknown@example.com',
-    action: 'login',
-    resource: 'auth',
-    details: 'ログインに失敗しました（パスワード不一致）',
-    ipAddress: '203.0.113.50',
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-    status: 'failure',
-  },
-  {
-    id: '6',
-    timestamp: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
-    userId: 'user-1',
-    userName: '山田 太郎',
-    userEmail: 'yamada@example.com',
-    action: 'delete',
-    resource: 'leads',
-    resourceId: 'LEAD-005',
-    resourceName: 'テスト株式会社',
-    details: 'リードを削除しました',
-    ipAddress: '192.168.1.100',
-    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
-    status: 'success',
-  },
-  {
-    id: '7',
-    timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-    userId: 'user-2',
-    userName: '佐藤 花子',
-    userEmail: 'sato@example.com',
-    action: 'read',
-    resource: 'payroll',
-    resourceId: 'PAY-2024-01',
-    resourceName: '2024年1月給与データ',
-    details: '給与データを閲覧しました',
-    ipAddress: '192.168.1.101',
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-    status: 'success',
-  },
-];
-
 export interface AuditLogFilters {
   action?: AuditActionType;
   resource?: string;
@@ -133,19 +31,208 @@ export interface AuditLogFilters {
   searchQuery?: string;
 }
 
+// Map database action to display action
+function mapAction(action: string): AuditLogEntry['action'] {
+  const mapping: Record<string, AuditLogEntry['action']> = {
+    'INSERT': 'create',
+    'UPDATE': 'update',
+    'DELETE': 'delete',
+    'SELECT': 'read',
+    'EXPORT': 'export',
+    'IMPORT': 'import',
+  };
+  return mapping[action?.toUpperCase()] || 'update';
+}
+
+// Get resource label in Japanese
+function getResourceLabel(resource: string): string {
+  const labels: Record<string, string> = {
+    invoices: '請求書',
+    contracts: '契約書',
+    leads: 'リード',
+    deals: '商談',
+    employees: '従業員',
+    clients: '取引先',
+    estimates: '見積書',
+    projects: 'プロジェクト',
+    tasks: 'タスク',
+    members: '会員',
+    attendance_records: '勤怠',
+    journal_entries: '仕訳',
+  };
+  return labels[resource] || resource;
+}
+
 export function useAuditLog() {
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState<AuditLogFilters>({});
+  const { data: currentCompany } = useCurrentCompany();
 
   useEffect(() => {
-    // Simulate API call
-    const timer = setTimeout(() => {
-      setLogs(mockAuditLogs);
-      setIsLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, []);
+    const fetchAuditLogs = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch from data_access_audit_log if available
+        const { data: auditData } = await supabase
+          .from('data_access_audit_log')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(100);
+
+        const auditLogs: AuditLogEntry[] = [];
+
+        // Convert audit log data
+        if (auditData && auditData.length > 0) {
+          for (const entry of auditData) {
+            auditLogs.push({
+              id: entry.id,
+              timestamp: entry.created_at,
+              userId: entry.user_id || 'unknown',
+              userName: 'ユーザー',
+              userEmail: '',
+              action: mapAction(entry.operation),
+              resource: entry.table_name,
+              resourceId: entry.record_id || undefined,
+              resourceName: `${getResourceLabel(entry.table_name)}`,
+              details: entry.record_count ? `${entry.record_count}件のデータにアクセス` : undefined,
+              ipAddress: entry.ip_address || '不明',
+              userAgent: entry.user_agent || '不明',
+              status: 'success',
+              metadata: entry.query_details as Record<string, unknown> || undefined,
+            });
+          }
+        }
+
+        // If no audit logs, fetch recent activities from main tables
+        if (auditLogs.length === 0) {
+          // Fetch recent invoices
+          const { data: invoices } = await supabase
+            .from('invoices')
+            .select('id, invoice_number, total_amount, status, created_at, updated_at')
+            .order('updated_at', { ascending: false })
+            .limit(20);
+
+          if (invoices) {
+            for (const inv of invoices) {
+              const isNew = new Date(inv.created_at).getTime() === new Date(inv.updated_at).getTime();
+              auditLogs.push({
+                id: `inv-${inv.id}`,
+                timestamp: inv.updated_at,
+                userId: 'current-user',
+                userName: 'ユーザー',
+                userEmail: '',
+                action: isNew ? 'create' : 'update',
+                resource: 'invoices',
+                resourceId: inv.id,
+                resourceName: `請求書 ${inv.invoice_number}`,
+                details: `¥${Number(inv.total_amount).toLocaleString()}`,
+                ipAddress: '',
+                userAgent: '',
+                status: 'success',
+              });
+            }
+          }
+
+          // Fetch recent contracts
+          const { data: contracts } = await supabase
+            .from('contracts')
+            .select('id, title, status, created_at, updated_at')
+            .order('updated_at', { ascending: false })
+            .limit(20);
+
+          if (contracts) {
+            for (const contract of contracts) {
+              const isNew = new Date(contract.created_at).getTime() === new Date(contract.updated_at).getTime();
+              auditLogs.push({
+                id: `con-${contract.id}`,
+                timestamp: contract.updated_at,
+                userId: 'current-user',
+                userName: 'ユーザー',
+                userEmail: '',
+                action: isNew ? 'create' : 'update',
+                resource: 'contracts',
+                resourceId: contract.id,
+                resourceName: `契約書: ${contract.title}`,
+                details: `ステータス: ${contract.status}`,
+                ipAddress: '',
+                userAgent: '',
+                status: 'success',
+              });
+            }
+          }
+
+          // Fetch recent leads
+          const { data: leads } = await supabase
+            .from('leads')
+            .select('id, company_name, status, created_at, updated_at')
+            .order('updated_at', { ascending: false })
+            .limit(20);
+
+          if (leads) {
+            for (const lead of leads) {
+              const isNew = new Date(lead.created_at).getTime() === new Date(lead.updated_at).getTime();
+              auditLogs.push({
+                id: `lead-${lead.id}`,
+                timestamp: lead.updated_at,
+                userId: 'current-user',
+                userName: 'ユーザー',
+                userEmail: '',
+                action: isNew ? 'create' : 'update',
+                resource: 'leads',
+                resourceId: lead.id,
+                resourceName: `リード: ${lead.company_name}`,
+                details: `ステータス: ${lead.status}`,
+                ipAddress: '',
+                userAgent: '',
+                status: 'success',
+              });
+            }
+          }
+
+          // Fetch recent deals
+          const { data: deals } = await supabase
+            .from('deals')
+            .select('id, deal_name, stage, amount, created_at, updated_at')
+            .order('updated_at', { ascending: false })
+            .limit(20);
+
+          if (deals) {
+            for (const deal of deals) {
+              const isNew = new Date(deal.created_at).getTime() === new Date(deal.updated_at).getTime();
+              auditLogs.push({
+                id: `deal-${deal.id}`,
+                timestamp: deal.updated_at,
+                userId: 'current-user',
+                userName: 'ユーザー',
+                userEmail: '',
+                action: isNew ? 'create' : 'update',
+                resource: 'deals',
+                resourceId: deal.id,
+                resourceName: `商談: ${deal.deal_name}`,
+                details: deal.amount ? `¥${Number(deal.amount).toLocaleString()}` : `ステージ: ${deal.stage}`,
+                ipAddress: '',
+                userAgent: '',
+                status: 'success',
+              });
+            }
+          }
+
+          // Sort by timestamp
+          auditLogs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        }
+
+        setLogs(auditLogs);
+      } catch (error) {
+        console.error('Failed to fetch audit logs:', error);
+        setLogs([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAuditLogs();
+  }, [currentCompany]);
 
   const filteredLogs = logs.filter(log => {
     if (filters.action && log.action !== filters.action) return false;
@@ -166,7 +253,24 @@ export function useAuditLog() {
     return true;
   });
 
-  const logAction = useCallback((entry: Omit<AuditLogEntry, 'id' | 'timestamp'>) => {
+  const logAction = useCallback(async (entry: Omit<AuditLogEntry, 'id' | 'timestamp'>) => {
+    // Insert into data_access_audit_log
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      await supabase.from('data_access_audit_log').insert({
+        user_id: currentUser?.id || entry.userId,
+        table_name: entry.resource,
+        operation: entry.action.toUpperCase(),
+        record_id: entry.resourceId || null,
+        ip_address: entry.ipAddress || null,
+        user_agent: entry.userAgent || null,
+        query_details: entry.metadata || {},
+      } as any);
+    } catch (error) {
+      console.error('Failed to log action:', error);
+    }
+
+    // Update local state
     const newEntry: AuditLogEntry = {
       ...entry,
       id: `log-${Date.now()}`,

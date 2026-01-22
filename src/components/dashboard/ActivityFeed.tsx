@@ -29,7 +29,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 interface ActivityItem {
   id: string;
-  type: 'invoice' | 'contract' | 'lead' | 'deal' | 'employee' | 'expense' | 'journal' | 'project';
+  type: 'invoice' | 'contract' | 'lead' | 'deal' | 'employee' | 'expense' | 'journal' | 'project' | 'client' | 'estimate' | 'task';
   action: 'create' | 'update' | 'delete' | 'status_change' | 'approve' | 'reject' | 'sign' | 'view';
   title: string;
   description?: string;
@@ -59,6 +59,9 @@ const TYPE_ICONS = {
   expense: CreditCard,
   journal: FileText,
   project: Briefcase,
+  client: Users,
+  estimate: FileText,
+  task: CheckCircle,
 };
 
 const TYPE_COLORS = {
@@ -70,6 +73,9 @@ const TYPE_COLORS = {
   expense: 'text-red-500 bg-red-50 dark:bg-red-900/20',
   journal: 'text-indigo-500 bg-indigo-50 dark:bg-indigo-900/20',
   project: 'text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20',
+  client: 'text-teal-500 bg-teal-50 dark:bg-teal-900/20',
+  estimate: 'text-pink-500 bg-pink-50 dark:bg-pink-900/20',
+  task: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20',
 };
 
 const ACTION_LABELS = {
@@ -92,6 +98,9 @@ const TYPE_LABELS = {
   expense: '経費',
   journal: '仕訳',
   project: 'プロジェクト',
+  client: '取引先',
+  estimate: '見積書',
+  task: 'タスク',
 };
 
 interface ActivityFeedProps {
@@ -111,12 +120,140 @@ export function ActivityFeed({ limit = 10, showHeader = true, className }: Activ
     const fetchActivities = async () => {
       setIsLoading(true);
       try {
-        // Use demo data as audit_logs table structure may vary
-        // In production, this would fetch from a proper audit log table
-        setActivities(generateDemoActivities());
+        const allActivities: ActivityItem[] = [];
+
+        // Fetch recent invoices
+        const { data: invoices } = await supabase
+          .from('invoices')
+          .select('id, invoice_number, total_amount, status, created_at, updated_at')
+          .order('updated_at', { ascending: false })
+          .limit(limit);
+
+        if (invoices) {
+          for (const inv of invoices) {
+            const isNew = Math.abs(new Date(inv.created_at).getTime() - new Date(inv.updated_at).getTime()) < 1000;
+            allActivities.push({
+              id: `inv-${inv.id}`,
+              type: 'invoice',
+              action: isNew ? 'create' : 'update',
+              title: `請求書 ${inv.invoice_number}`,
+              description: `¥${Number(inv.total_amount).toLocaleString()}`,
+              timestamp: new Date(inv.updated_at),
+            });
+          }
+        }
+
+        // Fetch recent contracts
+        const { data: contracts } = await supabase
+          .from('contracts')
+          .select('id, title, status, created_at, updated_at')
+          .order('updated_at', { ascending: false })
+          .limit(limit);
+
+        if (contracts) {
+          for (const contract of contracts) {
+            const isNew = Math.abs(new Date(contract.created_at).getTime() - new Date(contract.updated_at).getTime()) < 1000;
+            allActivities.push({
+              id: `con-${contract.id}`,
+              type: 'contract',
+              action: isNew ? 'create' : 'update',
+              title: contract.title,
+              description: `ステータス: ${contract.status === 'draft' ? '下書き' : contract.status === 'signed' ? '署名済' : contract.status}`,
+              timestamp: new Date(contract.updated_at),
+            });
+          }
+        }
+
+        // Fetch recent leads
+        const { data: leads } = await supabase
+          .from('leads')
+          .select('id, company_name, status, created_at, updated_at')
+          .order('updated_at', { ascending: false })
+          .limit(limit);
+
+        if (leads) {
+          for (const lead of leads) {
+            const isNew = Math.abs(new Date(lead.created_at).getTime() - new Date(lead.updated_at).getTime()) < 1000;
+            allActivities.push({
+              id: `lead-${lead.id}`,
+              type: 'lead',
+              action: isNew ? 'create' : 'update',
+              title: lead.company_name,
+              description: `新規リード`,
+              timestamp: new Date(lead.updated_at),
+            });
+          }
+        }
+
+        // Fetch recent deals
+        const { data: deals } = await supabase
+          .from('deals')
+          .select('id, deal_name, stage, amount, created_at, updated_at')
+          .order('updated_at', { ascending: false })
+          .limit(limit);
+
+        if (deals) {
+          for (const deal of deals) {
+            const isNew = Math.abs(new Date(deal.created_at).getTime() - new Date(deal.updated_at).getTime()) < 1000;
+            allActivities.push({
+              id: `deal-${deal.id}`,
+              type: 'deal',
+              action: isNew ? 'create' : 'status_change',
+              title: deal.deal_name,
+              description: deal.amount ? `¥${Number(deal.amount).toLocaleString()}` : `ステージ: ${deal.stage}`,
+              timestamp: new Date(deal.updated_at),
+            });
+          }
+        }
+
+        // Fetch recent clients
+        const { data: clients } = await supabase
+          .from('clients')
+          .select('id, name, created_at, updated_at')
+          .order('updated_at', { ascending: false })
+          .limit(limit);
+
+        if (clients) {
+          for (const client of clients) {
+            const isNew = Math.abs(new Date(client.created_at).getTime() - new Date(client.updated_at).getTime()) < 1000;
+            allActivities.push({
+              id: `client-${client.id}`,
+              type: 'client',
+              action: isNew ? 'create' : 'update',
+              title: client.name,
+              description: '取引先',
+              timestamp: new Date(client.updated_at),
+            });
+          }
+        }
+
+        // Fetch recent estimates
+        const { data: estimates } = await supabase
+          .from('estimates')
+          .select('id, estimate_number, total_amount, created_at, updated_at')
+          .order('updated_at', { ascending: false })
+          .limit(limit);
+
+        if (estimates) {
+          for (const est of estimates) {
+            const isNew = Math.abs(new Date(est.created_at).getTime() - new Date(est.updated_at).getTime()) < 1000;
+            allActivities.push({
+              id: `est-${est.id}`,
+              type: 'estimate',
+              action: isNew ? 'create' : 'update',
+              title: `見積書 ${est.estimate_number}`,
+              description: `¥${Number(est.total_amount).toLocaleString()}`,
+              timestamp: new Date(est.updated_at),
+            });
+          }
+        }
+
+        // Sort by timestamp and limit
+        allActivities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+        setActivities(allActivities.slice(0, limit));
       } catch (error) {
         console.error('Failed to fetch activities:', error);
-        setActivities(generateDemoActivities());
+        setActivities([]);
       } finally {
         setIsLoading(false);
       }
@@ -163,7 +300,7 @@ export function ActivityFeed({ limit = 10, showHeader = true, className }: Activ
                 <Clock className="h-5 w-5" />
                 アクティビティ
               </CardTitle>
-              <CardDescription>最新{limit}件のアクション</CardDescription>
+              <CardDescription>最新の操作履歴</CardDescription>
             </div>
             <Button variant="ghost" size="sm" asChild>
               <Link to="/audit-log">
@@ -179,6 +316,7 @@ export function ActivityFeed({ limit = 10, showHeader = true, className }: Activ
           <div className="text-center py-8 text-muted-foreground">
             <Clock className="h-12 w-12 mx-auto mb-3 opacity-50" />
             <p>アクティビティはありません</p>
+            <p className="text-sm mt-1">データを作成すると、ここに表示されます</p>
           </div>
         ) : (
           <ScrollArea className="h-[400px] pr-4">
@@ -198,7 +336,7 @@ export function ActivityFeed({ limit = 10, showHeader = true, className }: Activ
                     <div
                       className={cn(
                         'p-2 rounded-full shrink-0',
-                        TYPE_COLORS[activity.type]
+                        TYPE_COLORS[activity.type] || 'text-muted-foreground bg-muted'
                       )}
                     >
                       <TypeIcon className="h-4 w-4" />
@@ -237,114 +375,4 @@ export function ActivityFeed({ limit = 10, showHeader = true, className }: Activ
       </CardContent>
     </Card>
   );
-}
-
-// Helper functions
-function mapTableToType(tableName: string): ActivityItem['type'] {
-  const mapping: Record<string, ActivityItem['type']> = {
-    invoices: 'invoice',
-    contracts: 'contract',
-    leads: 'lead',
-    deals: 'deal',
-    employees: 'employee',
-    expenses: 'expense',
-    journal_entries: 'journal',
-    projects: 'project',
-  };
-  return mapping[tableName] || 'invoice';
-}
-
-function mapActionToType(action: string): ActivityItem['action'] {
-  const mapping: Record<string, ActivityItem['action']> = {
-    INSERT: 'create',
-    UPDATE: 'update',
-    DELETE: 'delete',
-  };
-  return mapping[action] || 'update';
-}
-
-function generateTitle(log: Record<string, unknown>): string {
-  const newValues = log.new_values as Record<string, unknown> | null;
-  const tableName = log.table_name as string;
-
-  if (newValues) {
-    const name = newValues.name || newValues.title || newValues.client_name || newValues.invoice_number;
-    if (name) return String(name);
-  }
-
-  const tableLabels: Record<string, string> = {
-    invoices: '請求書',
-    contracts: '契約書',
-    leads: 'リード',
-    deals: '商談',
-    employees: '従業員',
-    expenses: '経費',
-    journal_entries: '仕訳',
-    projects: 'プロジェクト',
-  };
-
-  return `${tableLabels[tableName] || tableName}が更新されました`;
-}
-
-function generateDescription(log: Record<string, unknown>): string | undefined {
-  const newValues = log.new_values as Record<string, unknown> | null;
-  if (!newValues) return undefined;
-
-  const amount = newValues.amount || newValues.total_amount;
-  if (amount) {
-    return `¥${Number(amount).toLocaleString()}`;
-  }
-
-  const status = newValues.status;
-  if (status) {
-    return `ステータス: ${status}`;
-  }
-
-  return undefined;
-}
-
-function generateDemoActivities(): ActivityItem[] {
-  const now = new Date();
-  return [
-    {
-      id: '1',
-      type: 'invoice',
-      action: 'create',
-      title: '請求書 INV-2024-001',
-      description: '¥150,000',
-      timestamp: new Date(now.getTime() - 1000 * 60 * 5),
-    },
-    {
-      id: '2',
-      type: 'contract',
-      action: 'sign',
-      title: '業務委託契約書',
-      description: '署名完了',
-      timestamp: new Date(now.getTime() - 1000 * 60 * 30),
-    },
-    {
-      id: '3',
-      type: 'deal',
-      action: 'status_change',
-      title: '新規導入案件',
-      description: 'ステータス: 商談中',
-      timestamp: new Date(now.getTime() - 1000 * 60 * 60),
-    },
-    {
-      id: '4',
-      type: 'expense',
-      action: 'approve',
-      title: '交通費精算',
-      description: '¥12,500',
-      timestamp: new Date(now.getTime() - 1000 * 60 * 60 * 2),
-    },
-    {
-      id: '5',
-      type: 'lead',
-      action: 'create',
-      title: '株式会社サンプル',
-      description: '新規リード',
-      timestamp: new Date(now.getTime() - 1000 * 60 * 60 * 3),
-    },
-  ];
 }
