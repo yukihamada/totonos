@@ -17,7 +17,7 @@ interface InsuranceTypePieChartProps {
 
 // Insurance type colors and labels
 const insuranceTypeConfig: Record<
-  InsuranceType,
+  string,
   { label: string; color: string }
 > = {
   employee_health: { label: "社保", color: "hsl(217, 91%, 60%)" },
@@ -27,16 +27,21 @@ const insuranceTypeConfig: Record<
   self_pay: { label: "自費", color: "hsl(220, 9%, 46%)" },
 };
 
+const defaultConfig = { label: "その他", color: "hsl(220, 9%, 46%)" };
+
 export function InsuranceTypePieChart({
   data,
   title = "保険種別分布",
   showAmount = true,
 }: InsuranceTypePieChartProps) {
-  const chartData = data.map((item) => ({
-    name: insuranceTypeConfig[item.type].label,
-    value: showAmount ? item.amount : item.count,
-    color: insuranceTypeConfig[item.type].color,
-  }));
+  const chartData = data.map((item) => {
+    const config = insuranceTypeConfig[item.type] || defaultConfig;
+    return {
+      name: config.label,
+      value: showAmount ? item.amount : item.count,
+      color: config.color,
+    };
+  });
 
   const formatTooltip = (value: number) => {
     return showAmount ? `¥${value.toLocaleString()}` : `${value}件`;
@@ -118,9 +123,9 @@ export function InsuranceTypePieChart({
 }
 
 export function getInsuranceTypeLabel(type: InsuranceType): string {
-  return insuranceTypeConfig[type].label;
+  return (insuranceTypeConfig[type] || defaultConfig).label;
 }
 
 export function getInsuranceTypeColor(type: InsuranceType): string {
-  return insuranceTypeConfig[type].color;
+  return (insuranceTypeConfig[type] || defaultConfig).color;
 }
