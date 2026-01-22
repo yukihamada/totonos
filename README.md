@@ -1,6 +1,6 @@
-# Totonos - 8-in-1 Business OS
+# Totonos - 10-in-1 Business OS
 
-> freee + SmartHR + Salesforce + Notion + クラウドサイン + HRMOS + 楽楽精算 + Asana を1つに統合
+> freee + SmartHR + Salesforce + Notion + クラウドサイン + HRMOS + 楽楽精算 + Asana + LMS + 会員管理 を1つに統合
 
 ## 概要
 
@@ -19,6 +19,8 @@ Totonos は、中小企業・スタートアップ向けの統合ビジネスプ
 | **Wiki** | ナレッジベース、ドキュメント管理 | Notion |
 | **プロジェクト** | タスク管理、進捗追跡 | Asana |
 | **AIアシスタント** | チャットボット、自動化 | - |
+| **LMS** | コース管理、受講進捗、テスト機能 | - |
+| **会員管理** | 会員登録、チェックイン、予約管理 | - |
 | **EMR（電子カルテ）** | 患者管理、HPKI電子署名、診療記録 | レセコン連携 |
 | **不動産管理** | 物件管理、テナント管理、入居者対応 | - |
 
@@ -65,6 +67,21 @@ VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key
 
 ## 機能詳細
 
+### 業種別テンプレート
+
+初回ログイン時に業種を選択すると、その業種に最適化されたメニューと機能が自動設定されます。
+
+| カテゴリ | 対応業種 |
+|---------|---------|
+| 小売 | 一般小売、アパレル、家具・インテリア、ペットショップ |
+| サービス | 飲食店、美容室、フィットネス、ホテル |
+| 専門サービス | 法律事務所、会計事務所、コンサルティング |
+| 医療・福祉 | クリニック、歯科、薬局、介護施設 |
+| 建設・不動産 | 建設会社、不動産仲介、リフォーム |
+| IT | SaaS、Web制作、システム開発 |
+| 物流 | 運送、倉庫、配送 |
+| 教育 | 学習塾、語学学校、専門学校 |
+
 ### AIアシスタント
 
 - 日本語IME対応（変換確定時の誤送信防止）
@@ -80,6 +97,26 @@ VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key
 | AIリードスコアリング | 3 |
 | 領収書OCR | 2 |
 | PDF生成 | 1 |
+
+### LMS（学習管理システム）
+
+社内研修やeラーニングに対応した学習管理機能：
+
+- コース作成・管理
+- 受講者の進捗追跡
+- テスト機能（タイマー付き）
+- 学習履歴・成績レポート
+- 修了証発行
+
+### 会員管理
+
+ジム・スクール・サロン向けの会員管理機能：
+
+- 会員登録・プラン管理
+- チェックイン記録
+- クラス予約・スケジュール管理
+- 購入履歴管理
+- 会員ダッシュボード
 
 ### HPKI電子署名（EMR向け）
 
@@ -113,11 +150,14 @@ EMR機能では、HPKIカードを使用した電子署名に対応していま�
 src/
 ├── components/     # UIコンポーネント
 │   ├── chat/       # AIチャット
+│   ├── emr/        # 電子カルテ
+│   ├── lms/        # 学習管理
 │   ├── layout/     # レイアウト
 │   └── ui/         # shadcn/ui
 ├── hooks/          # カスタムフック
 ├── lib/            # ユーティリティ
 ├── pages/          # ページコンポーネント
+│   └── membership/ # 会員管理
 ├── types/          # TypeScript型定義
 ├── test/           # テストファイル
 │   ├── integration/  # インテグレーションテスト
@@ -180,4 +220,4 @@ Issue や Pull Request は歓迎です。
 - Email: support@totonos.jp
 
 ---
-*Last updated: 2026-01-22 - Added HPKI Bridge for EMR electronic signatures*
+*Last updated: 2026-01-22 - Added LMS, Membership, Industry Templates*
