@@ -320,7 +320,7 @@ function AppRoutes() {
       <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-      <Route path="/pages" element={<ProtectedRoute><PageIndex /></ProtectedRoute>} />
+      <Route path="/dev/pages" element={<ProtectedRoute><PageIndex /></ProtectedRoute>} />
       {/* New Features */}
       <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
       <Route path="/team" element={<ProtectedRoute><TeamMembers /></ProtectedRoute>} />
