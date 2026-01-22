@@ -9,6 +9,8 @@ interface SettingsContextValue {
   updateMenuItem: (groupId: string, itemId: string, updates: Partial<MenuItemConfig>) => void;
   resetToDefaults: () => void;
   updateMobileNavItems: (items: MobileNavItemConfig[]) => void;
+  reorderGroups: (sourceId: string, targetId: string) => void;
+  reorderItems: (groupId: string, sourceId: string, targetId: string) => void;
   applyTemplate: (templateId: string) => void;
   applyTemplateByDbKey: (dbTemplateKey: string) => boolean;
   isProtectedItem: (itemId: string) => boolean;

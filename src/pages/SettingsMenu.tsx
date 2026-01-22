@@ -268,6 +268,8 @@ export default function SettingsMenu() {
     updateMenuItem, 
     resetToDefaults,
     updateMobileNavItems,
+    reorderGroups,
+    reorderItems,
     applyTemplate,
     isProtectedItem,
     isProtectedGroup,
@@ -278,6 +280,14 @@ export default function SettingsMenu() {
   ));
   const [activeTab, setActiveTab] = useState("menu");
   const [pageSearchQuery, setPageSearchQuery] = useState("");
+
+  // Drag and drop state
+  const [draggingGroupId, setDraggingGroupId] = useState<string | null>(null);
+  const [dropTargetGroupId, setDropTargetGroupId] = useState<string | null>(null);
+  const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
+  const [draggingFromGroupId, setDraggingFromGroupId] = useState<string | null>(null);
+  const [dropTargetItemId, setDropTargetItemId] = useState<string | null>(null);
+
   const toggleGroup = (groupId: string) => {
     setExpandedGroups(prev => {
       const next = new Set(prev);
@@ -288,6 +298,67 @@ export default function SettingsMenu() {
       }
       return next;
     });
+  };
+
+  // Group drag handlers
+  const handleGroupDragStart = (e: React.DragEvent, groupId: string) => {
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggingGroupId(groupId);
+  };
+
+  const handleGroupDragOver = (e: React.DragEvent, targetGroupId: string) => {
+    e.preventDefault();
+    if (draggingGroupId && draggingGroupId !== targetGroupId && !draggingItemId) {
+      setDropTargetGroupId(targetGroupId);
+    }
+  };
+
+  const handleGroupDragEnd = () => {
+    setDraggingGroupId(null);
+    setDropTargetGroupId(null);
+  };
+
+  const handleGroupDrop = (e: React.DragEvent, targetGroupId: string) => {
+    e.preventDefault();
+    if (draggingGroupId && draggingGroupId !== targetGroupId && !draggingItemId) {
+      reorderGroups(draggingGroupId, targetGroupId);
+      toast.success('グループの順序を変更しました');
+    }
+    setDraggingGroupId(null);
+    setDropTargetGroupId(null);
+  };
+
+  // Item drag handlers
+  const handleItemDragStart = (e: React.DragEvent, groupId: string, itemId: string) => {
+    e.stopPropagation();
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggingItemId(itemId);
+    setDraggingFromGroupId(groupId);
+  };
+
+  const handleItemDragOver = (e: React.DragEvent, groupId: string, targetItemId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (draggingItemId && draggingFromGroupId === groupId && draggingItemId !== targetItemId) {
+      setDropTargetItemId(targetItemId);
+    }
+  };
+
+  const handleItemDragEnd = () => {
+    setDraggingItemId(null);
+    setDraggingFromGroupId(null);
+    setDropTargetItemId(null);
+  };
+
+  const handleItemDrop = (e: React.DragEvent, groupId: string, targetItemId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (draggingItemId && draggingFromGroupId === groupId && draggingItemId !== targetItemId) {
+      reorderItems(groupId, draggingItemId, targetItemId);
+    }
+    setDraggingItemId(null);
+    setDraggingFromGroupId(null);
+    setDropTargetItemId(null);
   };
 
   const handleGroupVisibilityChange = (groupId: string, visible: boolean) => {
@@ -313,37 +384,6 @@ export default function SettingsMenu() {
     toast.success('メニュー設定をリセットしました');
   };
 
-  const moveGroupUp = (index: number) => {
-    if (index === 0) return;
-    const group = settings.menuGroups[index];
-    const prevGroup = settings.menuGroups[index - 1];
-    updateMenuGroup(group.id, { order: prevGroup.order });
-    updateMenuGroup(prevGroup.id, { order: group.order });
-  };
-
-  const moveGroupDown = (index: number) => {
-    if (index === settings.menuGroups.length - 1) return;
-    const group = settings.menuGroups[index];
-    const nextGroup = settings.menuGroups[index + 1];
-    updateMenuGroup(group.id, { order: nextGroup.order });
-    updateMenuGroup(nextGroup.id, { order: group.order });
-  };
-
-  const moveItemUp = (groupId: string, itemIndex: number, items: MenuItemConfig[]) => {
-    if (itemIndex === 0) return;
-    const item = items[itemIndex];
-    const prevItem = items[itemIndex - 1];
-    updateMenuItem(groupId, item.id, { order: prevItem.order });
-    updateMenuItem(groupId, prevItem.id, { order: item.order });
-  };
-
-  const moveItemDown = (groupId: string, itemIndex: number, items: MenuItemConfig[]) => {
-    if (itemIndex === items.length - 1) return;
-    const item = items[itemIndex];
-    const nextItem = items[itemIndex + 1];
-    updateMenuItem(groupId, item.id, { order: nextItem.order });
-    updateMenuItem(groupId, nextItem.id, { order: item.order });
-  };
 
   // Mobile nav handlers
   const handleMobileNavToggle = (itemId: string, visible: boolean) => {
@@ -490,7 +530,6 @@ export default function SettingsMenu() {
                       const sortedItems = [...group.items].sort((a, b) => a.order - b.order);
                       const isExpanded = expandedGroups.has(group.id);
                       const visibleCount = group.items.filter(i => i.visible).length;
-                      const enabledCount = group.items.filter(i => i.enabled).length;
 
                       return (
                         <Collapsible
@@ -498,36 +537,23 @@ export default function SettingsMenu() {
                           open={isExpanded}
                           onOpenChange={() => toggleGroup(group.id)}
                         >
-                          <div className={`border rounded-lg ${!group.enabled ? 'opacity-40' : !group.visible ? 'opacity-60' : ''}`}>
+                          <div 
+                            className={`border rounded-lg transition-all ${
+                              !group.enabled ? 'opacity-40' : !group.visible ? 'opacity-60' : ''
+                            } ${
+                              draggingGroupId === group.id ? 'opacity-50 border-dashed' : ''
+                            } ${
+                              dropTargetGroupId === group.id ? 'border-2 border-primary bg-primary/5' : ''
+                            }`}
+                            draggable
+                            onDragStart={(e) => handleGroupDragStart(e, group.id)}
+                            onDragOver={(e) => handleGroupDragOver(e, group.id)}
+                            onDragEnd={handleGroupDragEnd}
+                            onDrop={(e) => handleGroupDrop(e, group.id)}
+                          >
                             <div className="flex items-center justify-between p-4">
                               <div className="flex items-center gap-3">
-                                <div className="flex flex-col gap-1">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-5 w-5"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      moveGroupUp(groupIndex);
-                                    }}
-                                    disabled={groupIndex === 0}
-                                  >
-                                    <ChevronDown className="h-3 w-3 rotate-180" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-5 w-5"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      moveGroupDown(groupIndex);
-                                    }}
-                                    disabled={groupIndex === sortedGroups.length - 1}
-                                  >
-                                    <ChevronDown className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                                <GripVertical className="h-5 w-5 text-muted-foreground cursor-move" />
+                                <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab active:cursor-grabbing" />
                                 <CollapsibleTrigger asChild>
                                   <Button variant="ghost" className="p-0 h-auto hover:bg-transparent">
                                     {isExpanded ? (
@@ -584,32 +610,21 @@ export default function SettingsMenu() {
                                 {sortedItems.map((item, itemIndex) => (
                                   <div
                                     key={item.id}
-                                    className={`flex items-center justify-between p-3 bg-background rounded-md border ${
+                                    className={`flex items-center justify-between p-3 bg-background rounded-md border transition-all ${
                                       !item.enabled ? 'opacity-40' : !item.visible ? 'opacity-60' : ''
+                                    } ${
+                                      draggingItemId === item.id ? 'opacity-50 border-dashed' : ''
+                                    } ${
+                                      dropTargetItemId === item.id ? 'border-2 border-primary bg-primary/5' : ''
                                     }`}
+                                    draggable
+                                    onDragStart={(e) => handleItemDragStart(e, group.id, item.id)}
+                                    onDragOver={(e) => handleItemDragOver(e, group.id, item.id)}
+                                    onDragEnd={handleItemDragEnd}
+                                    onDrop={(e) => handleItemDrop(e, group.id, item.id)}
                                   >
                                     <div className="flex items-center gap-3">
-                                      <div className="flex flex-col gap-0.5">
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-4 w-4"
-                                          onClick={() => moveItemUp(group.id, itemIndex, sortedItems)}
-                                          disabled={itemIndex === 0}
-                                        >
-                                          <ChevronDown className="h-2 w-2 rotate-180" />
-                                        </Button>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-4 w-4"
-                                          onClick={() => moveItemDown(group.id, itemIndex, sortedItems)}
-                                          disabled={itemIndex === sortedItems.length - 1}
-                                        >
-                                          <ChevronDown className="h-2 w-2" />
-                                        </Button>
-                                      </div>
-                                      <GripVertical className="h-4 w-4 text-muted-foreground cursor-move" />
+                                      <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab active:cursor-grabbing" />
                                       <span className="text-sm">{item.title}</span>
                                       {isProtectedItem(item.id) && (
                                         <Lock className="h-3 w-3 text-muted-foreground" />
