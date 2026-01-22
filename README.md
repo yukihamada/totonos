@@ -19,6 +19,8 @@ Totonos は、中小企業・スタートアップ向けの統合ビジネスプ
 | **Wiki** | ナレッジベース、ドキュメント管理 | Notion |
 | **プロジェクト** | タスク管理、進捗追跡 | Asana |
 | **AIアシスタント** | チャットボット、自動化 | - |
+| **EMR（電子カルテ）** | 患者管理、HPKI電子署名、診療記録 | レセコン連携 |
+| **不動産管理** | 物件管理、テナント管理、入居者対応 | - |
 
 ## 技術スタック
 
@@ -78,6 +80,26 @@ VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key
 | AIリードスコアリング | 3 |
 | 領収書OCR | 2 |
 | PDF生成 | 1 |
+
+### HPKI電子署名（EMR向け）
+
+EMR機能では、HPKIカードを使用した電子署名に対応しています。
+
+**HPKIブリッジアプリ**
+
+電子署名機能を使用するには、ローカルブリッジアプリのインストールが必要です：
+
+- [macOS版ダウンロード](https://github.com/yukihamada/totonos/releases/download/hpki-bridge-v1.0.0/hpki-bridge-macos.dmg)
+- [Windows版ダウンロード](https://github.com/yukihamada/totonos/releases/download/hpki-bridge-v1.0.0/hpki-bridge-windows.exe)
+
+**macOSでGatekeeper警告が出た場合：**
+
+ダウンロードしたファイルを右クリック →「開く」→「開く」をクリック
+
+**必要な環境：**
+- ICカードリーダー
+- HPKIカード
+- OpenSCドライバ（[ダウンロード](https://github.com/OpenSC/OpenSC/releases)）
 
 ### セキュリティ
 
@@ -158,4 +180,4 @@ Issue や Pull Request は歓迎です。
 - Email: support@totonos.jp
 
 ---
-*Last updated: 2026-01-19 - Added comprehensive test coverage (557 tests)*
+*Last updated: 2026-01-22 - Added HPKI Bridge for EMR electronic signatures*

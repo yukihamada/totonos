@@ -47,11 +47,12 @@ describe('Deals Page', () => {
     it('should render all stage columns', async () => {
       render(<Deals />);
       await waitFor(() => {
-        expect(screen.getByText(/初期/)).toBeInTheDocument();
+        // Stage labels from types/crm.ts stageLabels
+        expect(screen.getByText(/初期接触/)).toBeInTheDocument();
         expect(screen.getByText(/提案中/)).toBeInTheDocument();
         expect(screen.getByText(/交渉中/)).toBeInTheDocument();
-        expect(screen.getByText(/契約/)).toBeInTheDocument();
-        expect(screen.getByText(/成約/)).toBeInTheDocument();
+        expect(screen.getByText(/契約手続き/)).toBeInTheDocument();
+        expect(screen.getByText(/受注/)).toBeInTheDocument();
         expect(screen.getByText(/失注/)).toBeInTheDocument();
       });
     });

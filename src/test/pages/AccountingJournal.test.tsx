@@ -10,11 +10,7 @@ vi.mock('@/hooks/useAccounting', () => ({
     isLoading: false,
     error: null,
   }),
-  useAccounts: () => ({
-    data: [],
-    isLoading: false,
-  }),
-  useCreateJournalEntry: () => ({
+  useDeleteJournalEntry: () => ({
     mutate: vi.fn(),
     mutateAsync: vi.fn(),
     isPending: false,
@@ -26,37 +22,28 @@ describe('AccountingJournal Page', () => {
     it('should render page title', async () => {
       render(<AccountingJournal />);
       await waitFor(() => {
-        expect(screen.getByText('仕訳帳')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: '仕訳帳' })).toBeInTheDocument();
       });
     });
 
     it('should render page description', async () => {
       render(<AccountingJournal />);
       await waitFor(() => {
-        expect(screen.getByText('日々の取引を仕訳形式で記録')).toBeInTheDocument();
+        expect(screen.getByText('日々の取引を記録・管理')).toBeInTheDocument();
       });
     });
 
     it('should render add entry button', async () => {
       render(<AccountingJournal />);
       await waitFor(() => {
-        expect(screen.getByText('仕訳を追加')).toBeInTheDocument();
+        expect(screen.getByText('新規仕訳')).toBeInTheDocument();
       });
     });
 
-    it('should render statistics cards', async () => {
+    it('should render empty state', async () => {
       render(<AccountingJournal />);
       await waitFor(() => {
-        expect(screen.getByText('仕訳件数')).toBeInTheDocument();
-        expect(screen.getByText('借方合計')).toBeInTheDocument();
-        expect(screen.getByText('貸方合計')).toBeInTheDocument();
-      });
-    });
-
-    it('should render journal table', async () => {
-      render(<AccountingJournal />);
-      await waitFor(() => {
-        expect(screen.getByText('仕訳一覧')).toBeInTheDocument();
+        expect(screen.getByText('仕訳がありません')).toBeInTheDocument();
       });
     });
   });

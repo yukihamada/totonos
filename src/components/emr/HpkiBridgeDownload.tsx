@@ -270,6 +270,9 @@ export function HpkiBridgeDownload({
             <p>※ インストール後、アプリを起動してからHPKI署名機能をご利用ください。</p>
             <p>※ ICカードリーダーとHPKIカードが別途必要です。</p>
             <p>※ OpenSCドライバが必要です（<a href="https://github.com/OpenSC/OpenSC/releases" target="_blank" rel="noopener noreferrer" className="underline">ダウンロード</a>）</p>
+            <p className="pt-2 font-medium text-amber-600 dark:text-amber-400">
+              macOSでGatekeeper警告が出た場合：ダウンロードしたファイルを右クリック →「開く」→「開く」をクリック
+            </p>
           </div>
         </div>
       </CardContent>
