@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { IndustryOnboardingDialog } from '@/components/IndustryOnboardingDialog';
 
@@ -106,7 +106,6 @@ describe('IndustryOnboardingDialog', () => {
       />
     );
 
-    // Featured templates should show "おすすめ" badge
     expect(screen.getAllByText('おすすめ').length).toBeGreaterThan(0);
   });
 
@@ -156,7 +155,6 @@ describe('IndustryOnboardingDialog', () => {
       />
     );
 
-    // Click on a template card
     const templateCard = screen.getByText('小売店').closest('[class*="cursor-pointer"]');
     if (templateCard) {
       fireEvent.click(templateCard);
@@ -186,7 +184,6 @@ describe('IndustryOnboardingDialog', () => {
       />
     );
 
-    // Click on a template card
     const templateCard = screen.getByText('小売店').closest('[class*="cursor-pointer"]');
     if (templateCard) {
       fireEvent.click(templateCard);

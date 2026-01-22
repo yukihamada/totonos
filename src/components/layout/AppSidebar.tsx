@@ -59,7 +59,6 @@ import {
   MessageCircle,
   MessageSquare,
   MessageSquarePlus,
-  // Phase 4 icons
   CircleDollarSign,
   FolderKanban,
   GanttChart,
@@ -68,7 +67,6 @@ import {
   UserSearch,
   CalendarCheck,
   FileBarChart,
-  // EMR icons
   Stethoscope,
   ClipboardCheck,
   UserRound,
@@ -78,7 +76,6 @@ import {
   Home,
   Video,
   HeartPulse,
-  // New category icons
   Ticket,
   HelpCircle,
   Bot,
@@ -92,8 +89,10 @@ import {
   Award,
   Lightbulb,
   UserCheck,
+  ChevronDown,
+  MoreHorizontal,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
 import { useAppSettings } from "@/contexts/SettingsContext";
@@ -116,10 +115,27 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FeedbackDialog } from "@/components/FeedbackDialog";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
 
 interface AppSidebarProps {
   onChatOpen?: () => void;
 }
+
+// Storage key for collapsed groups
+const COLLAPSED_GROUPS_KEY = "sidebar-collapsed-groups";
 
 // Icon mapping
 const iconMap: Record<string, LucideIcon> = {
@@ -156,7 +172,6 @@ const iconMap: Record<string, LucideIcon> = {
   profile: UserCircle,
   settings: Settings,
   pages: Map,
-  // New features
   notifications: Bell,
   team: Users,
   'bank-connections': Building2,
@@ -165,7 +180,6 @@ const iconMap: Record<string, LucideIcon> = {
   'auto-reorder': ShoppingCart,
   'payment-links': CreditCard,
   'email-templates': Mail,
-  // Phase 1 competitive features
   'contract-alerts': AlertTriangle,
   'audit-log': History,
   payslips: Receipt,
@@ -174,7 +188,6 @@ const iconMap: Record<string, LucideIcon> = {
   'e-bookkeeping': FileCheck,
   'my-number': Lock,
   'email-integration': MailCheck,
-  // Phase 2 differentiation features
   'wiki-hierarchy': FolderTree,
   'sales-forecast': TrendingUp,
   'database-views': Table2,
@@ -184,30 +197,24 @@ const iconMap: Record<string, LucideIcon> = {
   'line-settings': MessageSquare,
   'ai-settings': Brain,
   'data-import': FolderTree,
-  // Credit system
   credits: Coins,
   'credit-logs': History,
   pricing: Sparkles,
   referrals: Gift,
-  // Developer & Settings
   'settings-menu': Menu,
   developer: Code,
   'api-docs': Book,
   'mcp-settings': Plug,
-  // Phase 4: Expense Management
   'expense-list': CircleDollarSign,
   'advance-payment': Wallet,
   'expense-settings': Settings,
-  // Phase 4: Project Management
   projects: FolderKanban,
   timelog: Timer,
-  // Phase 4: Recruiting
   recruiting: Briefcase,
   'job-postings': FileText,
   candidates: UserSearch,
   interviews: CalendarCheck,
   'recruiting-reports': FileBarChart,
-  // EMR
   'emr-dashboard': Stethoscope,
   'emr-reception': ClipboardCheck,
   'emr-patients': UserRound,
@@ -221,7 +228,6 @@ const iconMap: Record<string, LucideIcon> = {
   'emr-home-visit': Home,
   'emr-telemedicine': Video,
   'emr-health-checkup': HeartPulse,
-  // Membership
   'members-dashboard': Users,
   'members-list': Users,
   'membership-plans': CreditCard,
@@ -229,40 +235,34 @@ const iconMap: Record<string, LucideIcon> = {
   'class-bookings': CalendarCheck,
   'member-checkins': UserCheck,
   'member-purchases': ShoppingCart,
-  // Support/CS
   'tickets': Ticket,
   'help-center': HelpCircle,
   'chatbot': Bot,
   'cti': Phone,
   'customer-success': HeartHandshake,
   'community': Users,
-  // Marketing
   'email-marketing': Mail,
   'campaigns': Megaphone,
   'lp-builder': Layout,
   'web-analytics': BarChart3,
   'ad-management': Target,
   'sns-management': Share2,
-  // Retail/EC
   'cloud-pos': ShoppingCart,
   'ec-site': Store,
   'omni-inventory': Package,
   'store-shift': CalendarDays,
   'member-app': Smartphone,
   'loyalty-points': Gift,
-  // LMS
   'courses': BookOpen,
   'tests': ClipboardList,
   'study-history': History,
   'skill-map': Map,
   'certifications': Award,
-  // Legal/Governance
   'shareholder-meetings': Users,
   'corporate-registry': FileText,
   'whistleblowing': AlertTriangle,
   'antisocial-check': Shield,
   'ip-management': Lightbulb,
-  // Vacation Rental
   'vacation-dashboard': Palmtree,
   'vacation-properties': Home,
   'vacation-bookings': CalendarDays,
@@ -270,7 +270,6 @@ const iconMap: Record<string, LucideIcon> = {
   'vacation-guests': Users,
   'vacation-cleaning': Sparkles,
   'vacation-operating-days': CalendarDays,
-  // Estate Management
   'estate-properties': Building2,
   'estate-tenants': Users,
   'estate-owner-dashboard': LayoutDashboard,
@@ -313,7 +312,6 @@ const urlMap: Record<string, string> = {
   profile: '/profile',
   settings: '/settings',
   pages: '/dev/pages',
-  // New features
   notifications: '/notifications',
   team: '/team',
   'bank-connections': '/bank-connections',
@@ -322,7 +320,6 @@ const urlMap: Record<string, string> = {
   'auto-reorder': '/auto-reorder',
   'payment-links': '/payment-links',
   'email-templates': '/email-templates',
-  // Phase 1 competitive features
   'contract-alerts': '/contract-alerts',
   'audit-log': '/audit-log',
   payslips: '/payslips',
@@ -331,19 +328,16 @@ const urlMap: Record<string, string> = {
   'e-bookkeeping': '/e-bookkeeping',
   'my-number': '/my-number',
   'email-integration': '/email-integration',
-  // Phase 2 differentiation features
   'wiki-hierarchy': '/wiki-hierarchy',
   'sales-forecast': '/sales-forecast',
   'database-views': '/database-views',
   'social-insurance': '/social-insurance',
   'approval-workflow': '/approval-workflow',
   'sso-settings': '/sso-settings',
-  // Credit system
   credits: '/credits',
   'credit-logs': '/credit-logs',
   pricing: '/pricing',
   referrals: '/referrals',
-  // Developer & Settings
   'line-settings': '/line-settings',
   'ai-settings': '/ai-settings',
   'data-import': '/data-import',
@@ -351,20 +345,16 @@ const urlMap: Record<string, string> = {
   developer: '/developer',
   'api-docs': '/api-docs',
   'mcp-settings': '/mcp-settings',
-  // Phase 4: Expense Management
   'expense-list': '/expenses',
   'advance-payment': '/advance-payment',
   'expense-settings': '/expenses/settings',
-  // Phase 4: Project Management
   projects: '/projects',
   timelog: '/timelog',
-  // Phase 4: Recruiting
   recruiting: '/recruiting',
   'job-postings': '/job-postings',
   candidates: '/candidates',
   interviews: '/interviews',
   'recruiting-reports': '/recruiting/reports',
-  // EMR
   'emr-dashboard': '/emr',
   'emr-reception': '/emr/reception',
   'emr-patients': '/emr/patients',
@@ -378,7 +368,6 @@ const urlMap: Record<string, string> = {
   'emr-home-visit': '/emr/home-visit',
   'emr-telemedicine': '/emr/telemedicine',
   'emr-health-checkup': '/emr/health-checkup',
-  // Membership
   'members-dashboard': '/membership',
   'members-list': '/membership/members',
   'membership-plans': '/membership/plans',
@@ -386,40 +375,34 @@ const urlMap: Record<string, string> = {
   'class-bookings': '/membership/bookings',
   'member-checkins': '/membership/checkins',
   'member-purchases': '/membership/purchases',
-  // Support/CS
   'tickets': '/support/tickets',
   'help-center': '/support/help-center',
   'chatbot': '/support/chatbot',
   'cti': '/support/cti',
   'customer-success': '/support/customer-success',
   'community': '/support/community',
-  // Marketing
   'email-marketing': '/marketing/email',
   'campaigns': '/marketing/campaigns',
   'lp-builder': '/marketing/lp-builder',
   'web-analytics': '/marketing/analytics',
   'ad-management': '/marketing/ads',
   'sns-management': '/marketing/sns',
-  // Retail/EC
   'cloud-pos': '/retail/pos',
   'ec-site': '/retail/ec-site',
   'omni-inventory': '/retail/inventory',
   'store-shift': '/retail/shift',
   'member-app': '/retail/member-app',
   'loyalty-points': '/retail/points',
-  // LMS
   'courses': '/lms/courses',
   'tests': '/lms/tests',
   'study-history': '/lms/history',
   'skill-map': '/lms/skill-map',
   'certifications': '/lms/certifications',
-  // Legal/Governance
   'shareholder-meetings': '/legal/shareholder-meetings',
   'corporate-registry': '/legal/registry',
   'whistleblowing': '/legal/whistleblowing',
   'antisocial-check': '/legal/antisocial-check',
   'ip-management': '/legal/ip',
-  // Vacation Rental
   'vacation-dashboard': '/vacation-rental',
   'vacation-properties': '/vacation-rental/properties',
   'vacation-bookings': '/vacation-rental/bookings',
@@ -427,12 +410,36 @@ const urlMap: Record<string, string> = {
   'vacation-guests': '/vacation-rental/guests',
   'vacation-cleaning': '/vacation-rental/cleaning',
   'vacation-operating-days': '/vacation-rental/operating-days',
-  // Estate Management
   'estate-properties': '/estate/properties',
   'estate-tenants': '/estate/tenants',
   'estate-owner-dashboard': '/estate/owner-dashboard',
   'estate-proration': '/estate/proration',
   'estate-reconciliation': '/estate/reconciliation',
+};
+
+// Group icon mapping
+const groupIconMap: Record<string, LucideIcon> = {
+  main: LayoutDashboard,
+  crm: Users,
+  sales: FileText,
+  finance: Calculator,
+  accounting: Calculator,
+  hr: Users,
+  knowledge: Book,
+  system: Settings,
+  integrations: Plug,
+  emr: Stethoscope,
+  membership: Users,
+  support: HelpCircle,
+  marketing: Megaphone,
+  retail: ShoppingCart,
+  lms: BookOpen,
+  legal: Scale,
+  'vacation-rental': Palmtree,
+  estate: Building2,
+  expense: Wallet,
+  project: FolderKanban,
+  recruiting: Briefcase,
 };
 
 export function AppSidebar({ onChatOpen }: AppSidebarProps) {
@@ -443,10 +450,34 @@ export function AppSidebar({ onChatOpen }: AppSidebarProps) {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const { brandingSettings, logoUrl } = useBrandingSettings();
 
+  // Load collapsed groups from localStorage
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem(COLLAPSED_GROUPS_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  // Save collapsed groups to localStorage
+  useEffect(() => {
+    localStorage.setItem(COLLAPSED_GROUPS_KEY, JSON.stringify(collapsedGroups));
+  }, [collapsedGroups]);
+
+  const toggleGroup = (groupId: string) => {
+    setCollapsedGroups(prev => ({
+      ...prev,
+      [groupId]: !prev[groupId]
+    }));
+  };
+
   // Sort and filter menu groups based on settings
   const visibleGroups = settings.menuGroups
     .filter(group => group.visible)
     .sort((a, b) => a.order - b.order);
+
+  const userInitial = user?.email?.charAt(0).toUpperCase() || "U";
 
   return (
     <Sidebar collapsible="icon">
@@ -454,7 +485,6 @@ export function AppSidebar({ onChatOpen }: AppSidebarProps) {
         <div className="flex flex-col gap-3 overflow-hidden">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 min-w-0">
-              {/* Custom logo from branding settings */}
               {logoUrl && brandingSettings.showLogoSidebar ? (
                 <img 
                   src={logoUrl} 
@@ -474,14 +504,13 @@ export function AppSidebar({ onChatOpen }: AppSidebarProps) {
               <ThemeToggle />
             </div>
           </div>
-          {/* Company Switcher */}
           <div className="group-data-[collapsible=icon]:hidden">
             <CompanySwitcher collapsed={collapsed} />
           </div>
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="scrollbar-thin">
         {visibleGroups.map(group => {
           const visibleItems = group.items
             .filter(item => item.visible)
@@ -489,39 +518,91 @@ export function AppSidebar({ onChatOpen }: AppSidebarProps) {
 
           if (visibleItems.length === 0) return null;
 
-          return (
-            <SidebarGroup key={group.id}>
-              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {visibleItems.map((item) => {
-                    const Icon = iconMap[item.id] || LayoutDashboard;
-                    const url = urlMap[item.id] || '/';
+          const GroupIcon = groupIconMap[group.id] || LayoutDashboard;
+          const isCollapsed = collapsedGroups[group.id] ?? false;
 
-                    return (
-                      <SidebarMenuItem key={item.id}>
-                        <SidebarMenuButton asChild tooltip={item.title}>
-                          <NavLink
-                            to={url}
-                            className="flex items-center gap-2 hover:bg-accent"
-                            activeClassName="bg-accent font-medium"
-                          >
-                            <Icon className="h-4 w-4 shrink-0" />
-                            <span className="truncate group-data-[collapsible=icon]:hidden">{item.title}</span>
-                          </NavLink>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
+          // For single-item groups like "main", render without collapsible
+          if (visibleItems.length === 1 && group.id === 'main') {
+            const item = visibleItems[0];
+            const Icon = iconMap[item.id] || LayoutDashboard;
+            const url = urlMap[item.id] || '/';
+
+            return (
+              <SidebarGroup key={group.id} className="py-1">
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild tooltip={item.title}>
+                        <NavLink
+                          to={url}
+                          className="flex items-center gap-2 hover:bg-accent"
+                          activeClassName="bg-accent font-medium"
+                        >
+                          <Icon className="h-4 w-4 shrink-0" />
+                          <span className="truncate group-data-[collapsible=icon]:hidden">{item.title}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            );
+          }
+
+          return (
+            <Collapsible
+              key={group.id}
+              open={!isCollapsed}
+              onOpenChange={() => toggleGroup(group.id)}
+              className="group/collapsible"
+            >
+              <SidebarGroup className="py-1">
+                <CollapsibleTrigger asChild>
+                  <SidebarGroupLabel className="cursor-pointer hover:bg-accent/50 rounded-md transition-colors px-2 py-1.5 flex items-center justify-between text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <div className="flex items-center gap-2">
+                      <GroupIcon className="h-3.5 w-3.5 shrink-0 group-data-[collapsible=icon]:hidden" />
+                      <span className="group-data-[collapsible=icon]:hidden">{group.label}</span>
+                    </div>
+                    <ChevronDown className={cn(
+                      "h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-data-[collapsible=icon]:hidden",
+                      isCollapsed ? "-rotate-90" : "rotate-0"
+                    )} />
+                  </SidebarGroupLabel>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {visibleItems.map((item) => {
+                        const Icon = iconMap[item.id] || LayoutDashboard;
+                        const url = urlMap[item.id] || '/';
+
+                        return (
+                          <SidebarMenuItem key={item.id}>
+                            <SidebarMenuButton asChild tooltip={item.title}>
+                              <NavLink
+                                to={url}
+                                className="flex items-center gap-2 hover:bg-accent"
+                                activeClassName="bg-accent font-medium"
+                              >
+                                <Icon className="h-4 w-4 shrink-0" />
+                                <span className="truncate group-data-[collapsible=icon]:hidden">{item.title}</span>
+                              </NavLink>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        );
+                      })}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </CollapsibleContent>
+              </SidebarGroup>
+            </Collapsible>
           );
         })}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-border p-2">
         <div className="flex flex-col gap-1">
+          {/* AI Assistant */}
           {onChatOpen && (
             <SidebarMenuButton asChild tooltip="AIアシスタント">
               <Button
@@ -535,43 +616,67 @@ export function AppSidebar({ onChatOpen }: AppSidebarProps) {
               </Button>
             </SidebarMenuButton>
           )}
+
+          {/* Theme toggle for collapsed mode */}
           <div className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center hidden">
             <ThemeToggle />
           </div>
-          <p className="text-xs text-muted-foreground truncate px-2 group-data-[collapsible=icon]:hidden">
-            {user?.email}
-          </p>
-          <SidebarMenuButton asChild tooltip="ログアウト">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={signOut}
-              className="w-full justify-start gap-2"
-            >
-              <LogOut className="h-4 w-4 shrink-0" />
-              <span className="truncate group-data-[collapsible=icon]:hidden">ログアウト</span>
-            </Button>
-          </SidebarMenuButton>
-          
-          {/* Feedback & Beta - Below logout */}
-          <div className="pt-2 border-t border-border mt-2 group-data-[collapsible=icon]:pt-1 group-data-[collapsible=icon]:mt-1">
-            <div className="flex items-center gap-2 mb-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:mb-1">
-              <Badge variant="secondary" className="bg-amber-500/90 text-amber-950 hover:bg-amber-500 border-0 font-semibold px-2 py-0.5 text-[10px] leading-tight group-data-[collapsible=icon]:px-1">
-                <span className="group-data-[collapsible=icon]:hidden">🚧 ベータ版</span>
-                <span className="hidden group-data-[collapsible=icon]:inline">β</span>
-              </Badge>
-            </div>
-            <SidebarMenuButton asChild tooltip="バグ報告・機能要望">
+
+          {/* User Menu Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setFeedbackOpen(true)}
-                className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+                className="w-full justify-start gap-2 hover:bg-accent group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2"
               >
-                <MessageSquarePlus className="h-4 w-4 shrink-0" />
-                <span className="truncate group-data-[collapsible=icon]:hidden">バグ報告・機能要望</span>
+                <Avatar className="h-6 w-6 shrink-0">
+                  <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                    {userInitial}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="truncate text-xs text-muted-foreground group-data-[collapsible=icon]:hidden flex-1 text-left">
+                  {user?.email}
+                </span>
+                <MoreHorizontal className="h-4 w-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
               </Button>
-            </SidebarMenuButton>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <div className="px-2 py-1.5">
+                <p className="text-sm font-medium">{user?.email}</p>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <NavLink to="/profile" className="cursor-pointer">
+                  <UserCircle className="h-4 w-4 mr-2" />
+                  プロフィール
+                </NavLink>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <NavLink to="/settings" className="cursor-pointer">
+                  <Settings className="h-4 w-4 mr-2" />
+                  設定
+                </NavLink>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setFeedbackOpen(true)}>
+                <MessageSquarePlus className="h-4 w-4 mr-2" />
+                バグ報告・機能要望
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive">
+                <LogOut className="h-4 w-4 mr-2" />
+                ログアウト
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
+          {/* Beta Badge */}
+          <div className="pt-1 flex justify-center group-data-[collapsible=icon]:pt-1">
+            <Badge variant="secondary" className="bg-amber-500/90 text-amber-950 hover:bg-amber-500 border-0 font-semibold px-2 py-0.5 text-[10px] leading-tight">
+              <span className="group-data-[collapsible=icon]:hidden">🚧 ベータ版</span>
+              <span className="hidden group-data-[collapsible=icon]:inline">β</span>
+            </Badge>
           </div>
         </div>
         
