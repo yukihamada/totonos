@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { FileText, Pill, Plus, Printer, Search, Trash2 } from "lucide-react";
 import { useEmrMedications, useEmrPrescriptions, PrescriptionMedication } from "@/hooks/emr/useEmrPharmacy";
 import { useEmrPatients } from "@/hooks/emr/useEmrPatients";
+import { InlineMedicationSearch } from "@/components/emr/MedicationSearch";
 
 const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "下書き", variant: "secondary" },
@@ -33,6 +34,7 @@ const frequencyOptions = [
 export default function EmrPharmacy() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [medDialogOpen, setMedDialogOpen] = useState(false);
+  const [medSearchTerm, setMedSearchTerm] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [prescriptionMeds, setPrescriptionMeds] = useState<PrescriptionMedication[]>([]);
   const [formData, setFormData] = useState({
@@ -53,8 +55,9 @@ export default function EmrPharmacy() {
   const { prescriptions, isLoading, createPrescription, issuePrescription } = useEmrPrescriptions();
   const { patients } = useEmrPatients();
 
-  const filteredMeds = medications.filter(
-    (m) => m.name.includes(searchTerm) || (m.yj_code?.includes(searchTerm) ?? false)
+  // Filter medications for master list
+  const filteredMasterMeds = medications.filter(
+    (m) => m.name.includes(medSearchTerm) || (m.yj_code?.includes(medSearchTerm) ?? false) || (m.generic_name?.includes(medSearchTerm) ?? false)
   );
 
   const addMedToPrescription = (med: typeof medications[0]) => {
@@ -188,21 +191,11 @@ export default function EmrPharmacy() {
                     </div>
                     <div>
                       <Label>薬剤検索</Label>
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="薬剤名で検索" className="pl-9" />
-                      </div>
-                    </div>
-                    <div className="border rounded-md max-h-[200px] overflow-y-auto">
-                      {filteredMeds.map((m) => (
-                        <div key={m.id} className="p-2 hover:bg-muted cursor-pointer flex justify-between items-center border-b last:border-0" onClick={() => addMedToPrescription(m)}>
-                          <div>
-                            <span className="font-medium">{m.name}</span>
-                            {m.is_generic && <Badge variant="outline" className="ml-2 text-xs">GE</Badge>}
-                          </div>
-                          <span className="text-sm text-muted-foreground">{m.dosage_form}</span>
-                        </div>
-                      ))}
+                      <InlineMedicationSearch
+                        medications={medications}
+                        onSelect={(med) => addMedToPrescription(med)}
+                        selectedIds={prescriptionMeds.map(m => m.medication_id)}
+                      />
                     </div>
                   </div>
 
@@ -322,6 +315,20 @@ export default function EmrPharmacy() {
 
           <TabsContent value="medications">
             <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>薬剤マスタ</CardTitle>
+                  <div className="relative w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      value={medSearchTerm} 
+                      onChange={(e) => setMedSearchTerm(e.target.value)} 
+                      placeholder="薬剤名・一般名・YJコードで検索" 
+                      className="pl-9" 
+                    />
+                  </div>
+                </div>
+              </CardHeader>
               <CardContent className="p-0">
                 <Table>
                   <TableHeader>
@@ -334,12 +341,14 @@ export default function EmrPharmacy() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {medications.length === 0 ? (
+                    {filteredMasterMeds.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center text-muted-foreground py-8">薬剤が登録されていません</TableCell>
+                        <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                          {medications.length === 0 ? "薬剤が登録されていません" : "検索条件に一致する薬剤がありません"}
+                        </TableCell>
                       </TableRow>
                     ) : (
-                      medications.map((m) => (
+                      filteredMasterMeds.map((m) => (
                         <TableRow key={m.id}>
                           <TableCell className="font-medium">{m.name}</TableCell>
                           <TableCell>{m.generic_name || "-"}</TableCell>
