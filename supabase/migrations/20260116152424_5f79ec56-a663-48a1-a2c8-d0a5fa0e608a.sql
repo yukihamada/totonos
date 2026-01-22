@@ -1,7 +1,11 @@
--- Fix existing companies with empty or invalid slugs
-UPDATE public.companies 
-SET slug = 'company-' || REPLACE(id::text, '-', '')
-WHERE slug IS NULL OR slug = '';
+-- Fix existing companies with empty or invalid slugs (only if slug column exists)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'companies' AND column_name = 'slug' AND table_schema = 'public') THEN
+    UPDATE public.companies
+    SET slug = 'company-' || REPLACE(id::text, '-', '')
+    WHERE slug IS NULL OR slug = '';
+  END IF;
+END $$;
 
 -- Drop and recreate the function with improved logic
 CREATE OR REPLACE FUNCTION public.generate_company_slug()
@@ -96,9 +100,9 @@ CREATE POLICY "Users can delete their own connections"
   USING (auth.uid() = user_id);
 
 -- Create indexes
-CREATE INDEX IF NOT EXISTS idx_external_connections_user_id ON public.external_connections(user_id);
-CREATE INDEX IF NOT EXISTS idx_external_connections_company_id ON public.external_connections(company_id);
-CREATE INDEX IF NOT EXISTS idx_external_connections_service_type ON public.external_connections(service_type);
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'external_connections' AND column_name = 'user_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_external_connections_user_id ON public.external_connections(user_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'external_connections' AND column_name = 'company_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_external_connections_company_id ON public.external_connections(company_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'external_connections' AND column_name = 'service_type' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_external_connections_service_type ON public.external_connections(service_type); END IF; END $$;
 
 -- Create trigger for updated_at
 CREATE TRIGGER update_external_connections_updated_at

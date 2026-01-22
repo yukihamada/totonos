@@ -9,6 +9,7 @@ import { TrustPassportMini } from "@/components/dashboard/TrustPassportMini";
 import { OnboardingGuide } from "@/components/dashboard/OnboardingGuide";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { InventoryAlertWidget } from "@/components/dashboard/InventoryAlertWidget";
+import { IndustryTemplateAppliedDialog } from "@/components/IndustryTemplateAppliedDialog";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { Wallet, FileText, Target, TrendingUp, Users } from "lucide-react";
 import { formatCurrency } from "@/types/database";
@@ -154,6 +155,9 @@ export default function Dashboard() {
           />
         </div>
       </div>
+
+      {/* Industry template applied notification */}
+      <IndustryTemplateAppliedDialog />
     </AppLayout>
   );
 }

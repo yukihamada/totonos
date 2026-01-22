@@ -17,11 +17,14 @@ Requirements:
 - OpenSC or compatible PKCS#11 driver
 """
 
+import sys
+import os
+import hashlib
+import logging
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import hashlib
-import logging
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -48,19 +51,42 @@ app.add_middleware(
 )
 
 # PKCS#11 Library Path Configuration
-# Uncomment the appropriate line for your OS and driver
+# Auto-detect based on OS
 
-# Windows (OpenSC)
-PKCS11_LIB_PATH = r"C:\Program Files\OpenSC Project\OpenSC\pkcs11\opensc-pkcs11.dll"
+def get_pkcs11_lib_path():
+    """Auto-detect PKCS#11 library path based on OS"""
+    if sys.platform == 'darwin':  # macOS
+        # Try multiple common paths for macOS
+        paths = [
+            "/opt/homebrew/lib/opensc-pkcs11.so",  # Apple Silicon Homebrew
+            "/usr/local/lib/opensc-pkcs11.so",      # Intel Homebrew
+            "/Library/OpenSC/lib/opensc-pkcs11.so", # OpenSC installer
+        ]
+        for path in paths:
+            if os.path.exists(path):
+                return path
+        return paths[0]  # Default to Apple Silicon path
+    elif sys.platform == 'win32':  # Windows
+        # Try multiple common paths for Windows
+        paths = [
+            r"C:\Program Files\OpenSC Project\OpenSC\pkcs11\opensc-pkcs11.dll",
+            r"C:\Program Files (x86)\OpenSC Project\OpenSC\pkcs11\opensc-pkcs11.dll",
+        ]
+        for path in paths:
+            if os.path.exists(path):
+                return path
+        return paths[0]  # Default to Program Files
+    else:  # Linux
+        paths = [
+            "/usr/lib/x86_64-linux-gnu/opensc-pkcs11.so",
+            "/usr/lib/opensc-pkcs11.so",
+        ]
+        for path in paths:
+            if os.path.exists(path):
+                return path
+        return paths[0]
 
-# macOS (OpenSC)
-# PKCS11_LIB_PATH = "/usr/local/lib/opensc-pkcs11.so"
-
-# Linux (OpenSC)
-# PKCS11_LIB_PATH = "/usr/lib/x86_64-linux-gnu/opensc-pkcs11.so"
-
-# macOS (Homebrew OpenSC)
-# PKCS11_LIB_PATH = "/opt/homebrew/lib/opensc-pkcs11.so"
+PKCS11_LIB_PATH = os.environ.get('PKCS11_LIB_PATH', get_pkcs11_lib_path())
 
 
 class SignRequest(BaseModel):

@@ -1,5 +1,5 @@
 -- EMR患者テーブル
-CREATE TABLE public.emr_patients (
+CREATE TABLE IF NOT EXISTS public.emr_patients (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID REFERENCES public.companies(id) ON DELETE CASCADE NOT NULL,
   patient_number TEXT NOT NULL,
@@ -24,7 +24,7 @@ CREATE TABLE public.emr_patients (
 );
 
 -- EMR受付テーブル
-CREATE TABLE public.emr_receptions (
+CREATE TABLE IF NOT EXISTS public.emr_receptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID REFERENCES public.companies(id) ON DELETE CASCADE NOT NULL,
   patient_id UUID REFERENCES public.emr_patients(id) ON DELETE CASCADE NOT NULL,
@@ -42,7 +42,7 @@ CREATE TABLE public.emr_receptions (
 );
 
 -- EMRカルテテーブル
-CREATE TABLE public.emr_medical_records (
+CREATE TABLE IF NOT EXISTS public.emr_medical_records (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID REFERENCES public.companies(id) ON DELETE CASCADE NOT NULL,
   patient_id UUID REFERENCES public.emr_patients(id) ON DELETE CASCADE NOT NULL,
@@ -65,14 +65,14 @@ CREATE TABLE public.emr_medical_records (
 );
 
 -- インデックス作成
-CREATE INDEX idx_emr_patients_company ON public.emr_patients(company_id);
-CREATE INDEX idx_emr_patients_patient_number ON public.emr_patients(patient_number);
-CREATE INDEX idx_emr_receptions_company ON public.emr_receptions(company_id);
-CREATE INDEX idx_emr_receptions_patient ON public.emr_receptions(patient_id);
-CREATE INDEX idx_emr_receptions_date ON public.emr_receptions(reception_date);
-CREATE INDEX idx_emr_medical_records_company ON public.emr_medical_records(company_id);
-CREATE INDEX idx_emr_medical_records_patient ON public.emr_medical_records(patient_id);
-CREATE INDEX idx_emr_medical_records_date ON public.emr_medical_records(record_date);
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'emr_patients' AND column_name = 'company_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_emr_patients_company ON public.emr_patients(company_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'emr_patients' AND column_name = 'patient_number' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_emr_patients_patient_number ON public.emr_patients(patient_number); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'emr_receptions' AND column_name = 'company_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_emr_receptions_company ON public.emr_receptions(company_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'emr_receptions' AND column_name = 'patient_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_emr_receptions_patient ON public.emr_receptions(patient_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'emr_receptions' AND column_name = 'reception_date' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_emr_receptions_date ON public.emr_receptions(reception_date); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'emr_medical_records' AND column_name = 'company_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_emr_medical_records_company ON public.emr_medical_records(company_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'emr_medical_records' AND column_name = 'patient_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_emr_medical_records_patient ON public.emr_medical_records(patient_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'emr_medical_records' AND column_name = 'record_date' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_emr_medical_records_date ON public.emr_medical_records(record_date); END IF; END $$;
 
 -- RLS有効化
 ALTER TABLE public.emr_patients ENABLE ROW LEVEL SECURITY;

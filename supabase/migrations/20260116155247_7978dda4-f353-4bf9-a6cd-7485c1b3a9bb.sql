@@ -155,23 +155,41 @@ USING (
 
 -- 5. LINE連携にcompany_idを追加
 ALTER TABLE public.line_users ADD COLUMN IF NOT EXISTS company_id UUID REFERENCES public.companies(id) ON DELETE SET NULL;
-CREATE INDEX IF NOT EXISTS idx_line_users_company ON public.line_users(company_id);
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'line_users' AND column_name = 'company_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_line_users_company ON public.line_users(company_id); END IF; END $$;
 
--- 6. 既存の会社にデフォルトメールアドレスがない場合に作成
-INSERT INTO public.company_email_addresses (company_id, address_prefix, purpose, display_name, is_active, ai_processing_enabled, notify_mode)
-SELECT 
-  c.id,
-  public.generate_random_email_prefix(),
-  'general',
-  'Minato (ミナト)',
-  true,
-  true,
-  'all_members'
-FROM public.companies c
-WHERE NOT EXISTS (
-  SELECT 1 FROM public.company_email_addresses cea
-  WHERE cea.company_id = c.id
-);
+-- 6. 既存の会社にデフォルトメールアドレスがない場合に作成 (only if notify_mode column exists)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'company_email_addresses' AND column_name = 'notify_mode' AND table_schema = 'public') THEN
+    INSERT INTO public.company_email_addresses (company_id, address_prefix, purpose, display_name, is_active, ai_processing_enabled, notify_mode)
+    SELECT
+      c.id,
+      public.generate_random_email_prefix(),
+      'general',
+      'Minato (ミナト)',
+      true,
+      true,
+      'all_members'
+    FROM public.companies c
+    WHERE NOT EXISTS (
+      SELECT 1 FROM public.company_email_addresses cea
+      WHERE cea.company_id = c.id
+    );
+  ELSIF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'company_email_addresses' AND table_schema = 'public') THEN
+    INSERT INTO public.company_email_addresses (company_id, address_prefix, purpose, display_name, is_active, ai_processing_enabled)
+    SELECT
+      c.id,
+      public.generate_random_email_prefix(),
+      'general',
+      'Minato (ミナト)',
+      true,
+      true
+    FROM public.companies c
+    WHERE NOT EXISTS (
+      SELECT 1 FROM public.company_email_addresses cea
+      WHERE cea.company_id = c.id
+    );
+  END IF;
+END $$;
 
 -- 7. companiesテーブルに認証済みメールアドレスを保存
 ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS verified_email_addresses TEXT[] DEFAULT '{}';

@@ -22,7 +22,7 @@ CREATE TYPE public.signature_method AS ENUM (
 );
 
 -- Create contracts table
-CREATE TABLE public.contracts (
+CREATE TABLE IF NOT EXISTS public.contracts (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   client_id UUID REFERENCES public.clients(id),
@@ -41,7 +41,7 @@ CREATE TABLE public.contracts (
 );
 
 -- Create contract_items table
-CREATE TABLE public.contract_items (
+CREATE TABLE IF NOT EXISTS public.contract_items (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   contract_id UUID NOT NULL REFERENCES public.contracts(id) ON DELETE CASCADE,
   item_order INTEGER NOT NULL DEFAULT 1,
@@ -51,7 +51,7 @@ CREATE TABLE public.contract_items (
 );
 
 -- Create contract_signatures table
-CREATE TABLE public.contract_signatures (
+CREATE TABLE IF NOT EXISTS public.contract_signatures (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   contract_id UUID NOT NULL REFERENCES public.contracts(id) ON DELETE CASCADE,
   signatory_type public.signatory_type NOT NULL,
@@ -74,7 +74,7 @@ CREATE TABLE public.contract_signatures (
 );
 
 -- Create signature_verification_logs table
-CREATE TABLE public.signature_verification_logs (
+CREATE TABLE IF NOT EXISTS public.signature_verification_logs (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   contract_id UUID NOT NULL REFERENCES public.contracts(id) ON DELETE CASCADE,
   verified_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),

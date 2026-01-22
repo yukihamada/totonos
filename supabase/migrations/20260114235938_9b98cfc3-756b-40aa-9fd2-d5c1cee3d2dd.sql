@@ -1,5 +1,6 @@
 -- receipts テーブルに法的要件カラムを追加（電子帳簿保存法対応）
-ALTER TABLE public.receipts 
+ALTER TABLE public.receipts
+ADD COLUMN IF NOT EXISTS source_email_id UUID,
 ADD COLUMN IF NOT EXISTS legal_timestamp TIMESTAMPTZ,
 ADD COLUMN IF NOT EXISTS legal_hash TEXT,
 ADD COLUMN IF NOT EXISTS legal_verified BOOLEAN DEFAULT false,
@@ -62,6 +63,6 @@ BEGIN
 END $$;
 
 -- receiptsのインデックス追加
-CREATE INDEX IF NOT EXISTS idx_receipts_source_email ON public.receipts(source_email_id);
-CREATE INDEX IF NOT EXISTS idx_receipts_legal_verified ON public.receipts(legal_verified);
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'receipts' AND column_name = 'source_email_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_receipts_source_email ON public.receipts(source_email_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'receipts' AND column_name = 'legal_verified' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_receipts_legal_verified ON public.receipts(legal_verified); END IF; END $$;
 CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON public.notifications(user_id, is_read) WHERE is_read = false;

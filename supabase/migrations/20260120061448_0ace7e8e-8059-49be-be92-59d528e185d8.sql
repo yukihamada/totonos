@@ -46,29 +46,48 @@ ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.project_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.project_tasks ENABLE ROW LEVEL SECURITY;
 
--- プロジェクトのRLSポリシー
-CREATE POLICY "Users can manage their projects" ON public.projects
-  FOR ALL USING (
-    user_id = auth.uid() 
-    OR company_id IN (
-      SELECT company_id FROM public.company_members 
-      WHERE user_id = auth.uid() AND is_active = true
-    )
-  );
+-- プロジェクトのRLSポリシー (conditional based on company_id column existence)
+DROP POLICY IF EXISTS "Users can manage their projects" ON public.projects;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'projects' AND column_name = 'company_id' AND table_schema = 'public') THEN
+    CREATE POLICY "Users can manage their projects" ON public.projects
+      FOR ALL USING (
+        user_id = auth.uid()
+        OR company_id IN (
+          SELECT company_id FROM public.company_members
+          WHERE user_id = auth.uid() AND is_active = true
+        )
+      );
+  ELSE
+    CREATE POLICY "Users can manage their projects" ON public.projects
+      FOR ALL USING (user_id = auth.uid());
+  END IF;
+END $$;
 
 -- プロジェクトメンバーのRLSポリシー
-CREATE POLICY "Users can view project members" ON public.project_members
-  FOR SELECT USING (
-    project_id IN (
-      SELECT id FROM public.projects 
-      WHERE user_id = auth.uid() 
-      OR company_id IN (
-        SELECT company_id FROM public.company_members 
-        WHERE user_id = auth.uid() AND is_active = true
-      )
-    )
-  );
+DROP POLICY IF EXISTS "Users can view project members" ON public.project_members;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'projects' AND column_name = 'company_id' AND table_schema = 'public') THEN
+    CREATE POLICY "Users can view project members" ON public.project_members
+      FOR SELECT USING (
+        project_id IN (
+          SELECT id FROM public.projects
+          WHERE user_id = auth.uid()
+          OR company_id IN (
+            SELECT company_id FROM public.company_members
+            WHERE user_id = auth.uid() AND is_active = true
+          )
+        )
+      );
+  ELSE
+    CREATE POLICY "Users can view project members" ON public.project_members
+      FOR SELECT USING (
+        project_id IN (SELECT id FROM public.projects WHERE user_id = auth.uid())
+      );
+  END IF;
+END $$;
 
+DROP POLICY IF EXISTS "Users can manage project members" ON public.project_members;
 CREATE POLICY "Users can manage project members" ON public.project_members
   FOR ALL USING (
     project_id IN (
@@ -77,17 +96,27 @@ CREATE POLICY "Users can manage project members" ON public.project_members
   );
 
 -- プロジェクトタスクのRLSポリシー
-CREATE POLICY "Users can manage project tasks" ON public.project_tasks
-  FOR ALL USING (
-    project_id IN (
-      SELECT id FROM public.projects 
-      WHERE user_id = auth.uid() 
-      OR company_id IN (
-        SELECT company_id FROM public.company_members 
-        WHERE user_id = auth.uid() AND is_active = true
-      )
-    )
-  );
+DROP POLICY IF EXISTS "Users can manage project tasks" ON public.project_tasks;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'projects' AND column_name = 'company_id' AND table_schema = 'public') THEN
+    CREATE POLICY "Users can manage project tasks" ON public.project_tasks
+      FOR ALL USING (
+        project_id IN (
+          SELECT id FROM public.projects
+          WHERE user_id = auth.uid()
+          OR company_id IN (
+            SELECT company_id FROM public.company_members
+            WHERE user_id = auth.uid() AND is_active = true
+          )
+        )
+      );
+  ELSE
+    CREATE POLICY "Users can manage project tasks" ON public.project_tasks
+      FOR ALL USING (
+        project_id IN (SELECT id FROM public.projects WHERE user_id = auth.uid())
+      );
+  END IF;
+END $$;
 
 -- 更新日時自動更新トリガー
 CREATE TRIGGER update_projects_updated_at
@@ -143,8 +172,11 @@ CREATE INDEX IF NOT EXISTS idx_invoices_user_date
 CREATE INDEX IF NOT EXISTS idx_attendance_employee_date 
   ON public.attendance_records(employee_id, work_date DESC);
 
-CREATE INDEX IF NOT EXISTS idx_projects_user_company 
-  ON public.projects(user_id, company_id);
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'projects' AND column_name = 'company_id' AND table_schema = 'public') THEN
+    CREATE INDEX IF NOT EXISTS idx_projects_user_company ON public.projects(user_id, company_id);
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_project_tasks_project_status 
   ON public.project_tasks(project_id, status);

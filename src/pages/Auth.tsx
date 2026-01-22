@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +36,8 @@ const GoogleIcon = () => (
   </svg>
 );
 
+const PENDING_TEMPLATE_KEY = 'pending_industry_template';
+
 export default function Auth() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -44,6 +46,15 @@ export default function Auth() {
   const { signInWithMagicLink, signInWithOAuth, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Save template key from LP to localStorage
+  useEffect(() => {
+    const templateKey = searchParams.get('template');
+    if (templateKey) {
+      localStorage.setItem(PENDING_TEMPLATE_KEY, templateKey);
+    }
+  }, [searchParams]);
 
   // Redirect to dashboard if already logged in
   useEffect(() => {
@@ -68,13 +79,19 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      const { error } = await signInWithMagicLink(email);
+      const { error, isE2ELogin } = await signInWithMagicLink(email);
       if (error) {
         toast({
           title: "エラー",
           description: error.message,
           variant: "destructive",
         });
+        return;
+      }
+
+      // E2E test: skip email sent screen and redirect immediately
+      if (isE2ELogin) {
+        navigate('/dashboard', { replace: true });
         return;
       }
 

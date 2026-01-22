@@ -13,9 +13,9 @@ CREATE TABLE IF NOT EXISTS public.data_access_audit_log (
 );
 
 -- インデックスを作成
-CREATE INDEX idx_data_access_audit_log_user_id ON public.data_access_audit_log(user_id);
-CREATE INDEX idx_data_access_audit_log_table_name ON public.data_access_audit_log(table_name);
-CREATE INDEX idx_data_access_audit_log_created_at ON public.data_access_audit_log(created_at DESC);
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'data_access_audit_log' AND column_name = 'user_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_data_access_audit_log_user_id ON public.data_access_audit_log(user_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'data_access_audit_log' AND column_name = 'table_name' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_data_access_audit_log_table_name ON public.data_access_audit_log(table_name); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'data_access_audit_log' AND column_name = 'created_at DESC' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_data_access_audit_log_created_at ON public.data_access_audit_log(created_at DESC); END IF; END $$;
 
 -- RLSを有効化
 ALTER TABLE public.data_access_audit_log ENABLE ROW LEVEL SECURITY;
@@ -49,8 +49,8 @@ CREATE TABLE IF NOT EXISTS public.api_rate_limits (
 );
 
 -- インデックス
-CREATE INDEX idx_api_rate_limits_user_endpoint ON public.api_rate_limits(user_id, endpoint);
-CREATE INDEX idx_api_rate_limits_window ON public.api_rate_limits(window_start);
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'api_rate_limits' AND column_name = 'user_id, endpoint' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_api_rate_limits_user_endpoint ON public.api_rate_limits(user_id, endpoint); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'api_rate_limits' AND column_name = 'window_start' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_api_rate_limits_window ON public.api_rate_limits(window_start); END IF; END $$;
 
 -- RLSを有効化
 ALTER TABLE public.api_rate_limits ENABLE ROW LEVEL SECURITY;

@@ -18,7 +18,7 @@ CREATE TYPE payroll_status AS ENUM ('draft', 'calculated', 'approved', 'paid');
 CREATE TYPE year_end_status AS ENUM ('pending', 'submitted', 'completed');
 
 -- Employees table
-CREATE TABLE public.employees (
+CREATE TABLE IF NOT EXISTS public.employees (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   employee_number TEXT NOT NULL,
@@ -45,7 +45,7 @@ CREATE TABLE public.employees (
 );
 
 -- Attendance records table
-CREATE TABLE public.attendance_records (
+CREATE TABLE IF NOT EXISTS public.attendance_records (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   employee_id UUID NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
   work_date DATE NOT NULL,
@@ -63,7 +63,7 @@ CREATE TABLE public.attendance_records (
 );
 
 -- Paid leave balances table
-CREATE TABLE public.paid_leave_balances (
+CREATE TABLE IF NOT EXISTS public.paid_leave_balances (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   employee_id UUID NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
   fiscal_year INTEGER NOT NULL,
@@ -76,7 +76,7 @@ CREATE TABLE public.paid_leave_balances (
 );
 
 -- Payroll records table
-CREATE TABLE public.payroll_records (
+CREATE TABLE IF NOT EXISTS public.payroll_records (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   employee_id UUID NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
   pay_period_start DATE NOT NULL,
@@ -95,7 +95,7 @@ CREATE TABLE public.payroll_records (
 );
 
 -- Year-end adjustments table
-CREATE TABLE public.year_end_adjustments (
+CREATE TABLE IF NOT EXISTS public.year_end_adjustments (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   employee_id UUID NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
   tax_year INTEGER NOT NULL,
@@ -132,7 +132,7 @@ CREATE TYPE activity_type AS ENUM ('call', 'meeting', 'email', 'visit', 'demo', 
 CREATE TYPE target_period_type AS ENUM ('monthly', 'quarterly', 'yearly');
 
 -- Leads table
-CREATE TABLE public.leads (
+CREATE TABLE IF NOT EXISTS public.leads (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   company_name TEXT NOT NULL,
@@ -149,7 +149,7 @@ CREATE TABLE public.leads (
 );
 
 -- Deals table
-CREATE TABLE public.deals (
+CREATE TABLE IF NOT EXISTS public.deals (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   lead_id UUID REFERENCES public.leads(id),
@@ -169,7 +169,7 @@ CREATE TABLE public.deals (
 );
 
 -- Activities table
-CREATE TABLE public.activities (
+CREATE TABLE IF NOT EXISTS public.activities (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   activity_type activity_type NOT NULL DEFAULT 'other',
@@ -186,7 +186,7 @@ CREATE TABLE public.activities (
 );
 
 -- Sales targets table
-CREATE TABLE public.sales_targets (
+CREATE TABLE IF NOT EXISTS public.sales_targets (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   period_type target_period_type NOT NULL DEFAULT 'monthly',
@@ -218,7 +218,7 @@ CREATE TYPE task_priority AS ENUM ('low', 'medium', 'high', 'urgent');
 CREATE TYPE task_status AS ENUM ('todo', 'in_progress', 'review', 'done');
 
 -- Wiki pages table
-CREATE TABLE public.wiki_pages (
+CREATE TABLE IF NOT EXISTS public.wiki_pages (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   title TEXT NOT NULL,
@@ -233,7 +233,7 @@ CREATE TABLE public.wiki_pages (
 );
 
 -- IT Assets table
-CREATE TABLE public.it_assets (
+CREATE TABLE IF NOT EXISTS public.it_assets (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   asset_type asset_type NOT NULL DEFAULT 'other',
@@ -255,7 +255,7 @@ CREATE TABLE public.it_assets (
 );
 
 -- Tasks table
-CREATE TABLE public.tasks (
+CREATE TABLE IF NOT EXISTS public.tasks (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   title TEXT NOT NULL,

@@ -12,7 +12,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signInWithMagicLink: (email: string) => Promise<{ error: Error | null }>;
+  signInWithMagicLink: (email: string) => Promise<{ error: Error | null; isE2ELogin?: boolean }>;
   signInWithOAuth: (provider: OAuthProvider) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null; isNewUser?: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
@@ -133,7 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signInWithMagicLink = async (email: string) => {
+  const signInWithMagicLink = async (email: string): Promise<{ error: Error | null; isE2ELogin?: boolean }> => {
     // E2E Test: Auto-login when email contains test key
     if (isE2ETestEmail(email)) {
       const testUser = createE2ETestUser(email);
@@ -142,7 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(testSession);
       // Store in localStorage for Playwright storageState persistence
       localStorage.setItem('e2e_test_session', JSON.stringify({ user: testUser, session: testSession }));
-      return { error: null };
+      return { error: null, isE2ELogin: true };
     }
 
     const redirectUrl = `${window.location.origin}/dashboard`;

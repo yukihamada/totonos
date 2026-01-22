@@ -8,7 +8,7 @@ CREATE TYPE public.boost_status AS ENUM ('pending', 'approved', 'completed', 're
 CREATE TYPE public.trust_rank AS ENUM ('S', 'A', 'B', 'C', 'D');
 
 -- Create profiles table
-CREATE TABLE public.profiles (
+CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL UNIQUE,
     company_name TEXT,
@@ -20,7 +20,7 @@ CREATE TABLE public.profiles (
 );
 
 -- Create clients table
-CREATE TABLE public.clients (
+CREATE TABLE IF NOT EXISTS public.clients (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
     name TEXT NOT NULL,
@@ -33,7 +33,7 @@ CREATE TABLE public.clients (
 );
 
 -- Create invoices table
-CREATE TABLE public.invoices (
+CREATE TABLE IF NOT EXISTS public.invoices (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
     client_id UUID REFERENCES public.clients(id) ON DELETE SET NULL,
@@ -53,7 +53,7 @@ CREATE TABLE public.invoices (
 );
 
 -- Create invoice items table
-CREATE TABLE public.invoice_items (
+CREATE TABLE IF NOT EXISTS public.invoice_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     invoice_id UUID REFERENCES public.invoices(id) ON DELETE CASCADE NOT NULL,
     description TEXT NOT NULL,
@@ -64,7 +64,7 @@ CREATE TABLE public.invoice_items (
 );
 
 -- Create payments table (for reconciliation)
-CREATE TABLE public.payments (
+CREATE TABLE IF NOT EXISTS public.payments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
     invoice_id UUID REFERENCES public.invoices(id) ON DELETE SET NULL,
@@ -78,7 +78,7 @@ CREATE TABLE public.payments (
 );
 
 -- Create boost requests table
-CREATE TABLE public.boost_requests (
+CREATE TABLE IF NOT EXISTS public.boost_requests (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
     invoice_id UUID REFERENCES public.invoices(id) ON DELETE CASCADE NOT NULL,
@@ -94,7 +94,7 @@ CREATE TABLE public.boost_requests (
 );
 
 -- Create trust passport table
-CREATE TABLE public.trust_passports (
+CREATE TABLE IF NOT EXISTS public.trust_passports (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL UNIQUE,
     score INTEGER NOT NULL DEFAULT 500,
@@ -120,7 +120,7 @@ CREATE TABLE public.trust_passports (
 );
 
 -- Create score history for tracking
-CREATE TABLE public.trust_score_history (
+CREATE TABLE IF NOT EXISTS public.trust_score_history (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
     score INTEGER NOT NULL,
@@ -131,7 +131,7 @@ CREATE TABLE public.trust_score_history (
 );
 
 -- Create notifications table
-CREATE TABLE public.notifications (
+CREATE TABLE IF NOT EXISTS public.notifications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
     title TEXT NOT NULL,

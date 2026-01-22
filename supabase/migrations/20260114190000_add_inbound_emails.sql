@@ -3,7 +3,7 @@
 -- ============================================
 
 -- 受信メールテーブル
-CREATE TABLE public.inbound_emails (
+CREATE TABLE IF NOT EXISTS public.inbound_emails (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID REFERENCES public.companies(id) ON DELETE CASCADE,
 
@@ -51,7 +51,7 @@ CREATE TABLE public.inbound_emails (
 );
 
 -- メール自動ルーティングルール
-CREATE TABLE public.email_routing_rules (
+CREATE TABLE IF NOT EXISTS public.email_routing_rules (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
 
@@ -74,7 +74,7 @@ CREATE TABLE public.email_routing_rules (
 );
 
 -- メール返信テンプレート
-CREATE TABLE public.email_templates (
+CREATE TABLE IF NOT EXISTS public.email_templates (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
 
@@ -94,10 +94,25 @@ CREATE TABLE public.email_templates (
   created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL
 );
 
+-- Add missing columns if they don't exist
+DO $$ BEGIN
+  ALTER TABLE public.inbound_emails ADD COLUMN IF NOT EXISTS received_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now();
+EXCEPTION WHEN duplicate_column THEN NULL;
+END $$;
+
 -- RLSポリシー
 ALTER TABLE public.inbound_emails ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.email_routing_rules ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.email_templates ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies first
+DROP POLICY IF EXISTS "Members can view company emails" ON public.inbound_emails;
+DROP POLICY IF EXISTS "Members can update company emails" ON public.inbound_emails;
+DROP POLICY IF EXISTS "System can insert emails" ON public.inbound_emails;
+DROP POLICY IF EXISTS "Members can view routing rules" ON public.email_routing_rules;
+DROP POLICY IF EXISTS "Admins can manage routing rules" ON public.email_routing_rules;
+DROP POLICY IF EXISTS "Members can view templates" ON public.email_templates;
+DROP POLICY IF EXISTS "Admins can manage templates" ON public.email_templates;
 
 -- inbound_emails: 会社メンバーは閲覧可能
 CREATE POLICY "Members can view company emails"
@@ -144,25 +159,28 @@ USING (
 );
 
 -- インデックス
-CREATE INDEX idx_inbound_emails_company ON public.inbound_emails(company_id);
-CREATE INDEX idx_inbound_emails_from ON public.inbound_emails(from_email);
-CREATE INDEX idx_inbound_emails_to ON public.inbound_emails(to_email);
-CREATE INDEX idx_inbound_emails_status ON public.inbound_emails(status);
-CREATE INDEX idx_inbound_emails_received_at ON public.inbound_emails(received_at DESC);
-CREATE INDEX idx_inbound_emails_related ON public.inbound_emails(related_type, related_id);
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'inbound_emails' AND column_name = 'company_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_inbound_emails_company ON public.inbound_emails(company_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'inbound_emails' AND column_name = 'from_email' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_inbound_emails_from ON public.inbound_emails(from_email); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'inbound_emails' AND column_name = 'to_email' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_inbound_emails_to ON public.inbound_emails(to_email); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'inbound_emails' AND column_name = 'status' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_inbound_emails_status ON public.inbound_emails(status); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'inbound_emails' AND column_name = 'received_at DESC' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_inbound_emails_received_at ON public.inbound_emails(received_at DESC); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'inbound_emails' AND column_name = 'related_type, related_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_inbound_emails_related ON public.inbound_emails(related_type, related_id); END IF; END $$;
 
-CREATE INDEX idx_email_routing_rules_company ON public.email_routing_rules(company_id);
-CREATE INDEX idx_email_templates_company ON public.email_templates(company_id);
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'email_routing_rules' AND column_name = 'company_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_email_routing_rules_company ON public.email_routing_rules(company_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'email_templates' AND column_name = 'company_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_email_templates_company ON public.email_templates(company_id); END IF; END $$;
 
 -- 更新トリガー
+DROP TRIGGER IF EXISTS update_inbound_emails_updated_at ON public.inbound_emails;
 CREATE TRIGGER update_inbound_emails_updated_at
 BEFORE UPDATE ON public.inbound_emails
 FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_email_routing_rules_updated_at ON public.email_routing_rules;
 CREATE TRIGGER update_email_routing_rules_updated_at
 BEFORE UPDATE ON public.email_routing_rules
 FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_email_templates_updated_at ON public.email_templates;
 CREATE TRIGGER update_email_templates_updated_at
 BEFORE UPDATE ON public.email_templates
 FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();

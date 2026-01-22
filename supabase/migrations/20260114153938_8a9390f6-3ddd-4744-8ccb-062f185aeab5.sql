@@ -2,7 +2,7 @@
 ALTER TABLE public.employees ADD COLUMN IF NOT EXISTS company_id UUID REFERENCES public.companies(id);
 
 -- Create index for company_id
-CREATE INDEX IF NOT EXISTS idx_employees_company_id ON public.employees(company_id);
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'employees' AND column_name = 'company_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_employees_company_id ON public.employees(company_id); END IF; END $$;
 
 -- Create new RLS policies for employees table with correct permission names
 

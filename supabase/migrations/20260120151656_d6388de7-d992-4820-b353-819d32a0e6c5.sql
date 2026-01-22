@@ -25,16 +25,20 @@ CREATE POLICY "Medical staff can insert patients" ON public.emr_patients FOR INS
 CREATE POLICY "Medical staff can update patients" ON public.emr_patients FOR UPDATE USING (public.has_medical_permission(auth.uid(), company_id));
 CREATE POLICY "Admins can delete patients" ON public.emr_patients FOR DELETE USING (public.is_company_admin(auth.uid(), company_id));
 
--- 2. members テーブル (owner/admin のみ)
-DROP POLICY IF EXISTS "Users can view members of their company" ON public.members;
-DROP POLICY IF EXISTS "Users can create members in their company" ON public.members;
-DROP POLICY IF EXISTS "Users can update members in their company" ON public.members;
-DROP POLICY IF EXISTS "Users can delete members in their company" ON public.members;
+-- 2. members テーブル (owner/admin のみ) - only if table exists
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'members' AND table_schema = 'public') THEN
+    DROP POLICY IF EXISTS "Users can view members of their company" ON public.members;
+    DROP POLICY IF EXISTS "Users can create members in their company" ON public.members;
+    DROP POLICY IF EXISTS "Users can update members in their company" ON public.members;
+    DROP POLICY IF EXISTS "Users can delete members in their company" ON public.members;
 
-CREATE POLICY "Admins can view members" ON public.members FOR SELECT USING (public.is_company_admin(auth.uid(), company_id));
-CREATE POLICY "Admins can create members" ON public.members FOR INSERT WITH CHECK (public.is_company_admin(auth.uid(), company_id));
-CREATE POLICY "Admins can update members" ON public.members FOR UPDATE USING (public.is_company_admin(auth.uid(), company_id));
-CREATE POLICY "Admins can delete members" ON public.members FOR DELETE USING (public.is_company_admin(auth.uid(), company_id));
+    CREATE POLICY "Admins can view members" ON public.members FOR SELECT USING (public.is_company_admin(auth.uid(), company_id));
+    CREATE POLICY "Admins can create members" ON public.members FOR INSERT WITH CHECK (public.is_company_admin(auth.uid(), company_id));
+    CREATE POLICY "Admins can update members" ON public.members FOR UPDATE USING (public.is_company_admin(auth.uid(), company_id));
+    CREATE POLICY "Admins can delete members" ON public.members FOR DELETE USING (public.is_company_admin(auth.uid(), company_id));
+  END IF;
+END $$;
 
 -- 3. inbound_emails 強化
 DROP POLICY IF EXISTS "Managers can view company emails" ON public.inbound_emails;

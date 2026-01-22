@@ -104,6 +104,7 @@ AS $$
 $$;
 
 -- Function to search wiki pages
+-- Uses 'simple' text search config as fallback since 'japanese' may not be available
 CREATE OR REPLACE FUNCTION search_wiki_pages(
   p_organization_id UUID,
   p_query TEXT
@@ -130,8 +131,8 @@ AS $$
     w.created_at,
     w.updated_at,
     ts_rank(
-      to_tsvector('japanese', coalesce(w.title, '') || ' ' || coalesce(w.content, '')),
-      plainto_tsquery('japanese', p_query)
+      to_tsvector('simple', coalesce(w.title, '') || ' ' || coalesce(w.content, '')),
+      plainto_tsquery('simple', p_query)
     ) as rank
   FROM wiki_pages w
   WHERE w.organization_id = p_organization_id

@@ -26,7 +26,7 @@ CREATE TYPE public.invitation_status AS ENUM ('pending', 'accepted', 'declined',
 -- ============================================
 -- 会社テーブル
 -- ============================================
-CREATE TABLE public.companies (
+CREATE TABLE IF NOT EXISTS public.companies (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   display_name TEXT,
@@ -46,7 +46,7 @@ CREATE TABLE public.companies (
 -- ============================================
 -- 会社クレジット (会社単位のクレジットプール)
 -- ============================================
-CREATE TABLE public.company_credits (
+CREATE TABLE IF NOT EXISTS public.company_credits (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   plan TEXT NOT NULL DEFAULT 'free',
@@ -63,7 +63,7 @@ CREATE TABLE public.company_credits (
 -- ============================================
 -- ユーザークレジット (個人クレジット)
 -- ============================================
-CREATE TABLE public.user_credits (
+CREATE TABLE IF NOT EXISTS public.user_credits (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   plan TEXT NOT NULL DEFAULT 'free',
@@ -80,7 +80,7 @@ CREATE TABLE public.user_credits (
 -- ============================================
 -- クレジットトランザクションログ
 -- ============================================
-CREATE TABLE public.credit_transactions (
+CREATE TABLE IF NOT EXISTS public.credit_transactions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   company_id UUID REFERENCES public.companies(id) ON DELETE SET NULL,
@@ -96,7 +96,7 @@ CREATE TABLE public.credit_transactions (
 -- ============================================
 -- 会社メンバーシップ
 -- ============================================
-CREATE TABLE public.company_members (
+CREATE TABLE IF NOT EXISTS public.company_members (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -110,7 +110,7 @@ CREATE TABLE public.company_members (
 -- ============================================
 -- カスタム権限テーブル
 -- ============================================
-CREATE TABLE public.member_permissions (
+CREATE TABLE IF NOT EXISTS public.member_permissions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   member_id UUID NOT NULL REFERENCES public.company_members(id) ON DELETE CASCADE,
   permission permission_type NOT NULL,
@@ -122,7 +122,7 @@ CREATE TABLE public.member_permissions (
 -- ============================================
 -- 会社招待
 -- ============================================
-CREATE TABLE public.company_invitations (
+CREATE TABLE IF NOT EXISTS public.company_invitations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   email TEXT NOT NULL,
@@ -139,7 +139,7 @@ CREATE TABLE public.company_invitations (
 -- ============================================
 -- ユーザー現在の会社選択
 -- ============================================
-CREATE TABLE public.user_current_company (
+CREATE TABLE IF NOT EXISTS public.user_current_company (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
@@ -401,11 +401,11 @@ $$;
 -- ============================================
 -- インデックス
 -- ============================================
-CREATE INDEX idx_company_members_user ON public.company_members(user_id);
-CREATE INDEX idx_company_members_company ON public.company_members(company_id);
-CREATE INDEX idx_member_permissions_member ON public.member_permissions(member_id);
-CREATE INDEX idx_company_invitations_token ON public.company_invitations(token);
-CREATE INDEX idx_company_invitations_email ON public.company_invitations(email);
-CREATE INDEX idx_credit_transactions_user ON public.credit_transactions(user_id);
-CREATE INDEX idx_credit_transactions_company ON public.credit_transactions(company_id);
-CREATE INDEX idx_user_current_company_user ON public.user_current_company(user_id);
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'company_members' AND column_name = 'user_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_company_members_user ON public.company_members(user_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'company_members' AND column_name = 'company_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_company_members_company ON public.company_members(company_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'member_permissions' AND column_name = 'member_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_member_permissions_member ON public.member_permissions(member_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'company_invitations' AND column_name = 'token' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_company_invitations_token ON public.company_invitations(token); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'company_invitations' AND column_name = 'email' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_company_invitations_email ON public.company_invitations(email); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'credit_transactions' AND column_name = 'user_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_credit_transactions_user ON public.credit_transactions(user_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'credit_transactions' AND column_name = 'company_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_credit_transactions_company ON public.credit_transactions(company_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_current_company' AND column_name = 'user_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_user_current_company_user ON public.user_current_company(user_id); END IF; END $$;

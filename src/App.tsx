@@ -218,6 +218,13 @@ import VacationBookingCalendar from "./pages/vacation-rental/BookingCalendar";
 import VacationGuests from "./pages/vacation-rental/Guests";
 import VacationCleaningSchedule from "./pages/vacation-rental/CleaningSchedule";
 import VacationOperatingDays from "./pages/vacation-rental/OperatingDays";
+// Estate Management
+import Properties from "./pages/Properties";
+import PropertyForm from "./pages/PropertyForm";
+import EstateTenants from "./pages/EstateTenants";
+import OwnerDashboard from "./pages/OwnerDashboard";
+import ProrationCalculator from "./pages/ProrationCalculator";
+import EstateReconciliation from "./pages/EstateReconciliation";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -468,6 +475,15 @@ function AppRoutes() {
       <Route path="/vacation-rental/guests" element={<ProtectedRoute><VacationGuests /></ProtectedRoute>} />
       <Route path="/vacation-rental/cleaning" element={<ProtectedRoute><VacationCleaningSchedule /></ProtectedRoute>} />
       <Route path="/vacation-rental/operating-days" element={<ProtectedRoute><VacationOperatingDays /></ProtectedRoute>} />
+      {/* Estate Management */}
+      <Route path="/estate/properties" element={<ProtectedRoute><Properties /></ProtectedRoute>} />
+      <Route path="/estate/properties/new" element={<ProtectedRoute><PropertyForm /></ProtectedRoute>} />
+      <Route path="/estate/properties/:id" element={<ProtectedRoute><PropertyForm /></ProtectedRoute>} />
+      <Route path="/estate/properties/:id/edit" element={<ProtectedRoute><PropertyForm /></ProtectedRoute>} />
+      <Route path="/estate/tenants" element={<ProtectedRoute><EstateTenants /></ProtectedRoute>} />
+      <Route path="/estate/owner-dashboard" element={<ProtectedRoute><OwnerDashboard /></ProtectedRoute>} />
+      <Route path="/estate/proration" element={<ProtectedRoute><ProrationCalculator /></ProtectedRoute>} />
+      <Route path="/estate/reconciliation" element={<ProtectedRoute><EstateReconciliation /></ProtectedRoute>} />
       {/* Not Found */}
       <Route path="*" element={<NotFound />} />
     </Routes>

@@ -1,5 +1,5 @@
 -- Create email_logs table for tracking sent emails
-CREATE TABLE public.email_logs (
+CREATE TABLE IF NOT EXISTS public.email_logs (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   invoice_id UUID REFERENCES public.invoices(id) ON DELETE SET NULL,
@@ -28,5 +28,5 @@ FOR INSERT
 WITH CHECK (auth.uid() = user_id);
 
 -- Create index for faster lookups
-CREATE INDEX idx_email_logs_user_id ON public.email_logs(user_id);
-CREATE INDEX idx_email_logs_invoice_id ON public.email_logs(invoice_id);
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'email_logs' AND column_name = 'user_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_email_logs_user_id ON public.email_logs(user_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'email_logs' AND column_name = 'invoice_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_email_logs_invoice_id ON public.email_logs(invoice_id); END IF; END $$;

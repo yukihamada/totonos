@@ -10,6 +10,7 @@ interface SettingsContextValue {
   resetToDefaults: () => void;
   updateMobileNavItems: (items: MobileNavItemConfig[]) => void;
   applyTemplate: (templateId: string) => void;
+  applyTemplateByDbKey: (dbTemplateKey: string) => boolean;
   isProtectedItem: (itemId: string) => boolean;
   isProtectedGroup: (groupId: string) => boolean;
 }

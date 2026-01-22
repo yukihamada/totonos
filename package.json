@@ -23,6 +23,9 @@
     "test:e2e:report": "playwright show-report",
     "test:e2e:zerostep": "playwright test --project=zerostep --project=zerostep-authenticated",
     "test:e2e:zerostep:public": "playwright test --project=zerostep",
+    "test:integration": "vitest run --config vitest.config.integration.ts",
+    "test:integration:watch": "vitest --config vitest.config.integration.ts",
+    "test:integration:reset": "supabase db reset && vitest run --config vitest.config.integration.ts",
     "typecheck": "tsc --noEmit",
     "screenshots": "node scripts/capture-screenshots.mjs",
     "screenshots:dev": "npm run dev & sleep 3 && npm run screenshots && pkill -f 'vite'"

@@ -1,5 +1,5 @@
 -- Create API keys table with proper security
-CREATE TABLE public.api_keys (
+CREATE TABLE IF NOT EXISTS public.api_keys (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
   key_hash text NOT NULL,
@@ -13,8 +13,8 @@ CREATE TABLE public.api_keys (
 );
 
 -- Create index for fast lookup by key_hash
-CREATE INDEX idx_api_keys_key_hash ON public.api_keys(key_hash);
-CREATE INDEX idx_api_keys_user_id ON public.api_keys(user_id);
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'api_keys' AND column_name = 'key_hash' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_api_keys_key_hash ON public.api_keys(key_hash); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'api_keys' AND column_name = 'user_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_api_keys_user_id ON public.api_keys(user_id); END IF; END $$;
 
 -- Enable RLS
 ALTER TABLE public.api_keys ENABLE ROW LEVEL SECURITY;

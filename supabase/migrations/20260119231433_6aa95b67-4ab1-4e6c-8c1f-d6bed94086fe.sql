@@ -3,7 +3,7 @@
 -- ================================================
 
 -- 1. 商品マスタテーブル（JANコード対応）
-CREATE TABLE public.products (
+CREATE TABLE IF NOT EXISTS public.products (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   company_id UUID REFERENCES public.companies(id),
@@ -52,7 +52,7 @@ CREATE TABLE public.products (
 );
 
 -- 2. 在庫トランザクションテーブル（入出庫履歴）
-CREATE TABLE public.inventory_transactions (
+CREATE TABLE IF NOT EXISTS public.inventory_transactions (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   company_id UUID REFERENCES public.companies(id),
@@ -91,7 +91,7 @@ CREATE TABLE public.inventory_transactions (
 );
 
 -- 3. 納品書テーブル
-CREATE TABLE public.delivery_notes (
+CREATE TABLE IF NOT EXISTS public.delivery_notes (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   company_id UUID REFERENCES public.companies(id),
@@ -135,7 +135,7 @@ CREATE TABLE public.delivery_notes (
 );
 
 -- 4. 納品書明細テーブル
-CREATE TABLE public.delivery_note_items (
+CREATE TABLE IF NOT EXISTS public.delivery_note_items (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   delivery_note_id UUID NOT NULL REFERENCES public.delivery_notes(id) ON DELETE CASCADE,
   
@@ -158,7 +158,7 @@ CREATE TABLE public.delivery_note_items (
 );
 
 -- 5. 在庫アラートテーブル
-CREATE TABLE public.inventory_alerts (
+CREATE TABLE IF NOT EXISTS public.inventory_alerts (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   company_id UUID REFERENCES public.companies(id),
@@ -189,27 +189,27 @@ CREATE TABLE public.inventory_alerts (
 -- ================================================
 -- インデックス
 -- ================================================
-CREATE INDEX idx_products_user_id ON public.products(user_id);
-CREATE INDEX idx_products_company_id ON public.products(company_id);
-CREATE INDEX idx_products_jan_code ON public.products(jan_code);
-CREATE INDEX idx_products_sku ON public.products(sku);
-CREATE INDEX idx_products_supplier_id ON public.products(supplier_id);
-CREATE INDEX idx_products_status ON public.products(status);
-CREATE INDEX idx_products_low_stock ON public.products(user_id, stock_quantity, reorder_point) 
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'user_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_products_user_id ON public.products(user_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'company_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_products_company_id ON public.products(company_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'jan_code' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_products_jan_code ON public.products(jan_code); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'sku' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_products_sku ON public.products(sku); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'supplier_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_products_supplier_id ON public.products(supplier_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'status' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_products_status ON public.products(status); END IF; END $$;
+CREATE INDEX IF NOT EXISTS idx_products_low_stock ON public.products(user_id, stock_quantity, reorder_point) 
   WHERE is_inventory_managed = true;
 
-CREATE INDEX idx_inventory_transactions_product_id ON public.inventory_transactions(product_id);
-CREATE INDEX idx_inventory_transactions_user_id ON public.inventory_transactions(user_id);
-CREATE INDEX idx_inventory_transactions_date ON public.inventory_transactions(transaction_date);
-CREATE INDEX idx_inventory_transactions_type ON public.inventory_transactions(transaction_type);
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'inventory_transactions' AND column_name = 'product_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_inventory_transactions_product_id ON public.inventory_transactions(product_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'inventory_transactions' AND column_name = 'user_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_inventory_transactions_user_id ON public.inventory_transactions(user_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'inventory_transactions' AND column_name = 'transaction_date' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_inventory_transactions_date ON public.inventory_transactions(transaction_date); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'inventory_transactions' AND column_name = 'transaction_type' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_inventory_transactions_type ON public.inventory_transactions(transaction_type); END IF; END $$;
 
-CREATE INDEX idx_delivery_notes_user_id ON public.delivery_notes(user_id);
-CREATE INDEX idx_delivery_notes_supplier_id ON public.delivery_notes(supplier_id);
-CREATE INDEX idx_delivery_notes_status ON public.delivery_notes(status);
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'delivery_notes' AND column_name = 'user_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_delivery_notes_user_id ON public.delivery_notes(user_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'delivery_notes' AND column_name = 'supplier_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_delivery_notes_supplier_id ON public.delivery_notes(supplier_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'delivery_notes' AND column_name = 'status' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_delivery_notes_status ON public.delivery_notes(status); END IF; END $$;
 
-CREATE INDEX idx_inventory_alerts_user_id ON public.inventory_alerts(user_id);
-CREATE INDEX idx_inventory_alerts_product_id ON public.inventory_alerts(product_id);
-CREATE INDEX idx_inventory_alerts_status ON public.inventory_alerts(status);
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'inventory_alerts' AND column_name = 'user_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_inventory_alerts_user_id ON public.inventory_alerts(user_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'inventory_alerts' AND column_name = 'product_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_inventory_alerts_product_id ON public.inventory_alerts(product_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'inventory_alerts' AND column_name = 'status' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_inventory_alerts_status ON public.inventory_alerts(status); END IF; END $$;
 
 -- ================================================
 -- RLS ポリシー

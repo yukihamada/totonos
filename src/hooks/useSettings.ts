@@ -395,6 +395,21 @@ const defaultMenuGroups: MenuGroupConfig[] = [
       { id: 'vacation-operating-days', title: '営業日数管理', visible: false, enabled: false, order: 6 },
     ],
   },
+  // === 不動産管理 ===
+  {
+    id: 'estate-management',
+    label: '不動産管理',
+    visible: false,
+    enabled: true,
+    order: 22,
+    items: [
+      { id: 'estate-properties', title: '物件管理', visible: false, enabled: true, order: 0 },
+      { id: 'estate-tenants', title: '入居者管理', visible: false, enabled: true, order: 1 },
+      { id: 'estate-owner-dashboard', title: 'オーナーポータル', visible: false, enabled: true, order: 2 },
+      { id: 'estate-proration', title: '日割り計算', visible: false, enabled: true, order: 3 },
+      { id: 'estate-reconciliation', title: '入金消込', visible: false, enabled: true, order: 4 },
+    ],
+  },
 ];
 
 const defaultSettings: AppSettings = {

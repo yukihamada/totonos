@@ -1,5 +1,5 @@
 -- Create inbound_emails table
-CREATE TABLE public.inbound_emails (
+CREATE TABLE IF NOT EXISTS public.inbound_emails (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID REFERENCES public.companies(id),
   message_id TEXT,
@@ -58,10 +58,10 @@ FOR INSERT
 WITH CHECK (true);
 
 -- Create index for faster queries
-CREATE INDEX idx_inbound_emails_company_id ON public.inbound_emails(company_id);
-CREATE INDEX idx_inbound_emails_from_email ON public.inbound_emails(from_email);
-CREATE INDEX idx_inbound_emails_status ON public.inbound_emails(status);
-CREATE INDEX idx_inbound_emails_created_at ON public.inbound_emails(created_at DESC);
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'inbound_emails' AND column_name = 'company_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_inbound_emails_company_id ON public.inbound_emails(company_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'inbound_emails' AND column_name = 'from_email' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_inbound_emails_from_email ON public.inbound_emails(from_email); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'inbound_emails' AND column_name = 'status' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_inbound_emails_status ON public.inbound_emails(status); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'inbound_emails' AND column_name = 'created_at DESC' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_inbound_emails_created_at ON public.inbound_emails(created_at DESC); END IF; END $$;
 
 -- Add trigger for updated_at
 CREATE TRIGGER update_inbound_emails_updated_at

@@ -1,5 +1,5 @@
 -- AIエージェント自動化タスクテーブル
-CREATE TABLE public.ai_automations (
+CREATE TABLE IF NOT EXISTS public.ai_automations (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   user_id UUID NOT NULL,
@@ -40,8 +40,8 @@ CREATE TABLE public.ai_automations (
 );
 
 -- インデックス
-CREATE INDEX idx_ai_automations_company ON public.ai_automations(company_id);
-CREATE INDEX idx_ai_automations_next_run ON public.ai_automations(next_run_at) WHERE is_active = true;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'ai_automations' AND column_name = 'company_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_ai_automations_company ON public.ai_automations(company_id); END IF; END $$;
+CREATE INDEX IF NOT EXISTS idx_ai_automations_next_run ON public.ai_automations(next_run_at) WHERE is_active = true;
 
 -- RLS有効化
 ALTER TABLE public.ai_automations ENABLE ROW LEVEL SECURITY;
@@ -90,7 +90,7 @@ FOR EACH ROW
 EXECUTE FUNCTION public.update_updated_at_column();
 
 -- AIが不足情報を収集するための一時保存テーブル
-CREATE TABLE public.ai_automation_drafts (
+CREATE TABLE IF NOT EXISTS public.ai_automation_drafts (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   user_id UUID NOT NULL,

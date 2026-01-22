@@ -1,5 +1,5 @@
 -- LINE連携用テーブル: LINEユーザーとシステムユーザーを紐づけ
-CREATE TABLE public.line_users (
+CREATE TABLE IF NOT EXISTS public.line_users (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   line_user_id TEXT NOT NULL UNIQUE,
   user_id UUID REFERENCES auth.users ON DELETE CASCADE,
@@ -12,7 +12,7 @@ CREATE TABLE public.line_users (
 );
 
 -- LINEチャット履歴テーブル
-CREATE TABLE public.line_chat_history (
+CREATE TABLE IF NOT EXISTS public.line_chat_history (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   line_user_id TEXT NOT NULL,
   user_id UUID REFERENCES auth.users ON DELETE SET NULL,
@@ -24,11 +24,11 @@ CREATE TABLE public.line_chat_history (
 );
 
 -- インデックス
-CREATE INDEX idx_line_users_line_user_id ON public.line_users(line_user_id);
-CREATE INDEX idx_line_users_user_id ON public.line_users(user_id);
-CREATE INDEX idx_line_chat_history_line_user_id ON public.line_chat_history(line_user_id);
-CREATE INDEX idx_line_chat_history_user_id ON public.line_chat_history(user_id);
-CREATE INDEX idx_line_chat_history_created_at ON public.line_chat_history(created_at);
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'line_users' AND column_name = 'line_user_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_line_users_line_user_id ON public.line_users(line_user_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'line_users' AND column_name = 'user_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_line_users_user_id ON public.line_users(user_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'line_chat_history' AND column_name = 'line_user_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_line_chat_history_line_user_id ON public.line_chat_history(line_user_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'line_chat_history' AND column_name = 'user_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_line_chat_history_user_id ON public.line_chat_history(user_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'line_chat_history' AND column_name = 'created_at' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_line_chat_history_created_at ON public.line_chat_history(created_at); END IF; END $$;
 
 -- RLS有効化
 ALTER TABLE public.line_users ENABLE ROW LEVEL SECURITY;

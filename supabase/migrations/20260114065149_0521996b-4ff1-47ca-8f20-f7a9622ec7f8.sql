@@ -1,5 +1,5 @@
 -- インポートジョブ管理テーブル
-CREATE TABLE public.import_jobs (
+CREATE TABLE IF NOT EXISTS public.import_jobs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL,
   source_service TEXT NOT NULL,
@@ -18,7 +18,7 @@ CREATE TABLE public.import_jobs (
 );
 
 -- インポートエラーログテーブル
-CREATE TABLE public.import_errors (
+CREATE TABLE IF NOT EXISTS public.import_errors (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   job_id UUID NOT NULL REFERENCES public.import_jobs(id) ON DELETE CASCADE,
   row_number INTEGER,
@@ -28,7 +28,7 @@ CREATE TABLE public.import_errors (
 );
 
 -- フィールドマッピングテンプレートテーブル
-CREATE TABLE public.import_templates (
+CREATE TABLE IF NOT EXISTS public.import_templates (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL,
   template_name TEXT NOT NULL,

@@ -3,7 +3,7 @@
 -- =====================================================
 
 -- 1. Create industry_templates table (Master table for 28 industries)
-CREATE TABLE public.industry_templates (
+CREATE TABLE IF NOT EXISTS public.industry_templates (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   template_key text UNIQUE NOT NULL,
   name text NOT NULL,
@@ -22,7 +22,7 @@ CREATE TABLE public.industry_templates (
 );
 
 -- 2. Create template_accounts table (Industry-specific chart of accounts)
-CREATE TABLE public.template_accounts (
+CREATE TABLE IF NOT EXISTS public.template_accounts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   template_id uuid REFERENCES public.industry_templates(id) ON DELETE CASCADE,
   account_code text NOT NULL,
@@ -37,7 +37,7 @@ CREATE TABLE public.template_accounts (
 );
 
 -- 3. Create template_menu_config table (Industry-specific menu settings)
-CREATE TABLE public.template_menu_config (
+CREATE TABLE IF NOT EXISTS public.template_menu_config (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   template_id uuid REFERENCES public.industry_templates(id) ON DELETE CASCADE,
   menu_groups jsonb NOT NULL DEFAULT '[]'::jsonb,
@@ -50,7 +50,7 @@ CREATE TABLE public.template_menu_config (
 );
 
 -- 4. Create template_sample_data table (Industry-specific sample data)
-CREATE TABLE public.template_sample_data (
+CREATE TABLE IF NOT EXISTS public.template_sample_data (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   template_id uuid REFERENCES public.industry_templates(id) ON DELETE CASCADE,
   data_type text NOT NULL,
@@ -60,7 +60,7 @@ CREATE TABLE public.template_sample_data (
 );
 
 -- 5. Create template_landing_content table (LP content for each industry)
-CREATE TABLE public.template_landing_content (
+CREATE TABLE IF NOT EXISTS public.template_landing_content (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   template_id uuid REFERENCES public.industry_templates(id) ON DELETE CASCADE,
   hero_title text NOT NULL,
@@ -81,14 +81,14 @@ ADD COLUMN IF NOT EXISTS template_id uuid REFERENCES public.industry_templates(i
 ADD COLUMN IF NOT EXISTS template_applied_at timestamptz;
 
 -- 7. Create indexes for performance
-CREATE INDEX idx_industry_templates_key ON public.industry_templates(template_key);
-CREATE INDEX idx_industry_templates_category ON public.industry_templates(category);
-CREATE INDEX idx_industry_templates_active ON public.industry_templates(is_active);
-CREATE INDEX idx_template_accounts_template ON public.template_accounts(template_id);
-CREATE INDEX idx_template_accounts_common ON public.template_accounts(is_common);
-CREATE INDEX idx_template_menu_config_template ON public.template_menu_config(template_id);
-CREATE INDEX idx_template_landing_content_template ON public.template_landing_content(template_id);
-CREATE INDEX idx_companies_template ON public.companies(template_id);
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'industry_templates' AND column_name = 'template_key' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_industry_templates_key ON public.industry_templates(template_key); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'industry_templates' AND column_name = 'category' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_industry_templates_category ON public.industry_templates(category); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'industry_templates' AND column_name = 'is_active' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_industry_templates_active ON public.industry_templates(is_active); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'template_accounts' AND column_name = 'template_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_template_accounts_template ON public.template_accounts(template_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'template_accounts' AND column_name = 'is_common' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_template_accounts_common ON public.template_accounts(is_common); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'template_menu_config' AND column_name = 'template_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_template_menu_config_template ON public.template_menu_config(template_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'template_landing_content' AND column_name = 'template_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_template_landing_content_template ON public.template_landing_content(template_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'companies' AND column_name = 'template_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_companies_template ON public.companies(template_id); END IF; END $$;
 
 -- 8. Enable RLS
 ALTER TABLE public.industry_templates ENABLE ROW LEVEL SECURITY;

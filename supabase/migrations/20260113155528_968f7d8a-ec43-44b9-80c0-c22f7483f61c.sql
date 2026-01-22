@@ -5,7 +5,7 @@ CREATE TYPE public.estimate_status AS ENUM ('draft', 'sent', 'accepted', 'reject
 CREATE TYPE public.purchase_order_status AS ENUM ('draft', 'sent', 'confirmed', 'delivered', 'cancelled');
 
 -- Create estimates table
-CREATE TABLE public.estimates (
+CREATE TABLE IF NOT EXISTS public.estimates (
     id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID NOT NULL,
     client_id UUID REFERENCES public.clients(id),
@@ -24,7 +24,7 @@ CREATE TABLE public.estimates (
 );
 
 -- Create estimate items table
-CREATE TABLE public.estimate_items (
+CREATE TABLE IF NOT EXISTS public.estimate_items (
     id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
     estimate_id UUID NOT NULL REFERENCES public.estimates(id) ON DELETE CASCADE,
     description TEXT NOT NULL,
@@ -35,7 +35,7 @@ CREATE TABLE public.estimate_items (
 );
 
 -- Create purchase orders table
-CREATE TABLE public.purchase_orders (
+CREATE TABLE IF NOT EXISTS public.purchase_orders (
     id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID NOT NULL,
     client_id UUID REFERENCES public.clients(id),
@@ -54,7 +54,7 @@ CREATE TABLE public.purchase_orders (
 );
 
 -- Create purchase order items table
-CREATE TABLE public.purchase_order_items (
+CREATE TABLE IF NOT EXISTS public.purchase_order_items (
     id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
     purchase_order_id UUID NOT NULL REFERENCES public.purchase_orders(id) ON DELETE CASCADE,
     description TEXT NOT NULL,

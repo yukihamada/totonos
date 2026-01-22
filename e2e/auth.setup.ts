@@ -42,8 +42,8 @@ setup('authenticate', async ({ page }) => {
     const emailInput = page.getByRole('textbox');
     await emailInput.fill(testEmail);
 
-    // Submit the form
-    const submitButton = page.getByRole('button', { name: /ログイン|送信|Login|Submit/i });
+    // Submit the form (use メールでログイン button specifically)
+    const submitButton = page.getByRole('button', { name: /メールでログイン|メールで送信|Send Magic Link/i });
     await submitButton.click();
 
     // Wait for redirect to dashboard (E2E test login is instant)

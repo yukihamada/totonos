@@ -121,12 +121,12 @@ ON public.synced_calendar_events FOR DELETE
 USING (auth.uid() = user_id);
 
 -- Indexes
-CREATE INDEX idx_email_integrations_user ON public.email_integrations(user_id);
-CREATE INDEX idx_email_integrations_company ON public.email_integrations(company_id);
-CREATE INDEX idx_synced_emails_integration ON public.synced_emails(integration_id);
-CREATE INDEX idx_synced_emails_date ON public.synced_emails(date DESC);
-CREATE INDEX idx_synced_calendar_events_integration ON public.synced_calendar_events(integration_id);
-CREATE INDEX idx_synced_calendar_events_start ON public.synced_calendar_events(start_time);
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'email_integrations' AND column_name = 'user_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_email_integrations_user ON public.email_integrations(user_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'email_integrations' AND column_name = 'company_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_email_integrations_company ON public.email_integrations(company_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'synced_emails' AND column_name = 'integration_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_synced_emails_integration ON public.synced_emails(integration_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'synced_emails' AND column_name = 'date DESC' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_synced_emails_date ON public.synced_emails(date DESC); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'synced_calendar_events' AND column_name = 'integration_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_synced_calendar_events_integration ON public.synced_calendar_events(integration_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'synced_calendar_events' AND column_name = 'start_time' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_synced_calendar_events_start ON public.synced_calendar_events(start_time); END IF; END $$;
 
 -- Triggers for updated_at
 CREATE TRIGGER update_email_integrations_updated_at

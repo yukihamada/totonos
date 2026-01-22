@@ -1,6 +1,6 @@
 
 -- 会計期間テーブル
-CREATE TABLE public.fiscal_periods (
+CREATE TABLE IF NOT EXISTS public.fiscal_periods (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   period_name TEXT NOT NULL,
@@ -22,7 +22,7 @@ CREATE POLICY "Users can delete their own fiscal periods" ON public.fiscal_perio
 -- 勘定科目マスタ
 CREATE TYPE account_type AS ENUM ('asset', 'liability', 'equity', 'revenue', 'expense');
 
-CREATE TABLE public.accounts (
+CREATE TABLE IF NOT EXISTS public.accounts (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   account_code TEXT NOT NULL,
@@ -46,7 +46,7 @@ CREATE POLICY "Users can delete their own accounts" ON public.accounts FOR DELET
 -- 仕訳帳
 CREATE TYPE journal_source_type AS ENUM ('manual', 'invoice', 'payment', 'expense', 'depreciation', 'purchase_order');
 
-CREATE TABLE public.journal_entries (
+CREATE TABLE IF NOT EXISTS public.journal_entries (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   entry_number TEXT NOT NULL,
@@ -95,7 +95,7 @@ WHEN (NEW.entry_number IS NULL OR NEW.entry_number = '')
 EXECUTE FUNCTION public.generate_journal_entry_number();
 
 -- 仕訳明細
-CREATE TABLE public.journal_entry_lines (
+CREATE TABLE IF NOT EXISTS public.journal_entry_lines (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   journal_entry_id UUID NOT NULL REFERENCES public.journal_entries(id) ON DELETE CASCADE,
   account_id UUID NOT NULL REFERENCES public.accounts(id),
@@ -120,7 +120,7 @@ USING (EXISTS (SELECT 1 FROM journal_entries WHERE journal_entries.id = journal_
 CREATE TYPE asset_category AS ENUM ('building', 'vehicle', 'equipment', 'software', 'furniture', 'other');
 CREATE TYPE depreciation_method AS ENUM ('straight_line', 'declining_balance');
 
-CREATE TABLE public.fixed_assets (
+CREATE TABLE IF NOT EXISTS public.fixed_assets (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   asset_name TEXT NOT NULL,
@@ -148,7 +148,7 @@ CREATE POLICY "Users can update their own fixed assets" ON public.fixed_assets F
 CREATE POLICY "Users can delete their own fixed assets" ON public.fixed_assets FOR DELETE USING (auth.uid() = user_id);
 
 -- 減価償却スケジュール
-CREATE TABLE public.depreciation_schedules (
+CREATE TABLE IF NOT EXISTS public.depreciation_schedules (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   fixed_asset_id UUID NOT NULL REFERENCES public.fixed_assets(id) ON DELETE CASCADE,
   fiscal_period_id UUID REFERENCES public.fiscal_periods(id),
@@ -174,7 +174,7 @@ USING (EXISTS (SELECT 1 FROM fixed_assets WHERE fixed_assets.id = depreciation_s
 -- 経費申請
 CREATE TYPE expense_status AS ENUM ('draft', 'pending', 'approved', 'rejected', 'paid');
 
-CREATE TABLE public.expense_claims (
+CREATE TABLE IF NOT EXISTS public.expense_claims (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   claim_number TEXT NOT NULL,
@@ -224,7 +224,7 @@ WHEN (NEW.claim_number IS NULL OR NEW.claim_number = '')
 EXECUTE FUNCTION public.generate_expense_claim_number();
 
 -- 経費明細
-CREATE TABLE public.expense_items (
+CREATE TABLE IF NOT EXISTS public.expense_items (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   expense_claim_id UUID NOT NULL REFERENCES public.expense_claims(id) ON DELETE CASCADE,
   expense_date DATE NOT NULL,
@@ -248,7 +248,7 @@ CREATE POLICY "Users can delete their own expense items" ON public.expense_items
 USING (EXISTS (SELECT 1 FROM expense_claims WHERE expense_claims.id = expense_items.expense_claim_id AND expense_claims.user_id = auth.uid()));
 
 -- 税務設定
-CREATE TABLE public.tax_settings (
+CREATE TABLE IF NOT EXISTS public.tax_settings (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL UNIQUE,
   fiscal_year_start_month INTEGER NOT NULL DEFAULT 4,

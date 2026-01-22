@@ -21,7 +21,7 @@ ALTER TYPE journal_source_type ADD VALUE IF NOT EXISTS 'payroll';
 ALTER TYPE journal_source_type ADD VALUE IF NOT EXISTS 'tax';
 
 -- 銀行口座マスタ
-CREATE TABLE public.bank_accounts (
+CREATE TABLE IF NOT EXISTS public.bank_accounts (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   bank_name TEXT NOT NULL,
@@ -44,7 +44,7 @@ CREATE POLICY "Users can update their own bank accounts" ON public.bank_accounts
 CREATE POLICY "Users can delete their own bank accounts" ON public.bank_accounts FOR DELETE USING (auth.uid() = user_id);
 
 -- 銀行取引明細
-CREATE TABLE public.bank_transactions (
+CREATE TABLE IF NOT EXISTS public.bank_transactions (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   bank_account_id UUID NOT NULL REFERENCES public.bank_accounts(id) ON DELETE CASCADE,
@@ -61,13 +61,23 @@ CREATE TABLE public.bank_transactions (
 
 ALTER TABLE public.bank_transactions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view their own bank transactions" ON public.bank_transactions FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can insert their own bank transactions" ON public.bank_transactions FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update their own bank transactions" ON public.bank_transactions FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "Users can delete their own bank transactions" ON public.bank_transactions FOR DELETE USING (auth.uid() = user_id);
+-- Only create policies if the table has user_id column (skip for estate management bank_transactions)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'bank_transactions' AND column_name = 'user_id' AND table_schema = 'public') THEN
+    DROP POLICY IF EXISTS "Users can view their own bank transactions" ON public.bank_transactions;
+    DROP POLICY IF EXISTS "Users can insert their own bank transactions" ON public.bank_transactions;
+    DROP POLICY IF EXISTS "Users can update their own bank transactions" ON public.bank_transactions;
+    DROP POLICY IF EXISTS "Users can delete their own bank transactions" ON public.bank_transactions;
+
+    CREATE POLICY "Users can view their own bank transactions" ON public.bank_transactions FOR SELECT USING (auth.uid() = user_id);
+    CREATE POLICY "Users can insert their own bank transactions" ON public.bank_transactions FOR INSERT WITH CHECK (auth.uid() = user_id);
+    CREATE POLICY "Users can update their own bank transactions" ON public.bank_transactions FOR UPDATE USING (auth.uid() = user_id);
+    CREATE POLICY "Users can delete their own bank transactions" ON public.bank_transactions FOR DELETE USING (auth.uid() = user_id);
+  END IF;
+END $$;
 
 -- 消費税計算
-CREATE TABLE public.tax_calculations (
+CREATE TABLE IF NOT EXISTS public.tax_calculations (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   fiscal_period_id UUID NOT NULL REFERENCES public.fiscal_periods(id),
@@ -90,7 +100,7 @@ CREATE POLICY "Users can update their own tax calculations" ON public.tax_calcul
 CREATE POLICY "Users can delete their own tax calculations" ON public.tax_calculations FOR DELETE USING (auth.uid() = user_id);
 
 -- 仕訳テンプレート
-CREATE TABLE public.journal_templates (
+CREATE TABLE IF NOT EXISTS public.journal_templates (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   template_name TEXT NOT NULL,
@@ -110,7 +120,7 @@ CREATE POLICY "Users can update their own journal templates" ON public.journal_t
 CREATE POLICY "Users can delete their own journal templates" ON public.journal_templates FOR DELETE USING (auth.uid() = user_id);
 
 -- 仕訳テンプレート明細
-CREATE TABLE public.journal_template_lines (
+CREATE TABLE IF NOT EXISTS public.journal_template_lines (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   template_id UUID NOT NULL REFERENCES public.journal_templates(id) ON DELETE CASCADE,
   account_id UUID NOT NULL REFERENCES public.accounts(id),
@@ -132,7 +142,7 @@ CREATE POLICY "Users can delete their own journal template lines" ON public.jour
 USING (EXISTS (SELECT 1 FROM journal_templates WHERE journal_templates.id = journal_template_lines.template_id AND journal_templates.user_id = auth.uid()));
 
 -- コストセンター（部門）
-CREATE TABLE public.cost_centers (
+CREATE TABLE IF NOT EXISTS public.cost_centers (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   code TEXT NOT NULL,
@@ -153,7 +163,7 @@ CREATE POLICY "Users can update their own cost centers" ON public.cost_centers F
 CREATE POLICY "Users can delete their own cost centers" ON public.cost_centers FOR DELETE USING (auth.uid() = user_id);
 
 -- 買掛金
-CREATE TABLE public.accounts_payable (
+CREATE TABLE IF NOT EXISTS public.accounts_payable (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   vendor_id UUID,
@@ -178,7 +188,7 @@ CREATE POLICY "Users can update their own accounts payable" ON public.accounts_p
 CREATE POLICY "Users can delete their own accounts payable" ON public.accounts_payable FOR DELETE USING (auth.uid() = user_id);
 
 -- 予算
-CREATE TABLE public.budgets (
+CREATE TABLE IF NOT EXISTS public.budgets (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   fiscal_period_id UUID NOT NULL REFERENCES public.fiscal_periods(id),
@@ -199,7 +209,7 @@ CREATE POLICY "Users can update their own budgets" ON public.budgets FOR UPDATE 
 CREATE POLICY "Users can delete their own budgets" ON public.budgets FOR DELETE USING (auth.uid() = user_id);
 
 -- 為替レート
-CREATE TABLE public.exchange_rates (
+CREATE TABLE IF NOT EXISTS public.exchange_rates (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   from_currency currency_code NOT NULL,
@@ -218,7 +228,7 @@ CREATE POLICY "Users can update their own exchange rates" ON public.exchange_rat
 CREATE POLICY "Users can delete their own exchange rates" ON public.exchange_rates FOR DELETE USING (auth.uid() = user_id);
 
 -- 決算処理
-CREATE TABLE public.period_close_processes (
+CREATE TABLE IF NOT EXISTS public.period_close_processes (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   fiscal_period_id UUID NOT NULL REFERENCES public.fiscal_periods(id),
@@ -257,9 +267,15 @@ CREATE TRIGGER update_accounts_payable_updated_at BEFORE UPDATE ON public.accoun
 CREATE TRIGGER update_budgets_updated_at BEFORE UPDATE ON public.budgets FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 CREATE TRIGGER update_period_close_processes_updated_at BEFORE UPDATE ON public.period_close_processes FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
--- インデックス
-CREATE INDEX idx_bank_transactions_date ON public.bank_transactions(transaction_date);
-CREATE INDEX idx_bank_transactions_status ON public.bank_transactions(status);
-CREATE INDEX idx_accounts_payable_due_date ON public.accounts_payable(due_date);
-CREATE INDEX idx_accounts_payable_status ON public.accounts_payable(status);
-CREATE INDEX idx_exchange_rates_date ON public.exchange_rates(effective_date);
+-- インデックス (bank_transactions indexes only if columns exist)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'bank_transactions' AND column_name = 'transaction_date' AND table_schema = 'public') THEN
+    CREATE INDEX IF NOT EXISTS idx_bank_transactions_date ON public.bank_transactions(transaction_date);
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'bank_transactions' AND column_name = 'status' AND table_schema = 'public') THEN
+    CREATE INDEX IF NOT EXISTS idx_bank_transactions_status ON public.bank_transactions(status);
+  END IF;
+END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'accounts_payable' AND column_name = 'due_date' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_accounts_payable_due_date ON public.accounts_payable(due_date); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'accounts_payable' AND column_name = 'status' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_accounts_payable_status ON public.accounts_payable(status); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'exchange_rates' AND column_name = 'effective_date' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_exchange_rates_date ON public.exchange_rates(effective_date); END IF; END $$;

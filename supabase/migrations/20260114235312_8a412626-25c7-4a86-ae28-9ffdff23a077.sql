@@ -1,5 +1,5 @@
 -- Create receipts table for OCR processed receipts
-CREATE TABLE public.receipts (
+CREATE TABLE IF NOT EXISTS public.receipts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID REFERENCES public.companies(id) ON DELETE CASCADE,
   user_id UUID NOT NULL,
@@ -24,6 +24,11 @@ CREATE TABLE public.receipts (
 ALTER TABLE public.receipts ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies
+DROP POLICY IF EXISTS "Users can view own receipts" ON public.receipts;
+DROP POLICY IF EXISTS "Users can insert own receipts" ON public.receipts;
+DROP POLICY IF EXISTS "Users can update own receipts" ON public.receipts;
+DROP POLICY IF EXISTS "Users can delete own receipts" ON public.receipts;
+
 CREATE POLICY "Users can view own receipts"
 ON public.receipts FOR SELECT
 USING (auth.uid() = user_id);
@@ -41,6 +46,7 @@ ON public.receipts FOR DELETE
 USING (auth.uid() = user_id);
 
 -- Create updated_at trigger
+DROP TRIGGER IF EXISTS update_receipts_updated_at ON public.receipts;
 CREATE TRIGGER update_receipts_updated_at
 BEFORE UPDATE ON public.receipts
 FOR EACH ROW
@@ -52,14 +58,18 @@ VALUES ('receipts', 'receipts', false)
 ON CONFLICT (id) DO NOTHING;
 
 -- Storage policies for receipts bucket
+DROP POLICY IF EXISTS "Users can upload receipts" ON storage.objects;
+DROP POLICY IF EXISTS "Receipts: Users can view own receipts" ON storage.objects;
+DROP POLICY IF EXISTS "Receipts: Users can delete own receipts" ON storage.objects;
+
 CREATE POLICY "Users can upload receipts"
 ON storage.objects FOR INSERT
 WITH CHECK (bucket_id = 'receipts' AND auth.uid() IS NOT NULL);
 
-CREATE POLICY "Users can view own receipts"
+CREATE POLICY "Receipts: Users can view own receipts"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'receipts' AND auth.uid() IS NOT NULL);
 
-CREATE POLICY "Users can delete own receipts"
+CREATE POLICY "Receipts: Users can delete own receipts"
 ON storage.objects FOR DELETE
 USING (bucket_id = 'receipts' AND auth.uid() IS NOT NULL);

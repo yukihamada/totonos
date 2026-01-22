@@ -56,6 +56,8 @@ PKCS11_LIB_PATH = "/usr/lib/x86_64-linux-gnu/opensc-pkcs11.so"
 
 ## 起動方法
 
+### 開発モード（ソースから起動）
+
 ```bash
 cd hpki-bridge
 uvicorn bridge_server:app --host 0.0.0.0 --port 8000 --reload
@@ -66,6 +68,32 @@ uvicorn bridge_server:app --host 0.0.0.0 --port 8000 --reload
 ```bash
 python bridge_server.py
 ```
+
+### スタンドアロンアプリとしてビルド
+
+PyInstallerを使用してスタンドアロンアプリとしてビルドできます。
+
+#### macOS
+```bash
+cd hpki-bridge
+chmod +x build.sh
+./build.sh
+```
+
+ビルド後: `dist/HPKI Bridge.app`
+
+DMGインストーラの作成:
+```bash
+hdiutil create -volname 'HPKI Bridge' -srcfolder 'dist/HPKI Bridge.app' -ov -format UDZO hpki-bridge-macos.dmg
+```
+
+#### Windows
+```cmd
+cd hpki-bridge
+build.bat
+```
+
+ビルド後: `dist\HPKI Bridge.exe`
 
 ## APIエンドポイント
 

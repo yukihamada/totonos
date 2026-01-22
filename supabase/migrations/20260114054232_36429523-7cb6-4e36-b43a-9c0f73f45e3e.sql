@@ -1,5 +1,5 @@
 -- Create user AI settings table
-CREATE TABLE public.user_ai_settings (
+CREATE TABLE IF NOT EXISTS public.user_ai_settings (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL,
   provider TEXT NOT NULL DEFAULT 'lovable',

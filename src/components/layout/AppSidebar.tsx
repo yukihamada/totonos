@@ -269,6 +269,12 @@ const iconMap: Record<string, LucideIcon> = {
   'vacation-guests': Users,
   'vacation-cleaning': Sparkles,
   'vacation-operating-days': CalendarDays,
+  // Estate Management
+  'estate-properties': Building2,
+  'estate-tenants': Users,
+  'estate-owner-dashboard': LayoutDashboard,
+  'estate-proration': Calculator,
+  'estate-reconciliation': ArrowLeftRight,
 };
 
 // URL mapping
@@ -420,6 +426,12 @@ const urlMap: Record<string, string> = {
   'vacation-guests': '/vacation-rental/guests',
   'vacation-cleaning': '/vacation-rental/cleaning',
   'vacation-operating-days': '/vacation-rental/operating-days',
+  // Estate Management
+  'estate-properties': '/estate/properties',
+  'estate-tenants': '/estate/tenants',
+  'estate-owner-dashboard': '/estate/owner-dashboard',
+  'estate-proration': '/estate/proration',
+  'estate-reconciliation': '/estate/reconciliation',
 };
 
 export function AppSidebar({ onChatOpen }: AppSidebarProps) {

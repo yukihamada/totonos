@@ -9,7 +9,7 @@ CREATE TYPE public.email_purpose AS ENUM (
 );
 
 -- Create company email addresses table
-CREATE TABLE public.company_email_addresses (
+CREATE TABLE IF NOT EXISTS public.company_email_addresses (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
   address_prefix TEXT NOT NULL,
@@ -65,9 +65,9 @@ ADD COLUMN IF NOT EXISTS auto_created_entity_type TEXT,
 ADD COLUMN IF NOT EXISTS auto_created_entity_id UUID;
 
 -- Create index for email address lookup
-CREATE INDEX idx_company_email_addresses_prefix ON public.company_email_addresses(address_prefix);
-CREATE INDEX idx_company_email_addresses_company ON public.company_email_addresses(company_id);
-CREATE INDEX idx_inbound_emails_email_address ON public.inbound_emails(email_address_id);
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'company_email_addresses' AND column_name = 'address_prefix' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_company_email_addresses_prefix ON public.company_email_addresses(address_prefix); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'company_email_addresses' AND column_name = 'company_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_company_email_addresses_company ON public.company_email_addresses(company_id); END IF; END $$;
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'inbound_emails' AND column_name = 'email_address_id' AND table_schema = 'public') THEN CREATE INDEX IF NOT EXISTS idx_inbound_emails_email_address ON public.inbound_emails(email_address_id); END IF; END $$;
 
 -- Trigger for updated_at
 CREATE TRIGGER update_company_email_addresses_updated_at
