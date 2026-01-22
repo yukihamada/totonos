@@ -52,14 +52,14 @@ export default function Dashboard() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold">ダッシュボード</h1>
+      <div className="space-y-4 md:space-y-6">
+        <h1 className="text-2xl md:text-3xl font-bold">ダッシュボード</h1>
 
         {/* Onboarding Guide - shows until all steps are completed */}
         <OnboardingGuide onChatOpen={handleChatOpen} />
 
-        {/* KPI Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        {/* KPI Cards - Mobile: 2 cols, Tablet: 3 cols, Desktop: 5 cols */}
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5 md:gap-4">
           <StatsCard
             title="今月の請求額"
             value={isLoading ? "-" : formatCurrency(stats?.monthlyInvoiced || 0)}
@@ -96,11 +96,12 @@ export default function Dashboard() {
             description="登録済み取引先"
             icon={<Users className="h-4 w-4 text-muted-foreground" />}
             isLoading={clientsLoading}
+            className="col-span-2 md:col-span-1"
           />
         </div>
 
-        {/* Charts Row */}
-        <div className="grid gap-6 lg:grid-cols-2">
+        {/* Charts Row - Stack on mobile */}
+        <div className="grid gap-4 md:gap-6 lg:grid-cols-2">
           <RevenueChart data={stats?.monthlyRevenue || []} />
           <PipelineOverview
             data={stats?.pipelineByStage || []}
@@ -108,8 +109,8 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Alerts and Activity Row */}
-        <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-4">
+        {/* Alerts and Activity Row - Mobile: 1-2 cols, Desktop: 4 cols */}
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 md:gap-6">
           <UnpaidInvoicesAlert
             unpaidAmount={stats?.unpaidAmount || 0}
             unpaidCount={stats?.unpaidCount || 0}
@@ -121,8 +122,8 @@ export default function Dashboard() {
           <ActivityFeed limit={5} />
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {/* Quick Stats - Mobile: 2 cols */}
+        <div className="grid gap-3 grid-cols-2 lg:grid-cols-4 md:gap-4">
           <StatsCard
             title="送付中の見積書"
             value={isLoading ? "-" : formatCurrency(stats?.sentEstimates || 0)}

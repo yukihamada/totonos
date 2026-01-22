@@ -134,33 +134,34 @@ export default function Projects() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold">プロジェクト管理</h1>
-            <p className="text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               プロジェクトの進捗を管理します
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" asChild>
+            <Button variant="outline" size="sm" asChild className="flex-1 sm:flex-none">
               <Link to="/timelog">
                 <Timer className="h-4 w-4 mr-2" />
-                工数記録
+                <span className="hidden sm:inline">工数記録</span>
+                <span className="sm:hidden">工数</span>
               </Link>
             </Button>
-            <Button asChild>
+            <Button size="sm" asChild className="flex-1 sm:flex-none">
               <Link to="/projects/new">
                 <Plus className="h-4 w-4 mr-2" />
-                新規プロジェクト
+                新規
               </Link>
             </Button>
           </div>
         </div>
 
         {/* Summary Cards */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-3 grid-cols-2 md:grid-cols-4 md:gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">全プロジェクト</CardTitle>

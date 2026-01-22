@@ -365,122 +365,198 @@ export default function Invoices() {
                 請求書がありません。「新規作成」から作成してください。
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>請求書番号</TableHead>
-                    <TableHead>件名</TableHead>
-                    <TableHead>取引先</TableHead>
-                    <TableHead>金額</TableHead>
-                    <TableHead>発行日</TableHead>
-                    <TableHead>支払期限</TableHead>
-                    <TableHead>ステータス</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <>
+                {/* Mobile Card View */}
+                <div className="md:hidden space-y-3">
                   {invoices?.map((invoice) => {
                     const config = statusConfig[invoice.status];
                     const StatusIcon = config.icon;
                     return (
-                      <TableRow key={invoice.id}>
-                        <TableCell className="font-mono">
-                          <Link to={`/invoices/${invoice.id}`} className="hover:underline text-primary">
-                            {invoice.invoice_number}
-                          </Link>
-                        </TableCell>
-                        <TableCell>{invoice.title}</TableCell>
-                        <TableCell>{(invoice as any).client?.name || "-"}</TableCell>
-                        <TableCell className="font-medium">¥{invoice.total_amount.toLocaleString()}</TableCell>
-                        <TableCell>{format(new Date(invoice.issue_date), "yyyy/MM/dd", { locale: ja })}</TableCell>
-                        <TableCell>{format(new Date(invoice.due_date), "yyyy/MM/dd", { locale: ja })}</TableCell>
-                        <TableCell>
-                          <Badge variant={config.variant} className="gap-1">
-                            <StatusIcon className="h-3 w-3" />
-                            {config.label}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem asChild>
-                                <Link to={`/invoices/${invoice.id}`}>
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  詳細を見る
-                                </Link>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem asChild>
-                                <Link to={`/invoices/${invoice.id}/edit`}>
-                                  <Pencil className="mr-2 h-4 w-4" />
-                                  編集
-                                </Link>
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleOpenEmailDialog(invoice, 'invoice')}>
-                                <Mail className="mr-2 h-4 w-4" />
-                                請求書をメール送信
-                              </DropdownMenuItem>
-                              {(invoice.status === 'sent' || invoice.status === 'pending' || invoice.status === 'overdue') && (
-                                <DropdownMenuItem onClick={() => handleOpenEmailDialog(invoice, 'reminder')}>
-                                  <Bell className="mr-2 h-4 w-4" />
-                                  リマインダー送信
+                      <Card key={invoice.id} className="p-4">
+                        <div className="flex items-start justify-between gap-2 mb-3">
+                          <div className="min-w-0 flex-1">
+                            <Link to={`/invoices/${invoice.id}`} className="font-mono text-sm text-primary hover:underline block truncate">
+                              {invoice.invoice_number}
+                            </Link>
+                            <p className="font-medium truncate mt-1">{invoice.title}</p>
+                            <p className="text-sm text-muted-foreground truncate">{(invoice as any).client?.name || "-"}</p>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <Badge variant={config.variant} className="gap-1">
+                              <StatusIcon className="h-3 w-3" />
+                              {config.label}
+                            </Badge>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem asChild>
+                                  <Link to={`/invoices/${invoice.id}`}>
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    詳細を見る
+                                  </Link>
                                 </DropdownMenuItem>
-                              )}
-                              {invoice.status === 'paid' && (
-                                <DropdownMenuItem onClick={() => handleOpenEmailDialog(invoice, 'payment_confirmation')}>
-                                  <CheckCircle className="mr-2 h-4 w-4" />
-                                  入金確認メール送信
+                                <DropdownMenuItem asChild>
+                                  <Link to={`/invoices/${invoice.id}/edit`}>
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    編集
+                                  </Link>
                                 </DropdownMenuItem>
-                              )}
-                              {invoice.status !== 'paid' && invoice.status !== 'cancelled' && (
-                                <DropdownMenuItem 
-                                  onClick={() => createPaymentSession.mutate({
-                                    invoiceId: invoice.id,
-                                    amount: invoice.total_amount,
-                                    invoiceNumber: invoice.invoice_number,
-                                    title: invoice.title,
-                                    clientEmail: (invoice as any).client?.email,
-                                  })}
-                                  disabled={createPaymentSession.isPending}
-                                >
-                                  <CreditCard className="mr-2 h-4 w-4" />
-                                  オンライン決済リンクを発行
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => handleOpenEmailDialog(invoice, 'invoice')}>
+                                  <Mail className="mr-2 h-4 w-4" />
+                                  メール送信
                                 </DropdownMenuItem>
-                              )}
-                              <DropdownMenuSeparator />
-                              {invoice.status === 'draft' && (
-                                <DropdownMenuItem onClick={() => updateStatus.mutate({ id: invoice.id, status: 'sent' })}>
-                                  <Send className="mr-2 h-4 w-4" />
-                                  送付済にする
+                                {invoice.status !== 'paid' && invoice.status !== 'cancelled' && (
+                                  <DropdownMenuItem onClick={() => updateStatus.mutate({ id: invoice.id, status: 'paid' })}>
+                                    <CheckCircle className="mr-2 h-4 w-4" />
+                                    入金済にする
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => deleteInvoice.mutate(invoice.id)} className="text-destructive">
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  削除
                                 </DropdownMenuItem>
-                              )}
-                              {(invoice.status === 'sent' || invoice.status === 'pending') && (
-                                <DropdownMenuItem onClick={() => updateStatus.mutate({ id: invoice.id, status: 'paid' })}>
-                                  <CheckCircle className="mr-2 h-4 w-4" />
-                                  入金済にする
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                onClick={() => deleteInvoice.mutate(invoice.id)}
-                                className="text-destructive"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                削除
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-lg font-bold">¥{invoice.total_amount.toLocaleString()}</span>
+                          <div className="text-muted-foreground text-right">
+                            <div>発行: {format(new Date(invoice.issue_date), "MM/dd", { locale: ja })}</div>
+                            <div>期限: {format(new Date(invoice.due_date), "MM/dd", { locale: ja })}</div>
+                          </div>
+                        </div>
+                      </Card>
                     );
                   })}
-                </TableBody>
-              </Table>
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="whitespace-nowrap">請求書番号</TableHead>
+                        <TableHead className="whitespace-nowrap">件名</TableHead>
+                        <TableHead className="whitespace-nowrap">取引先</TableHead>
+                        <TableHead className="whitespace-nowrap">金額</TableHead>
+                        <TableHead className="whitespace-nowrap">発行日</TableHead>
+                        <TableHead className="whitespace-nowrap">支払期限</TableHead>
+                        <TableHead className="whitespace-nowrap">ステータス</TableHead>
+                        <TableHead></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {invoices?.map((invoice) => {
+                        const config = statusConfig[invoice.status];
+                        const StatusIcon = config.icon;
+                        return (
+                          <TableRow key={invoice.id}>
+                            <TableCell className="font-mono">
+                              <Link to={`/invoices/${invoice.id}`} className="hover:underline text-primary">
+                                {invoice.invoice_number}
+                              </Link>
+                            </TableCell>
+                            <TableCell>{invoice.title}</TableCell>
+                            <TableCell>{(invoice as any).client?.name || "-"}</TableCell>
+                            <TableCell className="font-medium">¥{invoice.total_amount.toLocaleString()}</TableCell>
+                            <TableCell>{format(new Date(invoice.issue_date), "yyyy/MM/dd", { locale: ja })}</TableCell>
+                            <TableCell>{format(new Date(invoice.due_date), "yyyy/MM/dd", { locale: ja })}</TableCell>
+                            <TableCell>
+                              <Badge variant={config.variant} className="gap-1">
+                                <StatusIcon className="h-3 w-3" />
+                                {config.label}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem asChild>
+                                    <Link to={`/invoices/${invoice.id}`}>
+                                      <Eye className="mr-2 h-4 w-4" />
+                                      詳細を見る
+                                    </Link>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem asChild>
+                                    <Link to={`/invoices/${invoice.id}/edit`}>
+                                      <Pencil className="mr-2 h-4 w-4" />
+                                      編集
+                                    </Link>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => handleOpenEmailDialog(invoice, 'invoice')}>
+                                    <Mail className="mr-2 h-4 w-4" />
+                                    請求書をメール送信
+                                  </DropdownMenuItem>
+                                  {(invoice.status === 'sent' || invoice.status === 'pending' || invoice.status === 'overdue') && (
+                                    <DropdownMenuItem onClick={() => handleOpenEmailDialog(invoice, 'reminder')}>
+                                      <Bell className="mr-2 h-4 w-4" />
+                                      リマインダー送信
+                                    </DropdownMenuItem>
+                                  )}
+                                  {invoice.status === 'paid' && (
+                                    <DropdownMenuItem onClick={() => handleOpenEmailDialog(invoice, 'payment_confirmation')}>
+                                      <CheckCircle className="mr-2 h-4 w-4" />
+                                      入金確認メール送信
+                                    </DropdownMenuItem>
+                                  )}
+                                  {invoice.status !== 'paid' && invoice.status !== 'cancelled' && (
+                                    <DropdownMenuItem 
+                                      onClick={() => createPaymentSession.mutate({
+                                        invoiceId: invoice.id,
+                                        amount: invoice.total_amount,
+                                        invoiceNumber: invoice.invoice_number,
+                                        title: invoice.title,
+                                        clientEmail: (invoice as any).client?.email,
+                                      })}
+                                      disabled={createPaymentSession.isPending}
+                                    >
+                                      <CreditCard className="mr-2 h-4 w-4" />
+                                      オンライン決済リンクを発行
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuSeparator />
+                                  {invoice.status === 'draft' && (
+                                    <DropdownMenuItem onClick={() => updateStatus.mutate({ id: invoice.id, status: 'sent' })}>
+                                      <Send className="mr-2 h-4 w-4" />
+                                      送付済にする
+                                    </DropdownMenuItem>
+                                  )}
+                                  {(invoice.status === 'sent' || invoice.status === 'pending') && (
+                                    <DropdownMenuItem onClick={() => updateStatus.mutate({ id: invoice.id, status: 'paid' })}>
+                                      <CheckCircle className="mr-2 h-4 w-4" />
+                                      入金済にする
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    onClick={() => deleteInvoice.mutate(invoice.id)}
+                                    className="text-destructive"
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    削除
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
