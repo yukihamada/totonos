@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -20,84 +20,85 @@ import {
   GanttChart,
   MoreHorizontal,
   Flag,
-  MessageSquare,
-  Paperclip,
-  Edit,
-  Trash2,
-  AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { ja } from "date-fns/locale";
+import { useProject, useProjectTasks, useCreateTask, useUpdateTask } from "@/hooks/useProjects";
+import { taskStatusLabels, taskPriorityLabels } from "@/types/project";
+import type { TaskStatus, TaskPriority } from "@/types/project";
 
-// Mock data
-const mockProject = {
-  id: "1",
-  name: "新製品ローンチキャンペーン",
-  description: "2024年春の新製品発売に向けたマーケティングキャンペーン。ウェブサイト、SNS、メールマーケティングを統合した包括的なキャンペーンを実施。",
-  status: "active",
-  progress: 65,
-  startDate: new Date("2024-01-01"),
-  endDate: new Date("2024-03-31"),
-  owner: { id: "1", name: "山田太郎", avatar: "YT", email: "yamada@example.com" },
-  members: [
-    { id: "2", name: "鈴木花子", avatar: "SH", role: "デザイナー" },
-    { id: "3", name: "田中次郎", avatar: "TJ", role: "エンジニア" },
-    { id: "4", name: "佐藤美咲", avatar: "SM", role: "マーケター" },
-  ],
-  color: "#3B82F6",
-  milestones: [
-    { id: "1", name: "企画フェーズ完了", date: new Date("2024-01-15"), completed: true },
-    { id: "2", name: "デザイン完了", date: new Date("2024-02-01"), completed: true },
-    { id: "3", name: "開発完了", date: new Date("2024-02-28"), completed: false },
-    { id: "4", name: "ローンチ", date: new Date("2024-03-15"), completed: false },
-  ],
-};
-
-const mockTasks = [
-  { id: "1", title: "キャンペーンコンセプト策定", status: "done", priority: "high", assignee: "山田太郎", dueDate: new Date("2024-01-10") },
-  { id: "2", title: "ターゲット顧客分析", status: "done", priority: "high", assignee: "佐藤美咲", dueDate: new Date("2024-01-12") },
-  { id: "3", title: "ランディングページデザイン", status: "done", priority: "medium", assignee: "鈴木花子", dueDate: new Date("2024-01-20") },
-  { id: "4", title: "LP実装", status: "in_progress", priority: "high", assignee: "田中次郎", dueDate: new Date("2024-02-05") },
-  { id: "5", title: "メール配信システム設定", status: "in_progress", priority: "medium", assignee: "田中次郎", dueDate: new Date("2024-02-10") },
-  { id: "6", title: "SNS広告クリエイティブ作成", status: "todo", priority: "medium", assignee: "鈴木花子", dueDate: new Date("2024-02-15") },
-  { id: "7", title: "A/Bテスト設計", status: "todo", priority: "low", assignee: "佐藤美咲", dueDate: new Date("2024-02-20") },
-  { id: "8", title: "効果測定KPI設定", status: "todo", priority: "high", assignee: "山田太郎", dueDate: new Date("2024-02-25") },
-];
-
-const priorityConfig = {
+const priorityConfig: Record<TaskPriority, { label: string; color: string }> = {
   high: { label: "高", color: "bg-red-500" },
   medium: { label: "中", color: "bg-yellow-500" },
   low: { label: "低", color: "bg-gray-500" },
-};
-
-const statusLabels = {
-  todo: "未着手",
-  in_progress: "進行中",
-  review: "レビュー",
-  done: "完了",
+  urgent: { label: "緊急", color: "bg-purple-500" },
 };
 
 export default function ProjectDetail() {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const [newTaskTitle, setNewTaskTitle] = useState("");
 
-  const project = mockProject;
-  const daysLeft = differenceInDays(project.endDate, new Date());
-  const totalDays = differenceInDays(project.endDate, project.startDate);
-  const daysElapsed = totalDays - daysLeft;
+  const { data: project, isLoading: projectLoading } = useProject(id || "");
+  const { data: tasks = [], isLoading: tasksLoading } = useProjectTasks(id || "");
+  const createTask = useCreateTask();
+  const updateTask = useUpdateTask();
+
+  const isLoading = projectLoading || tasksLoading;
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!project) {
+    return (
+      <AppLayout>
+        <div className="flex flex-col items-center justify-center h-64">
+          <p className="text-muted-foreground mb-4">プロジェクトが見つかりません</p>
+          <Button asChild>
+            <Link to="/projects">プロジェクト一覧へ</Link>
+          </Button>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  const startDate = project.start_date ? new Date(project.start_date) : new Date();
+  const endDate = project.end_date ? new Date(project.end_date) : new Date();
+  const daysLeft = differenceInDays(endDate, new Date());
+  const totalDays = differenceInDays(endDate, startDate);
 
   const tasksByStatus = {
-    todo: mockTasks.filter((t) => t.status === "todo"),
-    in_progress: mockTasks.filter((t) => t.status === "in_progress"),
-    review: mockTasks.filter((t) => t.status === "review"),
-    done: mockTasks.filter((t) => t.status === "done"),
+    todo: tasks.filter((t) => t.status === "todo"),
+    in_progress: tasks.filter((t) => t.status === "in_progress"),
+    review: tasks.filter((t) => t.status === "review"),
+    done: tasks.filter((t) => t.status === "done"),
   };
 
-  const handleAddTask = () => {
-    if (newTaskTitle.trim()) {
-      // Add task logic
+  const handleAddTask = async () => {
+    if (newTaskTitle.trim() && id) {
+      await createTask.mutateAsync({
+        project_id: id,
+        title: newTaskTitle,
+        status: "todo",
+        priority: "medium",
+        assignee_id: null,
+        due_date: null,
+        description: null,
+      });
       setNewTaskTitle("");
     }
+  };
+
+  const handleToggleTask = async (taskId: string, currentStatus: TaskStatus) => {
+    const newStatus: TaskStatus = currentStatus === "done" ? "todo" : "done";
+    await updateTask.mutateAsync({ id: taskId, status: newStatus });
   };
 
   return (
@@ -115,12 +116,12 @@ export default function ProjectDetail() {
               <div className="flex items-center gap-2">
                 <div
                   className="w-4 h-4 rounded"
-                  style={{ backgroundColor: project.color }}
+                  style={{ backgroundColor: project.color || "#3B82F6" }}
                 />
                 <h1 className="text-2xl font-bold">{project.name}</h1>
               </div>
               <p className="text-muted-foreground mt-1 max-w-2xl">
-                {project.description}
+                {project.description || "説明なし"}
               </p>
             </div>
           </div>
@@ -149,9 +150,9 @@ export default function ProjectDetail() {
             <CardContent className="pt-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-muted-foreground">進捗</span>
-                <span className="text-2xl font-bold">{project.progress}%</span>
+                <span className="text-2xl font-bold">{project.progress || 0}%</span>
               </div>
-              <Progress value={project.progress} className="h-2" />
+              <Progress value={project.progress || 0} className="h-2" />
             </CardContent>
           </Card>
           <Card>
@@ -159,12 +160,12 @@ export default function ProjectDetail() {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">残り日数</span>
                 <div className="text-right">
-                  <span className="text-2xl font-bold">{daysLeft}</span>
+                  <span className="text-2xl font-bold">{daysLeft > 0 ? daysLeft : 0}</span>
                   <span className="text-sm text-muted-foreground ml-1">日</span>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                {format(project.endDate, "yyyy/MM/dd", { locale: ja })}まで
+                {format(endDate, "yyyy/MM/dd", { locale: ja })}まで
               </p>
             </CardContent>
           </Card>
@@ -177,7 +178,7 @@ export default function ProjectDetail() {
                     {tasksByStatus.done.length}
                   </span>
                   <span className="text-sm text-muted-foreground">
-                    /{mockTasks.length}
+                    /{tasks.length}
                   </span>
                 </div>
               </div>
@@ -189,25 +190,13 @@ export default function ProjectDetail() {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">メンバー</span>
                 <span className="text-2xl font-bold">
-                  {project.members.length + 1}
+                  {(project.members?.length || 0) + 1}
                 </span>
               </div>
               <div className="flex -space-x-2 mt-2">
                 <Avatar className="h-6 w-6 border-2 border-background">
-                  <AvatarFallback className="text-xs">
-                    {project.owner.avatar}
-                  </AvatarFallback>
+                  <AvatarFallback className="text-xs">PM</AvatarFallback>
                 </Avatar>
-                {project.members.slice(0, 3).map((member) => (
-                  <Avatar
-                    key={member.id}
-                    className="h-6 w-6 border-2 border-background"
-                  >
-                    <AvatarFallback className="text-xs">
-                      {member.avatar}
-                    </AvatarFallback>
-                  </Avatar>
-                ))}
               </div>
             </CardContent>
           </Card>
@@ -219,7 +208,6 @@ export default function ProjectDetail() {
             <Tabs defaultValue="tasks" className="space-y-4">
               <TabsList>
                 <TabsTrigger value="tasks">タスク</TabsTrigger>
-                <TabsTrigger value="milestones">マイルストーン</TabsTrigger>
                 <TabsTrigger value="activity">アクティビティ</TabsTrigger>
               </TabsList>
 
@@ -232,7 +220,7 @@ export default function ProjectDetail() {
                     placeholder="新しいタスクを追加..."
                     onKeyDown={(e) => e.key === "Enter" && handleAddTask()}
                   />
-                  <Button onClick={handleAddTask}>
+                  <Button onClick={handleAddTask} disabled={createTask.isPending}>
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
@@ -240,98 +228,52 @@ export default function ProjectDetail() {
                 {/* Task List */}
                 <Card>
                   <CardContent className="p-0 divide-y">
-                    {mockTasks.map((task) => (
-                      <div
-                        key={task.id}
-                        className="flex items-center gap-3 p-3 hover:bg-muted/50"
-                      >
-                        <Checkbox checked={task.status === "done"} />
-                        <div className="flex-1 min-w-0">
-                          <p
-                            className={`font-medium ${
-                              task.status === "done"
-                                ? "line-through text-muted-foreground"
-                                : ""
-                            }`}
-                          >
-                            {task.title}
-                          </p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge
-                              variant="outline"
-                              className={`${
-                                priorityConfig[task.priority as keyof typeof priorityConfig]
-                                  .color
-                              } text-white text-xs`}
-                            >
-                              {
-                                priorityConfig[task.priority as keyof typeof priorityConfig]
-                                  .label
-                              }
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {task.assignee}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {format(task.dueDate, "MM/dd", { locale: ja })}
-                            </span>
-                          </div>
-                        </div>
-                        <Badge variant="secondary">
-                          {statusLabels[task.status as keyof typeof statusLabels]}
-                        </Badge>
+                    {tasks.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        タスクがありません
                       </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="milestones" className="space-y-4">
-                <Card>
-                  <CardContent className="pt-4">
-                    <div className="space-y-4">
-                      {project.milestones.map((milestone, index) => (
-                        <div key={milestone.id} className="relative">
-                          {index < project.milestones.length - 1 && (
-                            <div className="absolute left-4 top-8 bottom-0 w-0.5 bg-border" />
-                          )}
-                          <div className="flex items-start gap-3">
-                            <div
-                              className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                                milestone.completed
-                                  ? "bg-green-100 text-green-600"
-                                  : "bg-gray-100 text-gray-400"
+                    ) : (
+                      tasks.map((task) => (
+                        <div
+                          key={task.id}
+                          className="flex items-center gap-3 p-3 hover:bg-muted/50"
+                        >
+                          <Checkbox 
+                            checked={task.status === "done"}
+                            onCheckedChange={() => handleToggleTask(task.id, task.status)}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p
+                              className={`font-medium ${
+                                task.status === "done"
+                                  ? "line-through text-muted-foreground"
+                                  : ""
                               }`}
                             >
-                              {milestone.completed ? (
-                                <CheckCircle2 className="h-4 w-4" />
-                              ) : (
-                                <Flag className="h-4 w-4" />
+                              {task.title}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge
+                                variant="outline"
+                                className={`${
+                                  priorityConfig[task.priority]?.color || "bg-gray-500"
+                                } text-white text-xs`}
+                              >
+                                {priorityConfig[task.priority]?.label || task.priority}
+                              </Badge>
+                              {task.due_date && (
+                                <span className="text-xs text-muted-foreground">
+                                  {format(new Date(task.due_date), "MM/dd", { locale: ja })}
+                                </span>
                               )}
                             </div>
-                            <div className="flex-1">
-                              <p
-                                className={`font-medium ${
-                                  milestone.completed
-                                    ? "text-muted-foreground"
-                                    : ""
-                                }`}
-                              >
-                                {milestone.name}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                {format(milestone.date, "yyyy/MM/dd", {
-                                  locale: ja,
-                                })}
-                              </p>
-                            </div>
-                            {!milestone.completed && (
-                              <Badge variant="outline">予定</Badge>
-                            )}
                           </div>
+                          <Badge variant="secondary">
+                            {taskStatusLabels[task.status]}
+                          </Badge>
                         </div>
-                      ))}
-                    </div>
+                      ))
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -361,8 +303,8 @@ export default function ProjectDetail() {
                   <div>
                     <p className="text-sm text-muted-foreground">期間</p>
                     <p className="text-sm">
-                      {format(project.startDate, "yyyy/MM/dd", { locale: ja })} -{" "}
-                      {format(project.endDate, "yyyy/MM/dd", { locale: ja })}
+                      {format(startDate, "yyyy/MM/dd", { locale: ja })} -{" "}
+                      {format(endDate, "yyyy/MM/dd", { locale: ja })}
                     </p>
                   </div>
                 </div>
@@ -372,43 +314,9 @@ export default function ProjectDetail() {
                     <p className="text-sm text-muted-foreground">
                       プロジェクトオーナー
                     </p>
-                    <p className="text-sm">{project.owner.name}</p>
+                    <p className="text-sm">オーナー</p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Members */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-sm">メンバー</CardTitle>
-                <Button variant="ghost" size="sm">
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <Avatar>
-                    <AvatarFallback>{project.owner.avatar}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{project.owner.name}</p>
-                    <p className="text-xs text-muted-foreground">オーナー</p>
-                  </div>
-                </div>
-                {project.members.map((member) => (
-                  <div key={member.id} className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarFallback>{member.avatar}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{member.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {member.role}
-                      </p>
-                    </div>
-                  </div>
-                ))}
               </CardContent>
             </Card>
 
@@ -417,20 +325,22 @@ export default function ProjectDetail() {
               <CardHeader>
                 <CardTitle className="text-sm">タスク状況</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">未着手</span>
-                  <Badge variant="outline">{tasksByStatus.todo.length}</Badge>
+                  <Badge variant="secondary">{tasksByStatus.todo.length}</Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">進行中</span>
-                  <Badge variant="outline">
-                    {tasksByStatus.in_progress.length}
-                  </Badge>
+                  <Badge variant="secondary">{tasksByStatus.in_progress.length}</Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">レビュー</span>
+                  <Badge variant="secondary">{tasksByStatus.review.length}</Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">完了</span>
-                  <Badge variant="outline">{tasksByStatus.done.length}</Badge>
+                  <Badge variant="secondary">{tasksByStatus.done.length}</Badge>
                 </div>
               </CardContent>
             </Card>

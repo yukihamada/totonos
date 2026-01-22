@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -44,69 +43,13 @@ import {
   Edit,
   Trash2,
   BarChart3,
+  Construction,
 } from "lucide-react";
 import { format, startOfWeek, endOfWeek, eachDayOfInterval } from "date-fns";
 import { ja } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-
-// Mock data
-const mockTimeLogs = [
-  {
-    id: "1",
-    date: new Date("2024-01-15"),
-    project: "新製品ローンチキャンペーン",
-    task: "LP実装",
-    hours: 3.5,
-    description: "ヘッダーとヒーローセクションの実装",
-  },
-  {
-    id: "2",
-    date: new Date("2024-01-15"),
-    project: "新製品ローンチキャンペーン",
-    task: "メール配信システム設定",
-    hours: 2.0,
-    description: "Mailchimpとの連携設定",
-  },
-  {
-    id: "3",
-    date: new Date("2024-01-14"),
-    project: "基幹システムリニューアル",
-    task: "要件定義",
-    hours: 4.0,
-    description: "ユーザーヒアリングと要件まとめ",
-  },
-  {
-    id: "4",
-    date: new Date("2024-01-14"),
-    project: "新製品ローンチキャンペーン",
-    task: "LP実装",
-    hours: 2.5,
-    description: "フォームセクションの実装",
-  },
-  {
-    id: "5",
-    date: new Date("2024-01-13"),
-    project: "新製品ローンチキャンペーン",
-    task: "ランディングページデザイン",
-    hours: 5.0,
-    description: "デザインレビューと修正",
-  },
-];
-
-const mockProjects = [
-  { id: "1", name: "新製品ローンチキャンペーン", color: "#3B82F6" },
-  { id: "2", name: "基幹システムリニューアル", color: "#8B5CF6" },
-  { id: "3", name: "顧客満足度向上プロジェクト", color: "#F59E0B" },
-];
-
-const mockTasks = [
-  { id: "1", name: "LP実装", projectId: "1" },
-  { id: "2", name: "メール配信システム設定", projectId: "1" },
-  { id: "3", name: "ランディングページデザイン", projectId: "1" },
-  { id: "4", name: "要件定義", projectId: "2" },
-  { id: "5", name: "設計", projectId: "2" },
-];
+import { useProjects, useProjectTasks } from "@/hooks/useProjects";
 
 export default function ProjectTimelog() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -118,29 +61,23 @@ export default function ProjectTimelog() {
   const [hours, setHours] = useState("");
   const [description, setDescription] = useState("");
 
+  const { data: projects = [] } = useProjects();
+  const { data: tasks = [] } = useProjectTasks(selectedProject);
+
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
   const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
-  const todayHours = mockTimeLogs
-    .filter(
-      (log) =>
-        format(log.date, "yyyy-MM-dd") === format(selectedDate, "yyyy-MM-dd")
-    )
-    .reduce((sum, log) => sum + log.hours, 0);
+  // For now, show placeholder as timelog table doesn't exist yet
+  const timeLogs: any[] = [];
 
-  const weekHours = mockTimeLogs
-    .filter((log) => log.date >= weekStart && log.date <= weekEnd)
-    .reduce((sum, log) => sum + log.hours, 0);
-
-  const projectHours = mockTimeLogs.reduce((acc, log) => {
-    acc[log.project] = (acc[log.project] || 0) + log.hours;
-    return acc;
-  }, {} as Record<string, number>);
+  const todayHours = 0;
+  const weekHours = 0;
+  const projectHours: Record<string, number> = {};
 
   const handleStartTimer = () => {
     setIsTimerRunning(true);
-    // In real app, would start interval
+    toast.info("タイマーを開始しました");
   };
 
   const handleStopTimer = () => {
@@ -155,7 +92,7 @@ export default function ProjectTimelog() {
       toast.error("プロジェクトと時間を入力してください");
       return;
     }
-    toast.success("工数を記録しました");
+    toast.success("工数を記録しました（デモ）");
     setIsAddDialogOpen(false);
     setSelectedProject("");
     setSelectedTask("");
@@ -259,12 +196,12 @@ export default function ProjectTimelog() {
                         <SelectValue placeholder="選択..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {mockProjects.map((project) => (
+                        {projects.map((project) => (
                           <SelectItem key={project.id} value={project.id}>
                             <div className="flex items-center gap-2">
                               <div
                                 className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: project.color }}
+                                style={{ backgroundColor: project.color || "#3B82F6" }}
                               />
                               {project.name}
                             </div>
@@ -280,13 +217,11 @@ export default function ProjectTimelog() {
                         <SelectValue placeholder="選択..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {mockTasks
-                          .filter((t) => t.projectId === selectedProject)
-                          .map((task) => (
-                            <SelectItem key={task.id} value={task.id}>
-                              {task.name}
-                            </SelectItem>
-                          ))}
+                        {tasks.map((task) => (
+                          <SelectItem key={task.id} value={task.id}>
+                            {task.title}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -324,6 +259,18 @@ export default function ProjectTimelog() {
           </div>
         </div>
 
+        {/* Coming Soon Notice */}
+        <Card className="border-dashed border-2">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Construction className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-2">工数記録機能は準備中です</h3>
+            <p className="text-muted-foreground text-center max-w-md">
+              現在、工数記録のデータベーステーブルを準備しています。
+              プロジェクトとタスクの選択は可能ですが、記録の保存はまだできません。
+            </p>
+          </CardContent>
+        </Card>
+
         {/* Summary Cards */}
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
@@ -352,12 +299,16 @@ export default function ProjectTimelog() {
             </CardHeader>
             <CardContent>
               <div className="flex gap-4">
-                {Object.entries(projectHours).map(([project, hours]) => (
-                  <div key={project} className="text-sm">
-                    <span className="text-muted-foreground">{project}: </span>
-                    <span className="font-medium">{hours}h</span>
-                  </div>
-                ))}
+                {Object.entries(projectHours).length === 0 ? (
+                  <span className="text-muted-foreground text-sm">データなし</span>
+                ) : (
+                  Object.entries(projectHours).map(([project, hours]) => (
+                    <div key={project} className="text-sm">
+                      <span className="text-muted-foreground">{project}: </span>
+                      <span className="font-medium">{hours}h</span>
+                    </div>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -377,11 +328,7 @@ export default function ProjectTimelog() {
           <CardContent>
             <div className="grid grid-cols-7 gap-2">
               {weekDays.map((day) => {
-                const dayLogs = mockTimeLogs.filter(
-                  (log) =>
-                    format(log.date, "yyyy-MM-dd") === format(day, "yyyy-MM-dd")
-                );
-                const dayTotal = dayLogs.reduce((sum, log) => sum + log.hours, 0);
+                const dayTotal = 0;
                 const isSelected =
                   format(day, "yyyy-MM-dd") ===
                   format(selectedDate, "yyyy-MM-dd");
@@ -428,48 +375,14 @@ export default function ProjectTimelog() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockTimeLogs
-                  .filter(
-                    (log) =>
-                      format(log.date, "yyyy-MM-dd") ===
-                      format(selectedDate, "yyyy-MM-dd")
-                  )
-                  .map((log) => (
-                    <TableRow key={log.id}>
-                      <TableCell className="font-medium">{log.project}</TableCell>
-                      <TableCell>{log.task}</TableCell>
-                      <TableCell className="text-muted-foreground max-w-xs truncate">
-                        {log.description}
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {log.hours}h
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="icon">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                {mockTimeLogs.filter(
-                  (log) =>
-                    format(log.date, "yyyy-MM-dd") ===
-                    format(selectedDate, "yyyy-MM-dd")
-                ).length === 0 && (
-                  <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      className="text-center text-muted-foreground py-8"
-                    >
-                      この日の工数記録はありません
-                    </TableCell>
-                  </TableRow>
-                )}
+                <TableRow>
+                  <TableCell
+                    colSpan={5}
+                    className="text-center text-muted-foreground py-8"
+                  >
+                    この日の工数記録はありません
+                  </TableCell>
+                </TableRow>
               </TableBody>
             </Table>
           </CardContent>

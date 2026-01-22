@@ -28,89 +28,26 @@ import {
   MoreHorizontal,
   Folder,
   Calendar,
-  Users,
   CheckCircle2,
   Clock,
   AlertCircle,
   LayoutGrid,
   GanttChart,
   Timer,
+  Loader2,
 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { ja } from "date-fns/locale";
+import { useProjects } from "@/hooks/useProjects";
+import { projectStatusLabels, projectStatusColors } from "@/types/project";
+import type { ProjectStatus } from "@/types/project";
 
-// Mock data
-const mockProjects = [
-  {
-    id: "1",
-    name: "新製品ローンチキャンペーン",
-    description: "2024年春の新製品発売に向けたマーケティングキャンペーン",
-    status: "active",
-    progress: 65,
-    startDate: new Date("2024-01-01"),
-    endDate: new Date("2024-03-31"),
-    owner: { name: "山田太郎", avatar: "YT" },
-    members: [
-      { name: "鈴木花子", avatar: "SH" },
-      { name: "田中次郎", avatar: "TJ" },
-    ],
-    tasksTotal: 24,
-    tasksCompleted: 16,
-    color: "#3B82F6",
-  },
-  {
-    id: "2",
-    name: "基幹システムリニューアル",
-    description: "レガシーシステムの刷新とクラウド移行",
-    status: "active",
-    progress: 30,
-    startDate: new Date("2024-01-15"),
-    endDate: new Date("2024-06-30"),
-    owner: { name: "佐藤一郎", avatar: "SI" },
-    members: [
-      { name: "高橋美咲", avatar: "TM" },
-      { name: "伊藤健太", avatar: "IK" },
-      { name: "渡辺由美", avatar: "WY" },
-    ],
-    tasksTotal: 45,
-    tasksCompleted: 14,
-    color: "#8B5CF6",
-  },
-  {
-    id: "3",
-    name: "顧客満足度向上プロジェクト",
-    description: "NPS改善とカスタマーサポート体制の強化",
-    status: "on_hold",
-    progress: 45,
-    startDate: new Date("2023-11-01"),
-    endDate: new Date("2024-02-29"),
-    owner: { name: "木村由美", avatar: "KY" },
-    members: [{ name: "中村太一", avatar: "NT" }],
-    tasksTotal: 18,
-    tasksCompleted: 8,
-    color: "#F59E0B",
-  },
-  {
-    id: "4",
-    name: "新卒採用2024",
-    description: "2024年度新卒採用活動",
-    status: "completed",
-    progress: 100,
-    startDate: new Date("2023-06-01"),
-    endDate: new Date("2023-12-31"),
-    owner: { name: "加藤美穂", avatar: "KM" },
-    members: [{ name: "小林健", avatar: "KT" }],
-    tasksTotal: 32,
-    tasksCompleted: 32,
-    color: "#10B981",
-  },
-];
-
-const statusConfig = {
+const statusConfig: Record<ProjectStatus, { label: string; color: string; icon: typeof Clock }> = {
   active: { label: "進行中", color: "bg-blue-500", icon: Clock },
   completed: { label: "完了", color: "bg-green-500", icon: CheckCircle2 },
   on_hold: { label: "保留中", color: "bg-yellow-500", icon: AlertCircle },
   planning: { label: "計画中", color: "bg-gray-500", icon: Folder },
+  cancelled: { label: "キャンセル", color: "bg-red-500", icon: AlertCircle },
 };
 
 export default function Projects() {
@@ -118,7 +55,9 @@ export default function Projects() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  const filteredProjects = mockProjects.filter((project) => {
+  const { data: projects = [], isLoading } = useProjects();
+
+  const filteredProjects = projects.filter((project) => {
     const matchesSearch = project.name
       .toLowerCase()
       .includes(searchTerm.toLowerCase());
@@ -127,10 +66,14 @@ export default function Projects() {
     return matchesSearch && matchesStatus;
   });
 
-  const activeProjects = mockProjects.filter((p) => p.status === "active").length;
-  const completedProjects = mockProjects.filter(
+  const activeProjects = projects.filter((p) => p.status === "active").length;
+  const completedProjects = projects.filter(
     (p) => p.status === "completed"
   ).length;
+
+  const totalTasks = projects.reduce((sum, p) => sum + (p.tasks_total || 0), 0);
+  const completedTasks = projects.reduce((sum, p) => sum + (p.tasks_completed || 0), 0);
+  const overallProgress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   return (
     <AppLayout>
@@ -168,7 +111,7 @@ export default function Projects() {
               <Folder className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{mockProjects.length}</div>
+              <div className="text-2xl font-bold">{projects.length}</div>
             </CardContent>
           </Card>
           <Card>
@@ -200,12 +143,7 @@ export default function Projects() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {Math.round(
-                  (mockProjects.reduce((sum, p) => sum + p.tasksCompleted, 0) /
-                    mockProjects.reduce((sum, p) => sum + p.tasksTotal, 0)) *
-                    100
-                )}
-                %
+                {overallProgress}%
               </div>
             </CardContent>
           </Card>
@@ -254,13 +192,41 @@ export default function Projects() {
           </div>
         </div>
 
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!isLoading && projects.length === 0 && (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Folder className="h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">プロジェクトがありません</h3>
+              <p className="text-muted-foreground mb-4">
+                最初のプロジェクトを作成して始めましょう
+              </p>
+              <Button asChild>
+                <Link to="/projects/new">
+                  <Plus className="h-4 w-4 mr-2" />
+                  新規プロジェクト
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Projects Grid/List */}
-        {viewMode === "grid" ? (
+        {!isLoading && filteredProjects.length > 0 && viewMode === "grid" && (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {filteredProjects.map((project) => {
-              const StatusIcon =
-                statusConfig[project.status as keyof typeof statusConfig].icon;
-              const daysLeft = differenceInDays(project.endDate, new Date());
+              const config = statusConfig[project.status] || statusConfig.planning;
+              const StatusIcon = config.icon;
+              const endDate = project.end_date ? new Date(project.end_date) : null;
+              const daysLeft = endDate ? differenceInDays(endDate, new Date()) : null;
+              
               return (
                 <Card
                   key={project.id}
@@ -270,7 +236,7 @@ export default function Projects() {
                     <div className="flex items-start justify-between">
                       <div
                         className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: project.color }}
+                        style={{ backgroundColor: project.color || "#3B82F6" }}
                       />
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -303,24 +269,16 @@ export default function Projects() {
                       </CardTitle>
                     </Link>
                     <p className="text-sm text-muted-foreground line-clamp-2">
-                      {project.description}
+                      {project.description || "説明なし"}
                     </p>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <Badge
-                        className={`${
-                          statusConfig[project.status as keyof typeof statusConfig]
-                            .color
-                        } text-white`}
-                      >
+                      <Badge className={`${config.color} text-white`}>
                         <StatusIcon className="h-3 w-3 mr-1" />
-                        {
-                          statusConfig[project.status as keyof typeof statusConfig]
-                            .label
-                        }
+                        {config.label}
                       </Badge>
-                      {project.status === "active" && daysLeft >= 0 && (
+                      {project.status === "active" && daysLeft !== null && daysLeft >= 0 && (
                         <span className="text-xs text-muted-foreground">
                           残り{daysLeft}日
                         </span>
@@ -330,22 +288,22 @@ export default function Projects() {
                     <div className="space-y-1">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">進捗</span>
-                        <span className="font-medium">{project.progress}%</span>
+                        <span className="font-medium">{project.progress || 0}%</span>
                       </div>
-                      <Progress value={project.progress} className="h-2" />
+                      <Progress value={project.progress || 0} className="h-2" />
                     </div>
 
                     <div className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-1 text-muted-foreground">
                         <Calendar className="h-4 w-4" />
                         <span>
-                          {format(project.endDate, "MM/dd", { locale: ja })}
+                          {endDate ? format(endDate, "MM/dd", { locale: ja }) : "-"}
                         </span>
                       </div>
                       <div className="flex items-center gap-1 text-muted-foreground">
                         <CheckCircle2 className="h-4 w-4" />
                         <span>
-                          {project.tasksCompleted}/{project.tasksTotal}
+                          {project.tasks_completed || 0}/{project.tasks_total || 0}
                         </span>
                       </div>
                     </div>
@@ -354,26 +312,9 @@ export default function Projects() {
                       <div className="flex -space-x-2">
                         <Avatar className="h-8 w-8 border-2 border-background">
                           <AvatarFallback className="text-xs">
-                            {project.owner.avatar}
+                            PM
                           </AvatarFallback>
                         </Avatar>
-                        {project.members.slice(0, 2).map((member, index) => (
-                          <Avatar
-                            key={index}
-                            className="h-8 w-8 border-2 border-background"
-                          >
-                            <AvatarFallback className="text-xs">
-                              {member.avatar}
-                            </AvatarFallback>
-                          </Avatar>
-                        ))}
-                        {project.members.length > 2 && (
-                          <Avatar className="h-8 w-8 border-2 border-background">
-                            <AvatarFallback className="text-xs bg-muted">
-                              +{project.members.length - 2}
-                            </AvatarFallback>
-                          </Avatar>
-                        )}
                       </div>
                       <Button variant="ghost" size="sm" asChild>
                         <Link to={`/projects/${project.id}`}>開く</Link>
@@ -384,13 +325,15 @@ export default function Projects() {
               );
             })}
           </div>
-        ) : (
+        )}
+
+        {!isLoading && filteredProjects.length > 0 && viewMode === "list" && (
           <Card>
             <CardContent className="p-0">
               <div className="divide-y">
                 {filteredProjects.map((project) => {
-                  const StatusIcon =
-                    statusConfig[project.status as keyof typeof statusConfig].icon;
+                  const config = statusConfig[project.status] || statusConfig.planning;
+                  const StatusIcon = config.icon;
                   return (
                     <div
                       key={project.id}
@@ -398,7 +341,7 @@ export default function Projects() {
                     >
                       <div
                         className="w-3 h-3 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: project.color }}
+                        style={{ backgroundColor: project.color || "#3B82F6" }}
                       />
                       <div className="flex-1 min-w-0">
                         <Link
@@ -408,31 +351,23 @@ export default function Projects() {
                           {project.name}
                         </Link>
                         <p className="text-sm text-muted-foreground truncate">
-                          {project.description}
+                          {project.description || "説明なし"}
                         </p>
                       </div>
-                      <Badge
-                        className={`${
-                          statusConfig[project.status as keyof typeof statusConfig]
-                            .color
-                        } text-white`}
-                      >
+                      <Badge className={`${config.color} text-white`}>
                         <StatusIcon className="h-3 w-3 mr-1" />
-                        {
-                          statusConfig[project.status as keyof typeof statusConfig]
-                            .label
-                        }
+                        {config.label}
                       </Badge>
                       <div className="w-32">
-                        <Progress value={project.progress} className="h-2" />
+                        <Progress value={project.progress || 0} className="h-2" />
                       </div>
                       <span className="text-sm text-muted-foreground w-12 text-right">
-                        {project.progress}%
+                        {project.progress || 0}%
                       </span>
                       <div className="flex -space-x-2">
                         <Avatar className="h-8 w-8 border-2 border-background">
                           <AvatarFallback className="text-xs">
-                            {project.owner.avatar}
+                            PM
                           </AvatarFallback>
                         </Avatar>
                       </div>
@@ -444,15 +379,6 @@ export default function Projects() {
                 })}
               </div>
             </CardContent>
-          </Card>
-        )}
-
-        {filteredProjects.length === 0 && (
-          <Card className="p-12">
-            <div className="text-center text-muted-foreground">
-              <Folder className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>該当するプロジェクトがありません</p>
-            </div>
           </Card>
         )}
       </div>

@@ -17,15 +17,13 @@ import {
   ChevronRight,
   LayoutGrid,
   List,
-  ZoomIn,
-  ZoomOut,
+  Loader2,
 } from "lucide-react";
 import {
   format,
   startOfMonth,
   endOfMonth,
   eachDayOfInterval,
-  isSameMonth,
   isWeekend,
   addMonths,
   subMonths,
@@ -35,102 +33,25 @@ import {
 } from "date-fns";
 import { ja } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { useProject, useProjectTasks } from "@/hooks/useProjects";
+import type { TaskStatus } from "@/types/project";
 
-// Mock data
-const mockTasks = [
-  {
-    id: "1",
-    title: "キャンペーンコンセプト策定",
-    startDate: new Date("2024-01-01"),
-    endDate: new Date("2024-01-10"),
-    progress: 100,
-    assignee: "山田太郎",
-    status: "done",
-  },
-  {
-    id: "2",
-    title: "ターゲット顧客分析",
-    startDate: new Date("2024-01-05"),
-    endDate: new Date("2024-01-12"),
-    progress: 100,
-    assignee: "佐藤美咲",
-    status: "done",
-  },
-  {
-    id: "3",
-    title: "ランディングページデザイン",
-    startDate: new Date("2024-01-10"),
-    endDate: new Date("2024-01-20"),
-    progress: 100,
-    assignee: "鈴木花子",
-    status: "done",
-  },
-  {
-    id: "4",
-    title: "LP実装",
-    startDate: new Date("2024-01-18"),
-    endDate: new Date("2024-02-05"),
-    progress: 60,
-    assignee: "田中次郎",
-    status: "in_progress",
-  },
-  {
-    id: "5",
-    title: "メール配信システム設定",
-    startDate: new Date("2024-01-25"),
-    endDate: new Date("2024-02-10"),
-    progress: 40,
-    assignee: "田中次郎",
-    status: "in_progress",
-  },
-  {
-    id: "6",
-    title: "SNS広告クリエイティブ作成",
-    startDate: new Date("2024-02-01"),
-    endDate: new Date("2024-02-15"),
-    progress: 0,
-    assignee: "鈴木花子",
-    status: "todo",
-  },
-  {
-    id: "7",
-    title: "A/Bテスト設計",
-    startDate: new Date("2024-02-10"),
-    endDate: new Date("2024-02-20"),
-    progress: 0,
-    assignee: "佐藤美咲",
-    status: "todo",
-  },
-  {
-    id: "8",
-    title: "効果測定KPI設定",
-    startDate: new Date("2024-02-15"),
-    endDate: new Date("2024-02-25"),
-    progress: 0,
-    assignee: "山田太郎",
-    status: "todo",
-  },
-];
-
-const mockMilestones = [
-  { id: "1", name: "企画フェーズ完了", date: new Date("2024-01-15") },
-  { id: "2", name: "デザイン完了", date: new Date("2024-02-01") },
-  { id: "3", name: "開発完了", date: new Date("2024-02-28") },
-  { id: "4", name: "ローンチ", date: new Date("2024-03-15") },
-];
-
-const statusColors = {
+const statusColors: Record<TaskStatus, string> = {
   done: "bg-green-500",
   in_progress: "bg-blue-500",
+  review: "bg-yellow-500",
   todo: "bg-gray-400",
 };
 
 export default function ProjectGantt() {
-  const { id } = useParams();
-  const [currentMonth, setCurrentMonth] = useState(new Date("2024-01-15"));
+  const { id } = useParams<{ id: string }>();
+  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [zoom, setZoom] = useState<"day" | "week">("day");
 
-  const projectName = "新製品ローンチキャンペーン";
+  const { data: project, isLoading: projectLoading } = useProject(id || "");
+  const { data: tasks = [], isLoading: tasksLoading } = useProjectTasks(id || "");
+
+  const isLoading = projectLoading || tasksLoading;
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -139,20 +60,20 @@ export default function ProjectGantt() {
   const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
   const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
 
-  const getTaskBarStyle = (task: typeof mockTasks[0]) => {
-    const taskStart = startOfDay(task.startDate);
-    const taskEnd = startOfDay(task.endDate);
+  const getTaskBarStyle = (task: { due_date: string | null; created_at: string }) => {
+    const taskStart = startOfDay(new Date(task.created_at));
+    const taskEnd = task.due_date ? startOfDay(new Date(task.due_date)) : startOfDay(new Date(task.created_at));
 
     // Check if task overlaps with current month
     if (taskEnd < monthStart || taskStart > monthEnd) {
-      return { display: "none" };
+      return { display: "none" as const };
     }
 
     const effectiveStart = taskStart < monthStart ? monthStart : taskStart;
     const effectiveEnd = taskEnd > monthEnd ? monthEnd : taskEnd;
 
     const startOffset = differenceInDays(effectiveStart, monthStart);
-    const duration = differenceInDays(effectiveEnd, effectiveStart) + 1;
+    const duration = Math.max(differenceInDays(effectiveEnd, effectiveStart) + 1, 1);
 
     const cellWidth = 32; // px per day
     const left = startOffset * cellWidth;
@@ -163,6 +84,16 @@ export default function ProjectGantt() {
       width: `${width}px`,
     };
   };
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -176,7 +107,7 @@ export default function ProjectGantt() {
               </Link>
             </Button>
             <div>
-              <h1 className="text-xl font-bold">{projectName}</h1>
+              <h1 className="text-xl font-bold">{project?.name || "プロジェクト"}</h1>
               <p className="text-sm text-muted-foreground">ガントチャート</p>
             </div>
           </div>
@@ -264,48 +195,20 @@ export default function ProjectGantt() {
                 </div>
               </div>
 
-              {/* Milestones Row */}
-              <div className="flex border-b bg-muted/30">
-                <div className="w-64 flex-shrink-0 p-2 border-r text-sm font-medium">
-                  マイルストーン
+              {/* Empty State */}
+              {tasks.length === 0 && (
+                <div className="text-center py-12 text-muted-foreground">
+                  タスクがありません
                 </div>
-                <div className="flex-1 relative h-10">
-                  {mockMilestones.map((milestone) => {
-                    const milestoneDate = startOfDay(milestone.date);
-                    if (
-                      !isWithinInterval(milestoneDate, {
-                        start: monthStart,
-                        end: monthEnd,
-                      })
-                    ) {
-                      return null;
-                    }
-                    const offset = differenceInDays(milestoneDate, monthStart);
-                    return (
-                      <div
-                        key={milestone.id}
-                        className="absolute top-1/2 -translate-y-1/2"
-                        style={{ left: `${offset * 32 + 16}px` }}
-                      >
-                        <div className="relative">
-                          <div className="w-4 h-4 bg-purple-500 rotate-45 transform" />
-                          <span className="absolute top-5 left-1/2 -translate-x-1/2 text-xs whitespace-nowrap bg-background px-1">
-                            {milestone.name}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+              )}
 
               {/* Task Rows */}
-              {mockTasks.map((task) => (
+              {tasks.map((task) => (
                 <div key={task.id} className="flex border-b hover:bg-muted/30">
                   <div className="w-64 flex-shrink-0 p-2 border-r">
                     <p className="text-sm font-medium truncate">{task.title}</p>
                     <p className="text-xs text-muted-foreground">
-                      {task.assignee}
+                      {task.assignee_id ? "担当者" : "未割当"}
                     </p>
                   </div>
                   <div className="flex-1 relative h-14">
@@ -324,20 +227,14 @@ export default function ProjectGantt() {
 
                     {/* Task bar */}
                     <div
-                      className="absolute top-1/2 -translate-y-1/2 h-6 rounded flex items-center overflow-hidden"
-                      style={{
-                        ...getTaskBarStyle(task),
-                        backgroundColor:
-                          statusColors[task.status as keyof typeof statusColors] ||
-                          "bg-gray-400",
-                      }}
+                      className={cn(
+                        "absolute top-1/2 -translate-y-1/2 h-6 rounded flex items-center overflow-hidden",
+                        statusColors[task.status]
+                      )}
+                      style={getTaskBarStyle(task)}
                     >
-                      <div
-                        className="h-full bg-black/20"
-                        style={{ width: `${task.progress}%` }}
-                      />
-                      <span className="absolute inset-0 flex items-center justify-center text-xs text-white font-medium">
-                        {task.progress}%
+                      <span className="absolute inset-0 flex items-center justify-center text-xs text-white font-medium px-1 truncate">
+                        {task.title}
                       </span>
                     </div>
 
@@ -373,12 +270,12 @@ export default function ProjectGantt() {
             <span>進行中</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-gray-400" />
-            <span>未着手</span>
+            <div className="w-4 h-4 rounded bg-yellow-500" />
+            <span>レビュー</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-purple-500 rotate-45 transform" />
-            <span>マイルストーン</span>
+            <div className="w-4 h-4 rounded bg-gray-400" />
+            <span>未着手</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-0.5 h-4 bg-red-500" />
