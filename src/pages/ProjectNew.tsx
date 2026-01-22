@@ -23,12 +23,15 @@ import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useCreateProject } from "@/hooks/useProjects";
+import { useCurrentCompany } from "@/hooks/useCompany";
 
 const projectColors = [
   "#3B82F6", "#8B5CF6", "#EC4899", "#EF4444", "#F59E0B",
   "#10B981", "#06B6D4", "#6366F1", "#84CC16", "#F97316",
 ];
 
+// Mock users for member selection (in real app, fetch from profiles table)
 const mockUsers = [
   { id: "1", name: "山田太郎", avatar: "YT", department: "営業部" },
   { id: "2", name: "鈴木花子", avatar: "SH", department: "デザイン部" },
@@ -39,6 +42,9 @@ const mockUsers = [
 
 export default function ProjectNew() {
   const navigate = useNavigate();
+  const createProject = useCreateProject();
+  const { data: company } = useCurrentCompany();
+  
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState<Date>();
@@ -46,7 +52,6 @@ export default function ProjectNew() {
   const [color, setColor] = useState(projectColors[0]);
   const [selectedMembers, setSelectedMembers] = useState<typeof mockUsers>([]);
   const [memberSearchOpen, setMemberSearchOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAddMember = (user: typeof mockUsers[0]) => {
     if (!selectedMembers.find((m) => m.id === user.id)) {
@@ -73,10 +78,23 @@ export default function ProjectNew() {
       return;
     }
 
-    setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    toast.success("プロジェクトを作成しました");
-    navigate("/projects");
+    try {
+      await createProject.mutateAsync({
+        name: name.trim(),
+        description: description.trim() || null,
+        start_date: format(startDate, 'yyyy-MM-dd'),
+        end_date: format(endDate, 'yyyy-MM-dd'),
+        color,
+        status: 'planning',
+        company_id: company?.id || null,
+        organization_id: null,
+        budget: null,
+        client_id: null,
+      });
+      navigate("/projects");
+    } catch (error) {
+      // Error handled by hook
+    }
   };
 
   return (
@@ -302,8 +320,8 @@ export default function ProjectNew() {
           <Button variant="outline" asChild>
             <Link to="/projects">キャンセル</Link>
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting ? "作成中..." : "プロジェクトを作成"}
+          <Button onClick={handleSubmit} disabled={createProject.isPending}>
+            {createProject.isPending ? "作成中..." : "プロジェクトを作成"}
           </Button>
         </div>
       </div>

@@ -7,6 +7,7 @@ export interface Project {
   id: string;
   user_id: string;
   organization_id: string | null;
+  company_id: string | null;
   name: string;
   description: string | null;
   status: ProjectStatus;

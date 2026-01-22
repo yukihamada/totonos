@@ -99,6 +99,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAppSettings } from "@/contexts/SettingsContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { CompanySwitcher } from "@/components/layout/CompanySwitcher";
+import { useBrandingSettings } from "@/hooks/useBrandingSettings";
 import {
   Sidebar,
   SidebarContent,
@@ -440,6 +441,7 @@ export function AppSidebar({ onChatOpen }: AppSidebarProps) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const { brandingSettings, logoUrl } = useBrandingSettings();
 
   // Sort and filter menu groups based on settings
   const visibleGroups = settings.menuGroups
@@ -452,11 +454,22 @@ export function AppSidebar({ onChatOpen }: AppSidebarProps) {
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center border-2 border-foreground bg-foreground text-background font-bold">
-                T
-              </div>
-              {!collapsed && (
-                <span className="text-xl font-bold tracking-tight">Totonos</span>
+              {/* Custom logo from branding settings */}
+              {logoUrl && brandingSettings.showLogoSidebar ? (
+                <img 
+                  src={logoUrl} 
+                  alt="Company Logo" 
+                  className="h-8 w-auto max-w-[120px] object-contain"
+                />
+              ) : (
+                <>
+                  <div className="flex h-8 w-8 items-center justify-center border-2 border-foreground bg-foreground text-background font-bold">
+                    T
+                  </div>
+                  {!collapsed && (
+                    <span className="text-xl font-bold tracking-tight">Totonos</span>
+                  )}
+                </>
               )}
             </div>
             {!collapsed && <ThemeToggle />}
