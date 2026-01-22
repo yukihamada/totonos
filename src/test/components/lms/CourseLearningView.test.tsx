@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { CourseLearningView } from '@/components/lms/CourseLearningView';
 import type { LmsCourse } from '@/hooks/useLMS';
@@ -49,6 +49,7 @@ vi.mock('@/hooks/useLMS', () => ({
         started_at: '2024-01-01',
         progress: 33,
         completed_at: null,
+        last_accessed_at: '2024-01-01',
       },
     ],
     enrollUser: mockEnrollUser,
@@ -65,11 +66,16 @@ vi.mock('@/hooks/useAuth', () => ({
 describe('CourseLearningView', () => {
   const mockCourse: LmsCourse = {
     id: 'course-with-lessons',
-    user_id: 'owner-id',
+    company_id: 'company-1',
     title: 'テストコース',
     description: 'テストコースの説明',
+    category: 'general',
     is_published: true,
+    instructor_id: null,
+    thumbnail_url: null,
+    duration_hours: 10,
     created_at: '2024-01-01',
+    updated_at: '2024-01-01',
   };
 
   const mockOnClose = vi.fn();
