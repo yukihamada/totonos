@@ -23,11 +23,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
-import type { Building, Unit } from '@/types/estate';
 import { getBuildingTypeLabel } from '@/types/estate';
+import type { Database } from '@/integrations/supabase/types';
 
-interface BuildingWithUnits extends Building {
-  units: Pick<Unit, 'id' | 'status'>[];
+type DbBuilding = Database['public']['Tables']['buildings']['Row'];
+
+interface BuildingWithUnits extends DbBuilding {
+  units: { id: string; status: string }[];
 }
 
 export default function Properties() {
@@ -87,7 +89,7 @@ export default function Properties() {
         (building.city?.toLowerCase() || '').includes(searchQuery.toLowerCase())
     ) || [];
 
-  const getAddress = (building: Building) => {
+  const getAddress = (building: DbBuilding) => {
     const parts = [building.prefecture, building.city, building.address_line1].filter(Boolean);
     return parts.join('') || '住所未登録';
   };

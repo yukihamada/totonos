@@ -7,14 +7,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Building2, Home, Wallet, TrendingUp, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import type { Building, Unit, OwnerPayment } from '@/types/estate';
+import type { Database } from '@/integrations/supabase/types';
 
-interface BuildingWithUnits extends Building {
-  units: Pick<Unit, 'id' | 'status' | 'base_rent'>[];
+type DbBuilding = Database['public']['Tables']['buildings']['Row'];
+type DbOwnerPayment = Database['public']['Tables']['owner_payments']['Row'];
+
+interface BuildingWithUnits extends DbBuilding {
+  units: { id: string; status: string; base_rent: number | null }[];
 }
 
 export default function OwnerDashboard() {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
 
   // Fetch buildings with units
   const { data: properties, isLoading: loadingProperties } = useQuery({
@@ -51,7 +54,7 @@ export default function OwnerDashboard() {
         .limit(5);
 
       if (error) throw error;
-      return data as OwnerPayment[];
+      return data as DbOwnerPayment[];
     },
     enabled: !!user?.id,
   });
@@ -91,10 +94,10 @@ export default function OwnerDashboard() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">オーナーポータル</h1>
-        <p className="text-muted-foreground">
-          ようこそ、{profile?.display_name || 'オーナー'}様
-        </p>
-      </div>
+      <p className="text-muted-foreground">
+        ようこそ、オーナー様
+      </p>
+    </div>
 
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
