@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Sparkles, Shield, Zap } from "lucide-react";
+import { ArrowRight, Sparkles, Shield, Zap, Construction, Building2, TrendingUp, Award } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Index = () => {
@@ -90,6 +90,39 @@ const Index = () => {
             <p className="text-xs sm:text-sm text-muted-foreground">
               AIが業務を効率化
             </p>
+          </div>
+        </div>
+
+        {/* Coming Soon Section */}
+        <div className="mt-16 sm:mt-24 max-w-4xl mx-auto">
+          <div className="text-center mb-8">
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-muted text-muted-foreground text-sm">
+              <Construction className="h-4 w-4" />
+              準備中の機能（2月中旬開始予定）
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+            <div className="text-center p-4 sm:p-6 rounded-lg bg-muted/50 border border-dashed">
+              <Building2 className="h-8 w-8 sm:h-10 sm:w-10 text-muted-foreground mx-auto mb-3 sm:mb-4" />
+              <h3 className="font-semibold mb-2 text-sm sm:text-base text-muted-foreground">銀行口座連携</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                自動明細取込・残高確認
+              </p>
+            </div>
+            <div className="text-center p-4 sm:p-6 rounded-lg bg-muted/50 border border-dashed">
+              <TrendingUp className="h-8 w-8 sm:h-10 sm:w-10 text-muted-foreground mx-auto mb-3 sm:mb-4" />
+              <h3 className="font-semibold mb-2 text-sm sm:text-base text-muted-foreground">ダイナミックブースト</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                売掛金の早期現金化
+              </p>
+            </div>
+            <div className="text-center p-4 sm:p-6 rounded-lg bg-muted/50 border border-dashed">
+              <Award className="h-8 w-8 sm:h-10 sm:w-10 text-muted-foreground mx-auto mb-3 sm:mb-4" />
+              <h3 className="font-semibold mb-2 text-sm sm:text-base text-muted-foreground">トラストパスポート</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                信用スコア・取引実績の可視化
+              </p>
+            </div>
           </div>
         </div>
       </main>
