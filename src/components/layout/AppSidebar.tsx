@@ -312,7 +312,7 @@ const urlMap: Record<string, string> = {
   reports: '/reports',
   profile: '/profile',
   settings: '/settings',
-  pages: '/pages',
+  pages: '/dev/pages',
   // New features
   notifications: '/notifications',
   team: '/team',

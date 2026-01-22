@@ -9,7 +9,6 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
 import { useAppSettings } from '@/contexts/SettingsContext';
 import { useCurrentCompany, useUpdateCompany } from '@/hooks/useCompany';
@@ -375,83 +374,78 @@ export default function Settings() {
             </Card>
           </TabsContent>
 
-          {/* Menu Tab */}
+          {/* Menu Tab - Simplified */}
           <TabsContent value="menu" className="space-y-4">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <Menu className="h-5 w-5" />
-                      メニューカスタマイズ
-                    </CardTitle>
-                    <CardDescription>サイドバーメニューの表示項目を設定</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <Menu className="h-5 w-5" />
+                  メニューカスタマイズ
+                </CardTitle>
+                <CardDescription>
+                  サイドバーメニュー、モバイルナビ、業種テンプレートを設定
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-6 border border-primary/20">
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 rounded-lg bg-primary/10">
+                      <Menu className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <h3 className="font-semibold">高度なメニュー設定</h3>
+                      <p className="text-sm text-muted-foreground">
+                        メニューの表示/非表示、並び替え、モバイルナビゲーション、
+                        業種テンプレートの適用、ページ一覧からの追加など、
+                        すべてのメニューカスタマイズ機能を利用できます。
+                      </p>
+                      <div className="flex flex-wrap gap-2 pt-2">
+                        <span className="text-xs bg-muted px-2 py-1 rounded">サイドバー設定</span>
+                        <span className="text-xs bg-muted px-2 py-1 rounded">モバイルナビ</span>
+                        <span className="text-xs bg-muted px-2 py-1 rounded">業種テンプレート</span>
+                        <span className="text-xs bg-muted px-2 py-1 rounded">ページ一覧</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="mt-4 flex gap-2">
+                    <Button onClick={() => window.location.href = '/settings/menu'}>
+                      メニュー設定を開く
+                    </Button>
                     <Button variant="outline" size="sm" onClick={handleResetMenu}>
                       <RotateCcw className="mr-2 h-4 w-4" />
                       リセット
                     </Button>
-                    <Button size="sm" onClick={() => window.location.href = '/settings/menu'}>
-                      高度な設定
-                    </Button>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="bg-muted/50 rounded-lg p-4 mb-4">
-                  <p className="text-sm text-muted-foreground">
-                    より詳細なメニューカスタマイズ（並び替え、モバイル設定、業種テンプレート）は
-                    <a href="/settings/menu" className="text-primary hover:underline ml-1">
-                      高度なメニュー設定
-                    </a>
-                    をご利用ください。
-                  </p>
-                </div>
-                {settings.menuGroups.map((group) => (
-                  <div key={group.id} className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-                        <Label className="text-base font-semibold">{group.label}</Label>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => updateMenuGroup(group.id, { visible: !group.visible })}
-                      >
-                        {group.visible ? (
-                          <Eye className="h-4 w-4" />
-                        ) : (
-                          <EyeOff className="h-4 w-4 text-muted-foreground" />
-                        )}
-                      </Button>
-                    </div>
-                    {group.visible && (
-                      <div className="ml-8 space-y-2">
-                        {group.items.map((item) => (
-                          <div
-                            key={item.id}
-                            className="flex items-center justify-between py-1"
-                          >
-                            <div className="flex items-center gap-3">
-                              <Checkbox
-                                checked={item.visible}
-                                onCheckedChange={(checked) =>
-                                  updateMenuItem(group.id, item.id, { visible: checked as boolean })
-                                }
-                              />
-                              <span className={item.visible ? '' : 'text-muted-foreground line-through'}>
-                                {item.title}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <Separator />
+
+                {/* Quick Stats */}
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="border rounded-lg p-4">
+                    <p className="text-sm text-muted-foreground">表示中のメニュー</p>
+                    <p className="text-2xl font-bold">
+                      {settings.menuGroups.reduce((acc, g) => acc + (g.visible ? g.items.filter(i => i.visible).length : 0), 0)}
+                      <span className="text-sm font-normal text-muted-foreground ml-1">
+                        / {settings.menuGroups.reduce((acc, g) => acc + g.items.length, 0)}
+                      </span>
+                    </p>
                   </div>
-                ))}
+                  <div className="border rounded-lg p-4">
+                    <p className="text-sm text-muted-foreground">表示中のグループ</p>
+                    <p className="text-2xl font-bold">
+                      {settings.menuGroups.filter(g => g.visible).length}
+                      <span className="text-sm font-normal text-muted-foreground ml-1">
+                        / {settings.menuGroups.length}
+                      </span>
+                    </p>
+                  </div>
+                  <div className="border rounded-lg p-4">
+                    <p className="text-sm text-muted-foreground">モバイルナビ</p>
+                    <p className="text-2xl font-bold">
+                      {settings.mobileNavItems?.filter(i => i.visible).length || 0}
+                      <span className="text-sm font-normal text-muted-foreground ml-1">項目</span>
+                    </p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
