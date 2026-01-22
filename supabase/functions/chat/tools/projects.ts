@@ -12,10 +12,6 @@ export const projectTools = [
           enum: ["planning", "active", "on_hold", "completed", "cancelled"],
           description: "ステータスでフィルタ",
         },
-        client_id: {
-          type: "string",
-          description: "取引先IDでフィルタ",
-        },
         limit: {
           type: "number",
           description: "取得件数の上限（デフォルト: 20）",
@@ -48,10 +44,6 @@ export const projectTools = [
           type: "string",
           description: "プロジェクト名",
         },
-        client_id: {
-          type: "string",
-          description: "取引先ID",
-        },
         description: {
           type: "string",
           description: "説明",
@@ -63,10 +55,6 @@ export const projectTools = [
         end_date: {
           type: "string",
           description: "終了予定日（YYYY-MM-DD形式）",
-        },
-        budget: {
-          type: "number",
-          description: "予算",
         },
       },
       required: ["name"],
@@ -200,19 +188,13 @@ export async function executeProjectTool(
     case "list_projects": {
       let query = supabase
         .from("projects")
-        .select(`
-          *,
-          clients (name)
-        `)
+        .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(input.limit as number || 20);
 
       if (input.status) {
         query = query.eq("status", input.status);
-      }
-      if (input.client_id) {
-        query = query.eq("client_id", input.client_id);
       }
 
       const { data, error } = await query;
@@ -221,19 +203,26 @@ export async function executeProjectTool(
     }
 
     case "project_get": {
-      const { data, error } = await supabase
+      // First get the project
+      const { data: project, error } = await supabase
         .from("projects")
-        .select(`
-          *,
-          clients (name, email),
-          tasks (*)
-        `)
+        .select("*")
         .eq("id", input.project_id)
         .eq("user_id", userId)
         .single();
 
       if (error) throw new Error(error.message);
-      return { project: data };
+
+      // Then get related tasks
+      const { data: tasks } = await supabase
+        .from("tasks")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("related_type", "project")
+        .eq("related_id", input.project_id)
+        .order("due_date", { ascending: true });
+
+      return { project: { ...project, tasks: tasks || [] } };
     }
 
     case "project_create": {
@@ -242,11 +231,9 @@ export async function executeProjectTool(
         .insert({
           user_id: userId,
           name: input.name,
-          client_id: input.client_id,
-          description: input.description,
+          description: input.description || null,
           start_date: input.start_date || new Date().toISOString().split("T")[0],
-          end_date: input.end_date,
-          budget: input.budget,
+          end_date: input.end_date || null,
           status: "planning",
           progress: 0,
         })
@@ -278,17 +265,30 @@ export async function executeProjectTool(
     }
 
     case "task_create": {
+      // Get project name if project_id is provided
+      let projectName: string | null = null;
+      if (input.project_id) {
+        const { data: project } = await supabase
+          .from("projects")
+          .select("name")
+          .eq("id", input.project_id)
+          .single();
+        projectName = project?.name || null;
+      }
+
       const { data, error } = await supabase
         .from("tasks")
         .insert({
           user_id: userId,
-          project_id: input.project_id,
           title: input.title,
-          description: input.description,
-          assigned_to: input.assigned_to,
-          due_date: input.due_date,
+          description: input.description || null,
+          assignee_id: input.assigned_to || null,
+          due_date: input.due_date || null,
           priority: input.priority || "medium",
           status: "todo",
+          project_name: projectName,
+          related_type: input.project_id ? "project" : null,
+          related_id: input.project_id || null,
         })
         .select()
         .single();
@@ -318,22 +318,19 @@ export async function executeProjectTool(
     case "list_tasks": {
       let query = supabase
         .from("tasks")
-        .select(`
-          *,
-          projects (name)
-        `)
+        .select("*")
         .eq("user_id", userId)
         .order("due_date", { ascending: true })
         .limit(input.limit as number || 50);
 
       if (input.project_id) {
-        query = query.eq("project_id", input.project_id);
+        query = query.eq("related_type", "project").eq("related_id", input.project_id);
       }
       if (input.status) {
         query = query.eq("status", input.status);
       }
       if (input.assigned_to) {
-        query = query.eq("assigned_to", input.assigned_to);
+        query = query.eq("assignee_id", input.assigned_to);
       }
 
       const { data, error } = await query;

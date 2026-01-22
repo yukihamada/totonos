@@ -191,30 +191,34 @@ export const crmTools = [
   },
   {
     name: "log_activity",
-    description: "リードまたは案件に活動記録を追加します。",
+    description: "リード、案件、または取引先に活動記録を追加します。",
     input_schema: {
       type: "object" as const,
       properties: {
         entity_type: {
           type: "string",
-          enum: ["lead", "deal"],
+          enum: ["lead", "deal", "client"],
           description: "対象の種類",
         },
         entity_id: {
           type: "string",
-          description: "リードまたは案件のID",
+          description: "リード、案件、または取引先のID",
         },
         activity_type: {
           type: "string",
           enum: ["call", "email", "meeting", "note"],
           description: "活動種類",
         },
+        subject: {
+          type: "string",
+          description: "活動の件名（短い説明）",
+        },
         description: {
           type: "string",
-          description: "活動内容",
+          description: "活動内容の詳細",
         },
       },
-      required: ["entity_type", "entity_id", "activity_type", "description"],
+      required: ["entity_type", "entity_id", "activity_type"],
     },
   },
 ];
@@ -320,12 +324,13 @@ export async function executeCrmTool(
         .from("deals")
         .insert({
           user_id: userId,
-          name: input.name,
-          lead_id: input.lead_id,
+          deal_name: input.name,
+          lead_id: input.lead_id || null,
+          client_id: input.client_id || null,
           amount: input.amount,
-          expected_close_date: input.expected_close_date,
+          expected_close_date: input.expected_close_date || null,
           stage: input.stage || "discovery",
-          description: input.description,
+          notes: input.description || null,
         })
         .select()
         .single();
@@ -373,15 +378,27 @@ export async function executeCrmTool(
     }
 
     case "log_activity": {
+      // Prepare the insert data based on entity type
+      const insertData: Record<string, unknown> = {
+        user_id: userId,
+        activity_type: input.activity_type,
+        subject: input.subject || input.description?.toString().substring(0, 100) || "活動記録",
+        description: input.description,
+        activity_date: new Date().toISOString(),
+      };
+
+      // Set the appropriate foreign key based on entity type
+      if (input.entity_type === "lead") {
+        insertData.lead_id = input.entity_id;
+      } else if (input.entity_type === "deal") {
+        insertData.deal_id = input.entity_id;
+      } else if (input.entity_type === "client") {
+        insertData.client_id = input.entity_id;
+      }
+
       const { data, error } = await supabase
         .from("activities")
-        .insert({
-          user_id: userId,
-          entity_type: input.entity_type,
-          entity_id: input.entity_id,
-          activity_type: input.activity_type,
-          description: input.description,
-        })
+        .insert(insertData)
         .select()
         .single();
 

@@ -229,23 +229,29 @@ export async function executeHrTool(
     }
 
     case "employee_create": {
+      // Generate employee number
+      const timestamp = Date.now().toString(36).toUpperCase();
+      const employeeNumber = `EMP-${timestamp}`;
+      
       const { data, error } = await supabase
         .from("employees")
         .insert({
           user_id: userId,
+          employee_number: employeeNumber,
           name: input.name,
-          email: input.email,
-          department: input.department,
-          position: input.position,
-          hire_date: input.hire_date,
-          salary: input.salary,
+          email: input.email || null,
+          department: input.department || null,
+          position: input.position || null,
+          hire_date: input.hire_date || new Date().toISOString().split("T")[0],
+          base_salary: input.salary || null,
+          employment_type: "full_time",
           status: "active",
         })
         .select()
         .single();
 
       if (error) throw new Error(error.message);
-      return { employee: data, message: "従業員を追加しました" };
+      return { employee: data, message: `従業員「${input.name}」を追加しました（社員番号: ${employeeNumber}）` };
     }
 
     case "employee_update": {
@@ -253,7 +259,7 @@ export async function executeHrTool(
       if (input.department) updateData.department = input.department;
       if (input.position) updateData.position = input.position;
       if (input.status) updateData.status = input.status;
-      if (input.salary !== undefined) updateData.salary = input.salary;
+      if (input.salary !== undefined) updateData.base_salary = input.salary;
 
       const { data, error } = await supabase
         .from("employees")
@@ -269,14 +275,17 @@ export async function executeHrTool(
 
     case "attendance_clock_in": {
       const now = new Date();
+      const timeStr = now.toTimeString().split(" ")[0]; // HH:MM:SS format
+      const dateStr = now.toISOString().split("T")[0];
+      
       const { data, error } = await supabase
         .from("attendance_records")
         .insert({
           employee_id: input.employee_id,
-          user_id: userId,
-          date: now.toISOString().split("T")[0],
-          clock_in: now.toISOString(),
-          note: input.note,
+          work_date: dateStr,
+          clock_in: timeStr,
+          status: "present",
+          note: input.note || null,
         })
         .select()
         .single();
@@ -288,23 +297,32 @@ export async function executeHrTool(
     case "attendance_clock_out": {
       const now = new Date();
       const today = now.toISOString().split("T")[0];
+      const timeStr = now.toTimeString().split(" ")[0]; // HH:MM:SS format
 
       // Find today's attendance record
       const { data: existing, error: findError } = await supabase
         .from("attendance_records")
         .select("*")
         .eq("employee_id", input.employee_id)
-        .eq("date", today)
+        .eq("work_date", today)
         .is("clock_out", null)
         .single();
 
       if (findError) throw new Error("本日の出勤記録が見つかりません");
 
+      // Calculate working hours
+      const clockInParts = existing.clock_in.split(":");
+      const clockInMinutes = parseInt(clockInParts[0]) * 60 + parseInt(clockInParts[1]);
+      const clockOutParts = timeStr.split(":");
+      const clockOutMinutes = parseInt(clockOutParts[0]) * 60 + parseInt(clockOutParts[1]);
+      const workHours = (clockOutMinutes - clockInMinutes) / 60;
+
       const { data, error } = await supabase
         .from("attendance_records")
         .update({
-          clock_out: now.toISOString(),
-          note: input.note ? `${existing.note || ""} ${input.note}` : existing.note,
+          clock_out: timeStr,
+          work_hours: Math.max(0, workHours),
+          note: input.note ? `${existing.note || ""} ${input.note}`.trim() : existing.note,
         })
         .eq("id", existing.id)
         .select()
@@ -312,13 +330,9 @@ export async function executeHrTool(
 
       if (error) throw new Error(error.message);
 
-      // Calculate working hours
-      const clockIn = new Date(existing.clock_in);
-      const workingHours = (now.getTime() - clockIn.getTime()) / (1000 * 60 * 60);
-
       return {
         attendance: data,
-        message: `${now.toLocaleTimeString("ja-JP")}に退勤を記録しました（勤務時間: ${workingHours.toFixed(1)}時間）`,
+        message: `${now.toLocaleTimeString("ja-JP")}に退勤を記録しました（勤務時間: ${workHours.toFixed(1)}時間）`,
       };
     }
 
@@ -329,18 +343,17 @@ export async function executeHrTool(
           *,
           employees (name)
         `)
-        .eq("user_id", userId)
-        .order("date", { ascending: false })
+        .order("work_date", { ascending: false })
         .limit(input.limit as number || 30);
 
       if (input.employee_id) {
         query = query.eq("employee_id", input.employee_id);
       }
       if (input.start_date) {
-        query = query.gte("date", input.start_date);
+        query = query.gte("work_date", input.start_date);
       }
       if (input.end_date) {
-        query = query.lte("date", input.end_date);
+        query = query.lte("work_date", input.end_date);
       }
 
       const { data, error } = await query;
@@ -376,22 +389,21 @@ export async function executeHrTool(
           .from("attendance_records")
           .select("*")
           .eq("employee_id", employee.id)
-          .gte("date", startDate)
-          .lte("date", endDate);
+          .gte("work_date", startDate)
+          .lte("work_date", endDate);
 
         if (attError) throw new Error(attError.message);
 
-        // Calculate working hours
+        // Calculate working hours from work_hours field
         let totalHours = 0;
         for (const record of attendance || []) {
-          if (record.clock_in && record.clock_out) {
-            const hours = (new Date(record.clock_out).getTime() - new Date(record.clock_in).getTime()) / (1000 * 60 * 60);
-            totalHours += hours;
+          if (record.work_hours) {
+            totalHours += parseFloat(record.work_hours) || 0;
           }
         }
 
         // Calculate pay (simplified)
-        const baseSalary = employee.salary || 0;
+        const baseSalary = employee.base_salary || 0;
         const workingDays = attendance?.length || 0;
 
         payrollResults.push({
