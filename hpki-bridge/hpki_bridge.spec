@@ -72,12 +72,10 @@ if is_macos:
         target_arch=None,
         codesign_identity=None,
         entitlements_file=None,
-        icon='icon.icns' if is_macos else None,
     )
     app = BUNDLE(
         exe,
         name='HPKI Bridge.app',
-        icon='icon.icns',
         bundle_identifier='jp.totonos.hpki-bridge',
         info_plist={
             'NSHighResolutionCapable': True,
