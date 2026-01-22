@@ -1,0 +1,40 @@
+# AWS Amplify configuration
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - npm ci
+    build:
+      commands:
+        - npm run build
+  artifacts:
+    baseDirectory: dist
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - node_modules/**/*
+  customHeaders:
+    - pattern: '**/*'
+      headers:
+        - key: X-Content-Type-Options
+          value: nosniff
+        - key: X-Frame-Options
+          value: DENY
+        - key: X-XSS-Protection
+          value: 1; mode=block
+    - pattern: 'assets/*'
+      headers:
+        - key: Cache-Control
+          value: public, max-age=31536000, immutable
+
+# Environment variables (set in AWS Amplify Console)
+# VITE_SUPABASE_URL
+# VITE_SUPABASE_PUBLISHABLE_KEY
+
+# SPA rewrites
+# Configure in Amplify Console:
+# Source: </^[^.]+$|\.(?!(css|gif|ico|jpg|js|png|txt|svg|woff|woff2|ttf|map|json)$)([^.]+$)/>
+# Target: /index.html
+# Type: 200 (Rewrite)

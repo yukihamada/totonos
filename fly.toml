@@ -1,0 +1,33 @@
+# Fly.io configuration
+app = "totonos"
+primary_region = "nrt"  # Tokyo
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "80"
+
+[http_service]
+  internal_port = 80
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[[http_service.checks]]
+  grace_period = "10s"
+  interval = "30s"
+  method = "GET"
+  timeout = "5s"
+  path = "/health"
+
+[[vm]]
+  memory = "256mb"
+  cpu_kind = "shared"
+  cpus = 1
+
+# Environment variables (set with fly secrets)
+# fly secrets set VITE_SUPABASE_URL=xxx
+# fly secrets set VITE_SUPABASE_PUBLISHABLE_KEY=xxx

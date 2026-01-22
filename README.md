@@ -65,6 +65,25 @@ VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key
 ```
 
+## デプロイ
+
+様々なクラウドプラットフォームに対応しています。
+
+| プラットフォーム | ワンクリックデプロイ |
+|-----------------|---------------------|
+| **Vercel** | [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yukihamada/totonos) |
+| **Netlify** | [![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/yukihamada/totonos) |
+| **Cloudflare Pages** | `wrangler pages deploy dist` |
+| **AWS Amplify** | AWS Console から GitHub 連携 |
+| **Firebase** | `firebase deploy --only hosting` |
+| **Fly.io** | `fly deploy` |
+| **Railway** | GitHub 連携で自動デプロイ |
+| **Render** | GitHub 連携で自動デプロイ |
+| **Azure** | Static Web Apps で GitHub 連携 |
+| **Docker** | `docker-compose up -d` |
+
+詳細は [デプロイガイド](docs/DEPLOYMENT.md) を参照してください。
+
 ## 機能詳細
 
 ### 業種別テンプレート

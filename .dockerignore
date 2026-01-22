@@ -1,0 +1,55 @@
+# Dependencies
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build output
+dist
+build
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment files (build args instead)
+.env
+.env.local
+.env.*.local
+
+# Test files
+coverage
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+__tests__
+e2e
+
+# Documentation
+*.md
+docs
+
+# Git
+.git
+.gitignore
+
+# CI/CD configs (not needed in image)
+.github
+.gitlab-ci.yml
+
+# Supabase local
+supabase/.branches
+supabase/.temp
+
+# Screenshots
+screenshots
+
+# HPKI Bridge (desktop app)
+hpki-bridge
