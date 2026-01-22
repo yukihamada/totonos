@@ -57,6 +57,11 @@ export function AppLayout({ children }: AppLayoutProps) {
       name: companyName,
       display_name: displayName || companyName,
     });
+    // Don't close dialog here - CompanySetupDialog will handle the industry step
+    // Dialog will be closed when template is applied or if template already exists
+  };
+
+  const handleSetupComplete = () => {
     setShowSetupDialog(false);
   };
 
@@ -119,6 +124,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <CompanySetupDialog
           open={showSetupDialog}
           onComplete={handleCompanySetup}
+          onDialogClose={handleSetupComplete}
           isLoading={updateCompany.isPending}
         />
       </div>
