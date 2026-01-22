@@ -61,6 +61,15 @@ interface TemplateCardProps {
 }
 
 function TemplateCard({ template, isSelected, onClick, icon }: TemplateCardProps) {
+  // border-radius: fullの場合はカードには適用せず、md程度に制限
+  const cardRadius = template.styles.borderRadius === 'none' ? '0' :
+                     template.styles.borderRadius === 'sm' ? '0.25rem' :
+                     template.styles.borderRadius === 'md' ? '0.5rem' :
+                     template.styles.borderRadius === 'lg' ? '0.75rem' : '1rem';
+  
+  // アイコン背景のradius
+  const iconRadius = template.styles.borderRadius === 'full' ? '9999px' : cardRadius;
+  
   return (
     <button
       onClick={onClick}
@@ -68,15 +77,10 @@ function TemplateCard({ template, isSelected, onClick, icon }: TemplateCardProps
         "relative flex flex-col items-center p-4 border-2 transition-all",
         "hover:border-primary/50 hover:bg-accent/50",
         isSelected
-          ? "border-primary bg-accent"
+          ? "border-primary bg-primary/10"
           : "border-border bg-card"
       )}
-      style={{
-        borderRadius: template.styles.borderRadius === 'none' ? '0' :
-                      template.styles.borderRadius === 'sm' ? '0.25rem' :
-                      template.styles.borderRadius === 'md' ? '0.5rem' :
-                      template.styles.borderRadius === 'lg' ? '0.75rem' : '9999px'
-      }}
+      style={{ borderRadius: cardRadius }}
     >
       {isSelected && (
         <div className="absolute top-2 right-2 h-5 w-5 bg-primary text-primary-foreground rounded-full flex items-center justify-center">
@@ -85,17 +89,24 @@ function TemplateCard({ template, isSelected, onClick, icon }: TemplateCardProps
       )}
       
       <div 
-        className="mb-2 p-2 rounded-md"
+        className="mb-3 p-3 flex items-center justify-center"
         style={{
+          borderRadius: iconRadius,
           backgroundColor: template.styles.accentHue 
-            ? `hsl(${template.styles.accentHue}, 70%, 90%)` 
-            : 'hsl(var(--muted))'
+            ? `hsl(${template.styles.accentHue}, 60%, 85%)` 
+            : 'hsl(var(--muted))',
         }}
       >
-        {icon}
+        <span style={{
+          color: template.styles.accentHue 
+            ? `hsl(${template.styles.accentHue}, 70%, 30%)` 
+            : 'hsl(var(--foreground))'
+        }}>
+          {icon}
+        </span>
       </div>
       
-      <span className="text-sm font-medium text-center">{template.name}</span>
+      <span className="text-sm font-medium text-center text-foreground">{template.name}</span>
       <span className="text-xs text-muted-foreground text-center mt-1 line-clamp-2">
         {template.description}
       </span>
