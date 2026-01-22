@@ -3,6 +3,8 @@ import { render, screen } from "@/test/test-utils";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { TrustPassportMini } from "@/components/dashboard/TrustPassportMini";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
+import { WidgetRenderer } from "@/components/dashboard/WidgetRenderer";
+import { DashboardGrid } from "@/components/dashboard/DashboardGrid";
 import { formatCurrency } from "@/types/database";
 import { Wallet, FileText, Clock, Zap } from "lucide-react";
 

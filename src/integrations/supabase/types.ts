@@ -7183,6 +7183,44 @@ export type Database = {
           },
         ]
       }
+      user_dashboard_config: {
+        Row: {
+          company_id: string | null
+          created_at: string | null
+          id: string
+          layout_type: string | null
+          updated_at: string | null
+          user_id: string
+          widgets: Json
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string | null
+          id?: string
+          layout_type?: string | null
+          updated_at?: string | null
+          user_id: string
+          widgets?: Json
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string | null
+          id?: string
+          layout_type?: string | null
+          updated_at?: string | null
+          user_id?: string
+          widgets?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_dashboard_config_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           company_id: string
