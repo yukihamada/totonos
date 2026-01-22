@@ -4621,6 +4621,170 @@ export type Database = {
           },
         ]
       }
+      lms_questions: {
+        Row: {
+          correct_answer: Json
+          created_at: string
+          explanation: string | null
+          id: string
+          options: Json | null
+          points: number | null
+          question_text: string
+          question_type: string
+          sort_order: number | null
+          test_id: string
+        }
+        Insert: {
+          correct_answer: Json
+          created_at?: string
+          explanation?: string | null
+          id?: string
+          options?: Json | null
+          points?: number | null
+          question_text: string
+          question_type: string
+          sort_order?: number | null
+          test_id: string
+        }
+        Update: {
+          correct_answer?: Json
+          created_at?: string
+          explanation?: string | null
+          id?: string
+          options?: Json | null
+          points?: number | null
+          question_text?: string
+          question_type?: string
+          sort_order?: number | null
+          test_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_questions_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "lms_tests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lms_test_results: {
+        Row: {
+          answers: Json | null
+          attempt_number: number | null
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          max_score: number | null
+          passed: boolean | null
+          score: number | null
+          started_at: string | null
+          test_id: string
+          user_id: string
+        }
+        Insert: {
+          answers?: Json | null
+          attempt_number?: number | null
+          company_id: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          max_score?: number | null
+          passed?: boolean | null
+          score?: number | null
+          started_at?: string | null
+          test_id: string
+          user_id: string
+        }
+        Update: {
+          answers?: Json | null
+          attempt_number?: number | null
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          max_score?: number | null
+          passed?: boolean | null
+          score?: number | null
+          started_at?: string | null
+          test_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_test_results_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_test_results_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "lms_tests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lms_tests: {
+        Row: {
+          company_id: string
+          course_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_published: boolean | null
+          max_attempts: number | null
+          pass_score: number | null
+          time_limit_minutes: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          course_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_published?: boolean | null
+          max_attempts?: number | null
+          pass_score?: number | null
+          time_limit_minutes?: number | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          course_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_published?: boolean | null
+          max_attempts?: number | null
+          pass_score?: number | null
+          time_limit_minutes?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_tests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_tests_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "lms_courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       member_checkins: {
         Row: {
           booking_id: string | null
