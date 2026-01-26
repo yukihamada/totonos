@@ -19,8 +19,14 @@ export default function Invite() {
     if (!authLoading && !user && token) {
       // Redirect to auth with return URL
       navigate(`/auth?redirect=/invite?token=${token}`);
+      return;
     }
-  }, [authLoading, user, token, navigate]);
+    
+    // ログイン済みの場合は自動で受諾処理を実行
+    if (!authLoading && user && token && status === 'idle') {
+      handleAccept();
+    }
+  }, [authLoading, user, token, status]);
 
   const handleAccept = async () => {
     if (!token) return;

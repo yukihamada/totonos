@@ -131,6 +131,71 @@ export type Database = {
           },
         ]
       }
+      advance_payments: {
+        Row: {
+          approved_amount: number | null
+          approved_at: string | null
+          approved_by: string | null
+          company_id: string
+          created_at: string | null
+          expected_date: string
+          id: string
+          purpose: string
+          reason: string | null
+          request_date: string
+          requested_amount: number
+          settle_date: string | null
+          settled_amount: number | null
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          approved_amount?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          company_id: string
+          created_at?: string | null
+          expected_date: string
+          id?: string
+          purpose: string
+          reason?: string | null
+          request_date?: string
+          requested_amount: number
+          settle_date?: string | null
+          settled_amount?: number | null
+          status?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          approved_amount?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          company_id?: string
+          created_at?: string | null
+          expected_date?: string
+          id?: string
+          purpose?: string
+          reason?: string | null
+          request_date?: string
+          requested_amount?: number
+          settle_date?: string | null
+          settled_amount?: number | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "advance_payments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_automation_drafts: {
         Row: {
           action_type: string | null
@@ -1106,6 +1171,7 @@ export type Database = {
           expires_at: string
           id: string
           invited_by: string
+          invitee_name: string | null
           permissions: Database["public"]["Enums"]["permission_type"][] | null
           role: Database["public"]["Enums"]["member_role"]
           status: Database["public"]["Enums"]["invitation_status"]
@@ -1119,6 +1185,7 @@ export type Database = {
           expires_at?: string
           id?: string
           invited_by: string
+          invitee_name?: string | null
           permissions?: Database["public"]["Enums"]["permission_type"][] | null
           role?: Database["public"]["Enums"]["member_role"]
           status?: Database["public"]["Enums"]["invitation_status"]
@@ -1132,6 +1199,7 @@ export type Database = {
           expires_at?: string
           id?: string
           invited_by?: string
+          invitee_name?: string | null
           permissions?: Database["public"]["Enums"]["permission_type"][] | null
           role?: Database["public"]["Enums"]["member_role"]
           status?: Database["public"]["Enums"]["invitation_status"]

@@ -36,55 +36,18 @@ import {
   AlertCircle,
   CalendarIcon,
   Receipt,
+  Loader2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
-
-// Mock data
-const mockAdvancePayments = [
-  {
-    id: "1",
-    purpose: "大阪出張",
-    requestedAmount: 50000,
-    approvedAmount: 50000,
-    settledAmount: 48500,
-    status: "settled",
-    requestDate: new Date("2024-01-05"),
-    settleDate: new Date("2024-01-15"),
-  },
-  {
-    id: "2",
-    purpose: "展示会出展費用",
-    requestedAmount: 150000,
-    approvedAmount: 150000,
-    settledAmount: null,
-    status: "approved",
-    requestDate: new Date("2024-01-10"),
-    settleDate: null,
-  },
-  {
-    id: "3",
-    purpose: "新入社員歓迎会",
-    requestedAmount: 80000,
-    approvedAmount: null,
-    settledAmount: null,
-    status: "pending",
-    requestDate: new Date("2024-01-12"),
-    settleDate: null,
-  },
-  {
-    id: "4",
-    purpose: "営業車修理費",
-    requestedAmount: 100000,
-    approvedAmount: null,
-    settledAmount: null,
-    status: "rejected",
-    requestDate: new Date("2024-01-08"),
-    settleDate: null,
-  },
-];
+import { 
+  useAdvancePayments, 
+  useCreateAdvancePayment, 
+  useUpdateAdvancePaymentStatus,
+  type AdvancePayment as AdvancePaymentType 
+} from "@/hooks/useAdvancePayments";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const statusConfig = {
   pending: { label: "承認待ち", color: "bg-yellow-500", icon: Clock },
@@ -95,33 +58,69 @@ const statusConfig = {
 };
 
 export default function AdvancePayment() {
+  const { data: advancePayments = [], isLoading } = useAdvancePayments();
+  const createAdvancePayment = useCreateAdvancePayment();
+  const updateStatus = useUpdateAdvancePaymentStatus();
+
   const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
   const [purpose, setPurpose] = useState("");
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
   const [expectedDate, setExpectedDate] = useState<Date>();
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const totalPending = mockAdvancePayments
+  const totalPending = advancePayments
     .filter((p) => p.status === "approved")
-    .reduce((sum, p) => sum + (p.approvedAmount || 0), 0);
+    .reduce((sum, p) => sum + (p.approved_amount || 0), 0);
 
   const handleSubmit = async () => {
     if (!purpose || !amount || !expectedDate) {
-      toast.error("必須項目を入力してください");
       return;
     }
 
-    setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    toast.success("仮払い申請を提出しました");
+    await createAdvancePayment.mutateAsync({
+      purpose,
+      requestedAmount: parseInt(amount, 10),
+      expectedDate,
+      reason: reason || undefined,
+    });
+
     setIsNewDialogOpen(false);
     setPurpose("");
     setAmount("");
     setReason("");
     setExpectedDate(undefined);
-    setIsSubmitting(false);
   };
+
+  const handleApprove = async (payment: AdvancePaymentType) => {
+    await updateStatus.mutateAsync({
+      id: payment.id,
+      status: "approved",
+      approvedAmount: payment.requested_amount,
+    });
+  };
+
+  const handleReject = async (payment: AdvancePaymentType) => {
+    await updateStatus.mutateAsync({
+      id: payment.id,
+      status: "rejected",
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="space-y-6">
+          <Skeleton className="h-10 w-64" />
+          <div className="grid gap-4 md:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-24" />
+            ))}
+          </div>
+          <Skeleton className="h-96" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -156,7 +155,7 @@ export default function AdvancePayment() {
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <Label htmlFor="purpose">
-                    用途 <span className="text-red-500">*</span>
+                    用途 <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="purpose"
@@ -167,7 +166,7 @@ export default function AdvancePayment() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="amount">
-                    申請金額 <span className="text-red-500">*</span>
+                    申請金額 <span className="text-destructive">*</span>
                   </Label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
@@ -185,7 +184,7 @@ export default function AdvancePayment() {
                 </div>
                 <div className="space-y-2">
                   <Label>
-                    利用予定日 <span className="text-red-500">*</span>
+                    利用予定日 <span className="text-destructive">*</span>
                   </Label>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -230,8 +229,9 @@ export default function AdvancePayment() {
                 >
                   キャンセル
                 </Button>
-                <Button onClick={handleSubmit} disabled={isSubmitting}>
-                  {isSubmitting ? "送信中..." : "申請する"}
+                <Button onClick={handleSubmit} disabled={createAdvancePayment.isPending}>
+                  {createAdvancePayment.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  申請する
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -250,7 +250,7 @@ export default function AdvancePayment() {
                 ¥{totalPending.toLocaleString()}
               </div>
               <p className="text-xs text-muted-foreground">
-                {mockAdvancePayments.filter((p) => p.status === "approved").length}
+                {advancePayments.filter((p) => p.status === "approved").length}
                 件の仮払い
               </p>
             </CardContent>
@@ -262,13 +262,13 @@ export default function AdvancePayment() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {mockAdvancePayments.filter((p) => p.status === "pending").length}件
+                {advancePayments.filter((p) => p.status === "pending").length}件
               </div>
               <p className="text-xs text-muted-foreground">
                 ¥
-                {mockAdvancePayments
+                {advancePayments
                   .filter((p) => p.status === "pending")
-                  .reduce((sum, p) => sum + p.requestedAmount, 0)
+                  .reduce((sum, p) => sum + p.requested_amount, 0)
                   .toLocaleString()}
               </p>
             </CardContent>
@@ -280,13 +280,13 @@ export default function AdvancePayment() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {mockAdvancePayments.filter((p) => p.status === "settled").length}件
+                {advancePayments.filter((p) => p.status === "settled").length}件
               </div>
               <p className="text-xs text-muted-foreground">
                 ¥
-                {mockAdvancePayments
+                {advancePayments
                   .filter((p) => p.status === "settled")
-                  .reduce((sum, p) => sum + (p.settledAmount || 0), 0)
+                  .reduce((sum, p) => sum + (p.settled_amount || 0), 0)
                   .toLocaleString()}
               </p>
             </CardContent>
@@ -315,57 +315,85 @@ export default function AdvancePayment() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockAdvancePayments.map((payment) => {
-                  const StatusIcon =
-                    statusConfig[payment.status as keyof typeof statusConfig].icon;
-                  return (
-                    <TableRow key={payment.id}>
-                      <TableCell className="text-muted-foreground">
-                        {format(payment.requestDate, "MM/dd", { locale: ja })}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {payment.purpose}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        ¥{payment.requestedAmount.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {payment.approvedAmount
-                          ? `¥${payment.approvedAmount.toLocaleString()}`
-                          : "-"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {payment.settledAmount
-                          ? `¥${payment.settledAmount.toLocaleString()}`
-                          : "-"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          className={`${
-                            statusConfig[payment.status as keyof typeof statusConfig]
-                              .color
-                          } text-white`}
-                        >
-                          <StatusIcon className="h-3 w-3 mr-1" />
-                          {
-                            statusConfig[payment.status as keyof typeof statusConfig]
-                              .label
-                          }
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {payment.status === "approved" && (
-                          <Button variant="outline" size="sm" asChild>
-                            <Link to="/expenses/new">
-                              <Receipt className="h-4 w-4 mr-1" />
-                              精算
-                            </Link>
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                {advancePayments.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                      仮払い申請がありません
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  advancePayments.map((payment) => {
+                    const StatusIcon =
+                      statusConfig[payment.status as keyof typeof statusConfig].icon;
+                    return (
+                      <TableRow key={payment.id}>
+                        <TableCell className="text-muted-foreground">
+                          {format(new Date(payment.request_date), "MM/dd", { locale: ja })}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {payment.purpose}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          ¥{payment.requested_amount.toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {payment.approved_amount
+                            ? `¥${payment.approved_amount.toLocaleString()}`
+                            : "-"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {payment.settled_amount
+                            ? `¥${payment.settled_amount.toLocaleString()}`
+                            : "-"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            className={`${
+                              statusConfig[payment.status as keyof typeof statusConfig]
+                                .color
+                            } text-white`}
+                          >
+                            <StatusIcon className="h-3 w-3 mr-1" />
+                            {
+                              statusConfig[payment.status as keyof typeof statusConfig]
+                                .label
+                            }
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {payment.status === "pending" && (
+                            <div className="flex gap-1">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleApprove(payment)}
+                                disabled={updateStatus.isPending}
+                              >
+                                承認
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleReject(payment)}
+                                disabled={updateStatus.isPending}
+                              >
+                                却下
+                              </Button>
+                            </div>
+                          )}
+                          {payment.status === "approved" && (
+                            <Button variant="outline" size="sm" asChild>
+                              <Link to="/expenses/new">
+                                <Receipt className="h-4 w-4 mr-1" />
+                                精算
+                              </Link>
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
               </TableBody>
             </Table>
           </CardContent>

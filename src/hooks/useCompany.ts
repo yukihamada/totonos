@@ -375,11 +375,13 @@ export function useCreateInvitation() {
       companyId,
       email,
       role,
+      name,
       permissions,
     }: {
       companyId: string;
       email: string;
       role: MemberRole;
+      name?: string;
       permissions?: PermissionType[];
     }): Promise<{ invitation: any; inviteUrl: string; emailSent: boolean }> => {
       if (!user) throw new Error("認証が必要です");
@@ -391,6 +393,7 @@ export function useCreateInvitation() {
           company_id: companyId,
           email,
           role,
+          invitee_name: name || null,
           permissions: permissions || [],
           invited_by: user.id,
         })
