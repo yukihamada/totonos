@@ -75,25 +75,26 @@ const defaultCompanyInfo: CompanyInfo = {
   accountName: 'カ）サンプル',
 };
 
-// Font initialization state
-let fontInitialized = false;
+// Cache for loaded font data
+let fontCache: string | null = null;
 
-// Initialize Japanese font for jsPDF
+// Initialize Japanese font for jsPDF - must be called for each new document instance
 const initializeJapaneseFont = async (doc: jsPDF): Promise<void> => {
-  if (!fontInitialized) {
-    try {
-      const fontBase64 = await loadNotoSansJP();
-      doc.addFileToVFS('NotoSansJP-Regular.ttf', fontBase64);
-      doc.addFont('NotoSansJP-Regular.ttf', 'NotoSansJP', 'normal');
-      fontInitialized = true;
-    } catch (error) {
-      console.error('Failed to initialize Japanese font:', error);
-      // Fallback to helvetica if font loading fails
-      doc.setFont('helvetica');
-      return;
+  try {
+    // Load font data once and cache it
+    if (!fontCache) {
+      fontCache = await loadNotoSansJP();
     }
+    
+    // Register font with this specific document instance
+    doc.addFileToVFS('NotoSansJP-Regular.ttf', fontCache);
+    doc.addFont('NotoSansJP-Regular.ttf', 'NotoSansJP', 'normal');
+    doc.setFont('NotoSansJP');
+  } catch (error) {
+    console.error('Failed to initialize Japanese font:', error);
+    // Fallback to helvetica if font loading fails
+    doc.setFont('helvetica');
   }
-  doc.setFont('NotoSansJP');
 };
 
 // Helper to draw text
