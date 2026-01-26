@@ -83,6 +83,7 @@ const initializeJapaneseFont = async (doc: jsPDF): Promise<void> => {
   try {
     // Load font data once and cache it
     if (!fontCache) {
+      console.log('[PDF] Loading Japanese font for the first time...');
       fontCache = await loadNotoSansJP();
     }
     
@@ -90,10 +91,13 @@ const initializeJapaneseFont = async (doc: jsPDF): Promise<void> => {
     doc.addFileToVFS('NotoSansJP-Regular.ttf', fontCache);
     doc.addFont('NotoSansJP-Regular.ttf', 'NotoSansJP', 'normal');
     doc.setFont('NotoSansJP');
+    
+    console.log('[PDF] Japanese font initialized successfully');
   } catch (error) {
-    console.error('Failed to initialize Japanese font:', error);
+    console.error('[PDF] Failed to initialize Japanese font:', error);
     // Fallback to helvetica if font loading fails
     doc.setFont('helvetica');
+    console.warn('[PDF] Falling back to helvetica font');
   }
 };
 
