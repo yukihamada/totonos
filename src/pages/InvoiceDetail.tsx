@@ -97,10 +97,10 @@ export default function InvoiceDetail() {
                 <ArrowLeft className="h-4 w-4" />
               </Link>
             </Button>
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-bold">{invoice.title}</h1>
-                <Badge variant={status.variant}>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-3 flex-wrap md:flex-nowrap">
+                <h1 className="text-2xl md:text-3xl font-bold truncate max-w-[300px] md:max-w-[500px]">{invoice.title}</h1>
+                <Badge variant={status.variant} className="shrink-0">
                   <StatusIcon className="mr-1 h-3 w-3" />
                   {status.label}
                 </Badge>
