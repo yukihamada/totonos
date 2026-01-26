@@ -3,14 +3,16 @@ import { useConversation, useUpdateLastRead } from "@/hooks/useConversations";
 import { useMessages } from "@/hooks/useMessages";
 import { useAuth } from "@/hooks/useAuth";
 import { MessageInput } from "./MessageInput";
+import { AIMessageBubble } from "./AIMessageBubble";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Users } from "lucide-react";
+import { ArrowLeft, Users, Bot } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import { ja } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { isAIBot, AI_BOT } from "@/lib/ai-bot";
 
 interface MessageThreadProps {
   conversationId: string;
@@ -134,10 +136,23 @@ export function MessageThread({ conversationId, onBack }: MessageThreadProps) {
           ) : (
             messages?.map((message, idx) => {
               const isOwn = message.sender_id === user?.id;
-              const showAvatar = !isOwn && (
+              const isAI = isAIBot(message.sender_id);
+              const showAvatar = !isOwn && !isAI && (
                 idx === 0 || 
                 messages[idx - 1]?.sender_id !== message.sender_id
               );
+              
+              // AI messages get special rendering
+              if (isAI) {
+                return (
+                  <AIMessageBubble
+                    key={message.id}
+                    content={message.content}
+                    timestamp={formatMessageDate(message.created_at)}
+                    aiMetadata={(message as any).ai_metadata}
+                  />
+                );
+              }
               
               return (
                 <div
