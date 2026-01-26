@@ -1,241 +1,199 @@
 
-# メッセンジャー機能・PDF日本語修正・招待フロー改善プラン
+# トトノスAI「ミナト」のメッセンジャー統合プラン
 
 ## 概要
 
-3つの主要な改善を実施します：
-1. アプリ内メッセンジャー機能の実装
-2. PDF日本語文字化けの根本修正
-3. 請求書詳細ページのタイトル表示修正と招待ワンクリック完了
+現在のメッセンジャー機能にAIアシスタント「ミナト」を1ユーザーとして統合し、Slack/Chatworkのような体験を実現します。
 
----
+## 実装内容
 
-## 1. アプリ内メッセンジャー機能
+### 1. AIボットユーザーの仮想表現
 
-### 現状
-現在のチャット機能（`src/components/chat/`）はAIアシスタント専用です。チームメンバー間でメッセージをやり取りする機能はありません。
+AIは実際のauth.usersには存在しないため、**仮想ユーザー**として扱います。
 
-### 実装内容
+```typescript
+// src/lib/ai-bot.ts
+export const AI_BOT = {
+  id: 'ai-assistant-minato',
+  name: 'ミナト',
+  displayName: 'ミナト (AI)',
+  avatarUrl: null,
+  isAI: true,
+  mentionTrigger: '@ミナト'
+} as const;
+```
 
-#### データベーステーブル
+### 2. データベース変更
+
+#### 2.1 メッセージテーブルの拡張
 ```sql
--- 会話（グループチャット/DM対応）
-CREATE TABLE public.conversations (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
-  name TEXT, -- グループ名（DMの場合はNULL）
-  type TEXT NOT NULL DEFAULT 'direct' CHECK (type IN ('direct', 'group', 'channel')),
-  created_by UUID REFERENCES auth.users(id),
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-
--- 会話参加者
-CREATE TABLE public.conversation_participants (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  joined_at TIMESTAMPTZ DEFAULT now(),
-  last_read_at TIMESTAMPTZ,
-  UNIQUE(conversation_id, user_id)
-);
-
--- メッセージ
-CREATE TABLE public.messages (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
-  sender_id UUID NOT NULL REFERENCES auth.users(id),
-  content TEXT NOT NULL,
-  message_type TEXT DEFAULT 'text' CHECK (message_type IN ('text', 'file', 'system')),
-  file_url TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-
--- リアルタイム対応
-ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
+-- AIからのメッセージを識別するためのカラム追加
+ALTER TABLE public.messages
+ADD COLUMN is_ai_message BOOLEAN DEFAULT false,
+ADD COLUMN ai_metadata JSONB;
 ```
 
-#### RLSポリシー
-- 会話参加者のみがメッセージを閲覧・投稿可能
-- 同じ会社のメンバーのみが会話を作成可能
-
-#### フロントエンド実装
-
-**新規ファイル:**
-| ファイル | 説明 |
-|----------|------|
-| `src/pages/Messages.tsx` | メッセンジャーメインページ |
-| `src/components/messenger/ConversationList.tsx` | 会話一覧サイドバー |
-| `src/components/messenger/MessageThread.tsx` | メッセージスレッド表示 |
-| `src/components/messenger/MessageInput.tsx` | メッセージ入力欄 |
-| `src/components/messenger/NewConversationDialog.tsx` | 新規DM/グループ作成 |
-| `src/hooks/useMessages.ts` | メッセージ取得・送信・リアルタイム |
-| `src/hooks/useConversations.ts` | 会話一覧取得・作成 |
-
-**UI設計:**
-```
-┌─────────────────────────────────────────────────────┐
-│ 📨 メッセージ                     [+ 新規会話]     │
-├──────────────┬──────────────────────────────────────┤
-│ 検索...       │ 田中太郎さんとの会話                │
-├──────────────┤                                      │
-│ ● 田中太郎   │ ┌────────────────────────────────┐ │
-│   昨日の件... │ │ 田中: お疲れ様です         14:30│ │
-│              │ ├────────────────────────────────┤ │
-│   山田花子   │ │ 自分: 確認しました         14:32│ │
-│   了解です   │ └────────────────────────────────┘ │
-│              │                                      │
-│   #営業チーム │ ┌──────────────────────────────────┐│
-│   新規案件   │ │ メッセージを入力...         [送信]││
-│              │ └──────────────────────────────────┘│
-└──────────────┴──────────────────────────────────────┘
+#### 2.2 会話テーブルの拡張
+```sql
+-- AI参加フラグ
+ALTER TABLE public.conversations
+ADD COLUMN includes_ai BOOLEAN DEFAULT false;
 ```
 
-**機能:**
-- ダイレクトメッセージ（1対1）
-- グループチャット
-- リアルタイム更新（Supabase Realtime）
-- 未読バッジ表示
-- ファイル添付
+### 3. AIの参加方法
 
----
+#### 3.1 新規会話作成時にAIを追加可能に
+NewConversationDialogにAIを選択肢として表示：
 
-## 2. PDF日本語文字化け修正
+```
+┌─────────────────────────────────────────┐
+│ 新規会話                                │
+├─────────────────────────────────────────┤
+│ ダイレクト | グループ                    │
+├─────────────────────────────────────────┤
+│ 🤖 ミナト (AI)              ✓           │ ← AI選択
+│ 👤 田中太郎                              │
+│ 👤 山田花子                              │
+└─────────────────────────────────────────┘
+```
 
-### 根本原因
-現在のCDN URL (`https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp@5.2.9/files/noto-sans-jp-japanese-400-normal.ttf`) が正しいフォントファイルを返していないか、Base64変換時にデータ破損している可能性が高い。
+#### 3.2 メンションでのAI呼び出し
+グループチャットまたはDMで `@ミナト` を含むメッセージを送信すると、AIが応答：
 
-### 修正方法
+```
+自分: @ミナト 今月の請求書一覧を教えて
+ミナト: 今月の請求書一覧を取得しています...
+        ■ INV202601-0001: ¥150,000 (未払い)
+        ■ INV202601-0002: ¥80,000 (支払済)
+```
 
-#### フォントURL変更
+### 4. メッセージフローの変更
+
+#### 4.1 メッセージ送信時のAI検知
+**修正ファイル**: `src/hooks/useMessages.ts`
+
 ```typescript
-// src/lib/fonts/noto-sans-jp.ts
-// 変更前
-export const NOTO_SANS_JP_URL = 'https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp@5.2.9/files/noto-sans-jp-japanese-400-normal.ttf';
+export function useSendMessage() {
+  return useMutation({
+    mutationFn: async ({ conversationId, content }) => {
+      // 1. メッセージを保存
+      const { data: message } = await supabase
+        .from('messages')
+        .insert({ conversation_id: conversationId, sender_id: user.id, content })
+        .select().single();
 
-// 変更後 - Google Fontsの公式リポジトリから直接取得
-export const NOTO_SANS_JP_URL = 'https://raw.githubusercontent.com/googlefonts/noto-cjk/main/Sans/OTF/Japanese/NotoSansCJKjp-Regular.otf';
-```
+      // 2. @ミナト メンションを検出
+      if (content.includes('@ミナト') || conversation.includes_ai) {
+        // AIへのリクエストをトリガー（非同期）
+        triggerAIResponse(conversationId, content);
+      }
 
-#### Base64変換の改善
-```typescript
-// より堅牢な変換方法
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  let binary = '';
-  
-  // Use smaller chunks and validate
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  
-  // btoa can fail on large strings in some browsers
-  // Use a fallback approach if needed
-  try {
-    return btoa(binary);
-  } catch (e) {
-    // For very large files, use a different approach
-    const base64 = [];
-    const chunkSize = 1024 * 64;
-    for (let i = 0; i < binary.length; i += chunkSize) {
-      base64.push(btoa(binary.slice(i, i + chunkSize)));
-    }
-    return base64.join('');
-  }
+      return message;
+    },
+  });
 }
 ```
 
-#### 代替アプローチ：事前埋め込みBase64
-最も確実な方法として、動作確認済みのフォントファイルをBase64としてプロジェクトに含めます：
+#### 4.2 AI応答処理
+**新規ファイル**: `src/hooks/useMessengerAI.ts`
 
 ```typescript
-// src/lib/fonts/noto-sans-jp-base64.ts
-// この文字列は事前に変換済み（約2.5MB）
-export const NOTO_SANS_JP_BASE64 = 'AAEAAAASAQAA...（省略）...';
+export function useMessengerAI() {
+  const triggerAIResponse = async (conversationId: string, userMessage: string) => {
+    // 1. 会話履歴を取得
+    const history = await getConversationHistory(conversationId);
+    
+    // 2. Edge Functionを呼び出し
+    const response = await supabase.functions.invoke('messenger-ai', {
+      body: { conversationId, message: userMessage, history }
+    });
+    
+    // 3. AIの応答はEdge Function側でメッセージテーブルに保存される
+    // 4. Realtimeで自動的にUIに反映
+  };
+}
 ```
 
----
+### 5. 新規Edge Function
 
-## 3. 請求書詳細ページの修正
+**ファイル**: `supabase/functions/messenger-ai/index.ts`
 
-### タイトル改行問題
-**現状** (line 100-109):
-```tsx
-<div className="flex items-center gap-3">
-  <h1 className="text-3xl font-bold">{invoice.title}</h1>
-  <Badge variant={status.variant}>...</Badge>
-</div>
+```typescript
+serve(async (req) => {
+  const { conversationId, message, history } = await req.json();
+  
+  // 既存のchat Edge Functionのロジックを再利用
+  const aiResponse = await callLovableAI(history, model, systemPrompt, tools);
+  
+  // AIの応答をメッセージとして保存
+  await supabase.from('messages').insert({
+    conversation_id: conversationId,
+    sender_id: AI_BOT.id,
+    content: aiResponse.content,
+    is_ai_message: true,
+    ai_metadata: { tool_calls: aiResponse.toolCalls }
+  });
+  
+  return new Response(JSON.stringify({ success: true }));
+});
 ```
 
-**修正後:**
-```tsx
-<div className="flex items-center gap-3 flex-wrap md:flex-nowrap">
-  <h1 className="text-3xl font-bold truncate max-w-[400px] md:max-w-none">
-    {invoice.title}
-  </h1>
-  <Badge variant={status.variant} className="shrink-0">...</Badge>
-</div>
-```
+### 6. UIコンポーネントの変更
 
----
+#### 6.1 会話一覧でのAI表示
+**修正ファイル**: `src/components/messenger/ConversationList.tsx`
 
-## 4. 招待ワンクリック完了
+- AIとのDMには🤖アイコンを表示
+- AIが参加しているグループは特別なバッジを表示
 
-### 現状の問題
-`src/pages/Invite.tsx:26-28` で自動受諾を呼び出していますが、UIには「招待を受諾する」ボタンがまだ表示されています（102-105行目）。
-
-### 修正
-自動受諾中は処理中UIを表示し、ボタンを非表示にします：
+#### 6.2 メッセージスレッドでのAI表示
+**修正ファイル**: `src/components/messenger/MessageThread.tsx`
 
 ```tsx
-// src/pages/Invite.tsx
-return (
-  <div className="min-h-screen flex items-center justify-center bg-background p-4">
-    <Card className="w-full max-w-md">
-      <CardHeader>
-        <CardTitle>
-          {status === "success" ? (
-            <span className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-500" />
-              参加完了
-            </span>
-          ) : status === "error" ? (
-            <span className="flex items-center gap-2">
-              <XCircle className="h-5 w-5 text-destructive" />
-              エラー
-            </span>
-          ) : (
-            <span className="flex items-center gap-2">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              チームに参加しています...
-            </span>
-          )}
-        </CardTitle>
-        <CardDescription>
-          {status === "success"
-            ? "ダッシュボードへ移動します..."
-            : status === "error"
-            ? errorMessage
-            : "招待を処理中です。少々お待ちください..."}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* idle状態のボタンを削除 - 自動処理のため不要 */}
-        {status === "accepting" && (
-          <div className="flex justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        )}
-        {status === "error" && (
-          <Button onClick={() => navigate("/")} variant="outline" className="w-full">
-            ホームへ戻る
-          </Button>
-        )}
-      </CardContent>
-    </Card>
+// AIメッセージの特別表示
+{message.is_ai_message ? (
+  <div className="flex gap-2">
+    <Avatar className="bg-gradient-to-br from-blue-500 to-purple-600">
+      <Bot className="h-4 w-4 text-white" />
+    </Avatar>
+    <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl px-4 py-2">
+      <p className="text-xs text-blue-600 font-medium mb-1">ミナト (AI)</p>
+      <p className="whitespace-pre-wrap">{message.content}</p>
+    </div>
   </div>
-);
+) : (
+  // 通常のメッセージ表示
+)}
+```
+
+#### 6.3 メッセージ入力でのメンション補完
+**修正ファイル**: `src/components/messenger/MessageInput.tsx`
+
+- `@` 入力時にメンション候補を表示
+- メンバー一覧 + 「ミナト (AI)」を候補に含める
+
+#### 6.4 新規会話ダイアログの更新
+**修正ファイル**: `src/components/messenger/NewConversationDialog.tsx`
+
+- メンバー選択リストの先頭にAIを追加
+- 「AIとダイレクトメッセージ」専用のクイックアクション
+
+### 7. ツール実行結果の表示
+
+AIがツールを実行した場合、結果をリッチに表示：
+
+```
+┌──────────────────────────────────────────────┐
+│ ミナト (AI)                                   │
+├──────────────────────────────────────────────┤
+│ 📊 請求書一覧を取得しました                    │
+│ ┌────────────────────────────────────────┐   │
+│ │ INV202601-0001 | ¥150,000 | 未払い      │   │
+│ │ INV202601-0002 | ¥80,000  | 支払済      │   │
+│ └────────────────────────────────────────┘   │
+│                                              │
+│ 合計2件の請求書があります。                   │
+└──────────────────────────────────────────────┘
 ```
 
 ---
@@ -245,46 +203,85 @@ return (
 ### 新規作成
 | ファイル | 説明 |
 |----------|------|
-| `supabase/migrations/XXXXXX_messenger.sql` | メッセンジャーテーブル |
-| `src/pages/Messages.tsx` | メッセンジャーページ |
-| `src/components/messenger/ConversationList.tsx` | 会話一覧 |
-| `src/components/messenger/MessageThread.tsx` | メッセージスレッド |
-| `src/components/messenger/MessageInput.tsx` | 入力欄 |
-| `src/components/messenger/NewConversationDialog.tsx` | 新規作成ダイアログ |
-| `src/hooks/useMessages.ts` | メッセージフック |
-| `src/hooks/useConversations.ts` | 会話フック |
+| `supabase/migrations/XXXXXX_messenger_ai.sql` | AI関連カラム追加 |
+| `supabase/functions/messenger-ai/index.ts` | メッセンジャー用AI Edge Function |
+| `src/lib/ai-bot.ts` | AIボット定数定義 |
+| `src/hooks/useMessengerAI.ts` | メッセンジャーAI連携フック |
+| `src/components/messenger/MentionPopup.tsx` | メンション補完UI |
+| `src/components/messenger/AIMessageBubble.tsx` | AI専用メッセージ表示 |
+| `src/components/messenger/ToolResultCard.tsx` | ツール実行結果カード |
 
 ### 修正
 | ファイル | 変更内容 |
 |----------|----------|
-| `src/lib/fonts/noto-sans-jp.ts` | フォントURL変更・変換改善 |
-| `src/pages/InvoiceDetail.tsx` | タイトル改行修正 |
-| `src/pages/Invite.tsx` | 自動処理UI改善 |
-| `src/App.tsx` | `/messages` ルート追加 |
-| `src/components/layout/AppSidebar.tsx` | メッセージメニュー追加 |
+| `src/hooks/useMessages.ts` | AIメンション検知・トリガー追加 |
+| `src/hooks/useConversations.ts` | AI会話対応 |
+| `src/components/messenger/MessageThread.tsx` | AIメッセージ表示対応 |
+| `src/components/messenger/MessageInput.tsx` | メンション補完追加 |
+| `src/components/messenger/ConversationList.tsx` | AI会話の表示対応 |
+| `src/components/messenger/NewConversationDialog.tsx` | AI選択追加 |
+
+---
+
+## 技術的考慮事項
+
+### AIメッセージの保存
+- `sender_id` には固定のAI識別子（`ai-assistant-minato`）を使用
+- RLSポリシーはAIのメッセージ挿入を許可するよう調整
+
+### リアルタイム更新
+- AIの応答もSupabase Realtimeで配信
+- ユーザーは自動的に最新メッセージを受信
+
+### クレジット消費
+- メンションでAIを呼び出すたびにクレジットを消費
+- 既存の`ai_chat`クレジットロジックを再利用
+
+### エラーハンドリング
+- AI応答に失敗した場合、システムメッセージとしてエラーを表示
+- `message_type: 'system'` でエラーメッセージを保存
+
+---
+
+## UI/UX改善点
+
+### 1. AIとの会話開始を簡単に
+- メッセージ画面に「🤖 ミナトに相談」ボタンを追加
+- ワンクリックでAIとのDMを開始
+
+### 2. メンション入力の補助
+- `@` を入力すると候補がポップアップ
+- 矢印キーで選択、Enterで確定
+
+### 3. AIの「入力中」表示
+- AIが応答を生成中は「ミナトが入力しています...」を表示
 
 ---
 
 ## 実装優先順位
 
-1. **PDF日本語修正** - 即座に対応
-2. **請求書タイトル・招待フロー** - シンプルな修正
-3. **メッセンジャー機能** - 新規機能（DB作成から）
+1. **DB変更** - `is_ai_message`, `includes_ai` カラム追加
+2. **AIボット定数** - `src/lib/ai-bot.ts` 作成
+3. **新規会話でAI選択** - NewConversationDialog更新
+4. **メッセージ表示** - MessageThread でAIメッセージ対応
+5. **AI応答Edge Function** - `messenger-ai` 作成
+6. **メンション機能** - MessageInput にメンション補完追加
 
 ---
 
 ## テスト項目
 
-### PDF
-- 請求書PDFをダウンロードし、「請求書」「発行日」などの日本語が正しく表示されることを確認
-- 取引先名（漢字）、品目名が正しく表示されることを確認
+1. **AIとの1対1チャット**
+   - 新規会話でAIを選択し、メッセージを送信
+   - AIが応答を返すことを確認
 
-### 招待
-- 招待リンクをクリックすると自動的に処理が開始されること
-- 「招待を受諾する」ボタンが表示されないこと
-- 処理完了後、自動でダッシュボードへ移動すること
+2. **グループでのメンション**
+   - グループチャットで `@ミナト` を含むメッセージを送信
+   - AIが応答することを確認
 
-### メッセンジャー
-- 新規DM作成・送信ができること
-- メッセージがリアルタイムで更新されること
-- 未読バッジが正しく表示されること
+3. **リアルタイム更新**
+   - 複数ブラウザで同じ会話を開き、AIの応答がリアルタイムで表示されることを確認
+
+4. **ツール実行**
+   - 「請求書一覧を見せて」等のリクエストを送信
+   - ツール実行結果がリッチに表示されることを確認
