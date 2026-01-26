@@ -1,295 +1,290 @@
 
-# PDF日本語文字化け・請求書編集・モック機能・招待フロー修正プラン
+# メッセンジャー機能・PDF日本語修正・招待フロー改善プラン
 
-## 問題の詳細分析
+## 概要
 
-### 1. PDF日本語文字化け問題
-
-**根本原因特定：**
-
-プレビューでは日本語が正常に表示されるのにPDFダウンロードで文字化けする理由は以下の通りです：
-
-- **プレビュー（正常）**: `DocumentPreviewDialog.tsx` はHTMLベースで表示しており、ブラウザ標準のフォントレンダリングを使用するため問題なし
-- **PDFダウンロード（文字化け）**: `jsPDF` はフォントを明示的に埋め込む必要があり、現在のNoto Sans JPフルバージョン（約1.5-2MB）がBase64変換時にデータ破損している可能性が高い
-
-**技術的調査結果：**
-
-`src/lib/fonts/noto-sans-jp.ts` で使用している変換方法を確認したところ、以下の問題が判明しました：
-
-1. **フォントURL**: `https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp@5.2.9/files/noto-sans-jp-japanese-400-normal.ttf` はフルバージョンだが、このURLが正しくアクセス可能か不明
-2. **チャンク処理**: 32KB単位で分割して `String.fromCharCode.apply` しているが、日本語フォントの完全なサポートには追加の検証が必要
-3. **jsPDF互換性**: フォント登録後に `doc.setFont('NotoSansJP')` を呼んでいるが、Unicode文字のエンコーディングが正しく処理されていない可能性
-
-**解決策：**
-
-```typescript
-// jsPDF でのフォント登録後に文字エンコーディングを確認
-doc.addFileToVFS('NotoSansJP-Regular.ttf', fontCache);
-doc.addFont('NotoSansJP-Regular.ttf', 'NotoSansJP', 'normal');
-doc.setFont('NotoSansJP');
-// フォントが正しくセットされたか確認するログ追加
-console.log('[PDF] Current font:', doc.getFont());
-```
-
-また、フォントURLが404エラーを返している可能性があるため、代替の確実なCDNを使用します：
-
-```typescript
-// より信頼性の高いCDN URL
-export const NOTO_SANS_JP_URL = 'https://raw.githubusercontent.com/google/fonts/main/ofl/notosansjp/NotoSansJP-Regular.ttf';
-```
+3つの主要な改善を実施します：
+1. アプリ内メッセンジャー機能の実装
+2. PDF日本語文字化けの根本修正
+3. 請求書詳細ページのタイトル表示修正と招待ワンクリック完了
 
 ---
 
-### 2. 請求書編集機能
+## 1. アプリ内メッセンジャー機能
 
-**現状：**
-- `src/pages/InvoiceEdit.tsx` は既に実装されており、`/invoices/:id/edit` ルートが存在
-- `InvoiceDetail.tsx:120-125` に編集ボタンがあり、正しくリンクされている
-- Supabaseへの更新処理も実装済み
+### 現状
+現在のチャット機能（`src/components/chat/`）はAIアシスタント専用です。チームメンバー間でメッセージをやり取りする機能はありません。
 
-**問題なし - この機能は既に動作しています**
+### 実装内容
 
-ただし、編集ページへのリンク先が正しく動作しているか確認するためにブラウザで `/invoices/{id}/edit` にアクセスしてテストすることを推奨します。
-
----
-
-### 3. 仮払い機能（モック→実データ）
-
-**現状：**
-`src/pages/AdvancePayment.tsx` は完全にモックデータ（`mockAdvancePayments`）を使用しており、データベースとの連携がありません。
-
-**必要な変更：**
-
-#### 3.1 データベーステーブル作成
+#### データベーステーブル
 ```sql
-CREATE TABLE public.advance_payments (
+-- 会話（グループチャット/DM対応）
+CREATE TABLE public.conversations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id),
-  company_id UUID NOT NULL REFERENCES companies(id),
-  purpose TEXT NOT NULL,
-  requested_amount INTEGER NOT NULL,
-  approved_amount INTEGER,
-  settled_amount INTEGER,
-  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'settled', 'rejected', 'overdue')),
-  request_date DATE NOT NULL DEFAULT CURRENT_DATE,
-  expected_date DATE NOT NULL,
-  settle_date DATE,
-  reason TEXT,
-  approved_by UUID REFERENCES auth.users(id),
-  approved_at TIMESTAMPTZ,
+  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  name TEXT, -- グループ名（DMの場合はNULL）
+  type TEXT NOT NULL DEFAULT 'direct' CHECK (type IN ('direct', 'group', 'channel')),
+  created_by UUID REFERENCES auth.users(id),
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
-ALTER TABLE advance_payments ENABLE ROW LEVEL SECURITY;
+-- 会話参加者
+CREATE TABLE public.conversation_participants (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  joined_at TIMESTAMPTZ DEFAULT now(),
+  last_read_at TIMESTAMPTZ,
+  UNIQUE(conversation_id, user_id)
+);
 
-CREATE POLICY "Users can view company advance payments"
-ON advance_payments FOR SELECT TO authenticated
-USING (public.is_company_member(auth.uid(), company_id));
+-- メッセージ
+CREATE TABLE public.messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  sender_id UUID NOT NULL REFERENCES auth.users(id),
+  content TEXT NOT NULL,
+  message_type TEXT DEFAULT 'text' CHECK (message_type IN ('text', 'file', 'system')),
+  file_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
 
-CREATE POLICY "Users can create advance payments"
-ON advance_payments FOR INSERT TO authenticated
-WITH CHECK (auth.uid() = user_id);
+-- リアルタイム対応
+ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
 ```
 
-#### 3.2 新規フック作成
-**ファイル**: `src/hooks/useAdvancePayments.ts`
+#### RLSポリシー
+- 会話参加者のみがメッセージを閲覧・投稿可能
+- 同じ会社のメンバーのみが会話を作成可能
 
+#### フロントエンド実装
+
+**新規ファイル:**
+| ファイル | 説明 |
+|----------|------|
+| `src/pages/Messages.tsx` | メッセンジャーメインページ |
+| `src/components/messenger/ConversationList.tsx` | 会話一覧サイドバー |
+| `src/components/messenger/MessageThread.tsx` | メッセージスレッド表示 |
+| `src/components/messenger/MessageInput.tsx` | メッセージ入力欄 |
+| `src/components/messenger/NewConversationDialog.tsx` | 新規DM/グループ作成 |
+| `src/hooks/useMessages.ts` | メッセージ取得・送信・リアルタイム |
+| `src/hooks/useConversations.ts` | 会話一覧取得・作成 |
+
+**UI設計:**
+```
+┌─────────────────────────────────────────────────────┐
+│ 📨 メッセージ                     [+ 新規会話]     │
+├──────────────┬──────────────────────────────────────┤
+│ 検索...       │ 田中太郎さんとの会話                │
+├──────────────┤                                      │
+│ ● 田中太郎   │ ┌────────────────────────────────┐ │
+│   昨日の件... │ │ 田中: お疲れ様です         14:30│ │
+│              │ ├────────────────────────────────┤ │
+│   山田花子   │ │ 自分: 確認しました         14:32│ │
+│   了解です   │ └────────────────────────────────┘ │
+│              │                                      │
+│   #営業チーム │ ┌──────────────────────────────────┐│
+│   新規案件   │ │ メッセージを入力...         [送信]││
+│              │ └──────────────────────────────────┘│
+└──────────────┴──────────────────────────────────────┘
+```
+
+**機能:**
+- ダイレクトメッセージ（1対1）
+- グループチャット
+- リアルタイム更新（Supabase Realtime）
+- 未読バッジ表示
+- ファイル添付
+
+---
+
+## 2. PDF日本語文字化け修正
+
+### 根本原因
+現在のCDN URL (`https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp@5.2.9/files/noto-sans-jp-japanese-400-normal.ttf`) が正しいフォントファイルを返していないか、Base64変換時にデータ破損している可能性が高い。
+
+### 修正方法
+
+#### フォントURL変更
 ```typescript
-export function useAdvancePayments() {
-  const { user } = useAuth();
-  const { data: company } = useCurrentCompany();
+// src/lib/fonts/noto-sans-jp.ts
+// 変更前
+export const NOTO_SANS_JP_URL = 'https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp@5.2.9/files/noto-sans-jp-japanese-400-normal.ttf';
+
+// 変更後 - Google Fontsの公式リポジトリから直接取得
+export const NOTO_SANS_JP_URL = 'https://raw.githubusercontent.com/googlefonts/noto-cjk/main/Sans/OTF/Japanese/NotoSansCJKjp-Regular.otf';
+```
+
+#### Base64変換の改善
+```typescript
+// より堅牢な変換方法
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
   
-  return useQuery({
-    queryKey: ['advance-payments', company?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('advance_payments')
-        .select('*')
-        .eq('company_id', company?.id)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!company?.id
-  });
-}
-
-export function useCreateAdvancePayment() {
-  // 仮払い申請の作成
-}
-
-export function useUpdateAdvancePaymentStatus() {
-  // ステータス更新（承認/却下/精算）
+  // Use smaller chunks and validate
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  
+  // btoa can fail on large strings in some browsers
+  // Use a fallback approach if needed
+  try {
+    return btoa(binary);
+  } catch (e) {
+    // For very large files, use a different approach
+    const base64 = [];
+    const chunkSize = 1024 * 64;
+    for (let i = 0; i < binary.length; i += chunkSize) {
+      base64.push(btoa(binary.slice(i, i + chunkSize)));
+    }
+    return base64.join('');
+  }
 }
 ```
 
-#### 3.3 ページ更新
-**ファイル**: `src/pages/AdvancePayment.tsx`
-
-- `mockAdvancePayments` を削除
-- `useAdvancePayments` フックに置き換え
-- `handleSubmit` をSupabase insertに変更
-
----
-
-### 4. その他のモック機能一覧
-
-調査の結果、以下の機能がモックまたは準備中の状態です：
-
-| 機能 | ファイル | 状態 | 対応 |
-|------|----------|------|------|
-| **銀行連携** | `BankConnections.tsx` | 準備中UI表示 | 外部API必要のため保留 |
-| **自動消込** | `Reconciliation.tsx` | 準備中UI表示 | 銀行連携後に実装 |
-| **工数記録** | `ProjectTimelog.tsx` | 準備中UI表示 | DBテーブル作成必要 |
-| **承認ワークフロー** | `ApprovalWorkflow.tsx` | mockTemplates使用 | DBテーブル・フック作成必要 |
-| **EMR売上レポート** | `emr/EmrSalesReport.tsx` | mockData使用 | EMR実データ連携必要 |
-| **ダイナミックブースト** | `Boost.tsx` | 準備中（デフォルトOFF） | 外部ファクタリングAPI必要 |
-| **トラストパスポート** | `TrustPassport.tsx` | 準備中（デフォルトOFF） | 信用スコアロジック必要 |
-
-**今回の対応範囲：仮払い機能のみ実装**（他は外部APIや大規模な設計が必要なため）
-
----
-
-### 5. メンバー招待の改善
-
-**現状：**
-- 招待時はメールアドレスとロールのみ指定
-- 招待リンククリック後、「招待を受諾する」ボタンをクリックする必要がある
-
-**ユーザー要望：**
-1. 招待時に名前（オプション）を入力できるようにする
-2. 招待リンククリック時に自動で所属が完了する
-
-#### 5.1 データベーススキーマ変更
-```sql
-ALTER TABLE public.company_invitations
-ADD COLUMN invitee_name TEXT;
-```
-
-#### 5.2 招待ダイアログの更新
-**ファイル**: `src/pages/TeamMembers.tsx:255-278`
+#### 代替アプローチ：事前埋め込みBase64
+最も確実な方法として、動作確認済みのフォントファイルをBase64としてプロジェクトに含めます：
 
 ```typescript
-<div className="space-y-4 py-4">
-  <div className="space-y-2">
-    <Label>名前（オプション）</Label>
-    <Input
-      placeholder="山田太郎"
-      value={inviteName}
-      onChange={(e) => setInviteName(e.target.value)}
-    />
-  </div>
-  <div className="space-y-2">
-    <Label>メールアドレス</Label>
-    <Input
-      type="email"
-      placeholder="member@example.com"
-      value={inviteEmail}
-      onChange={(e) => setInviteEmail(e.target.value)}
-    />
-  </div>
-  // ... 役割選択
+// src/lib/fonts/noto-sans-jp-base64.ts
+// この文字列は事前に変換済み（約2.5MB）
+export const NOTO_SANS_JP_BASE64 = 'AAEAAAASAQAA...（省略）...';
+```
+
+---
+
+## 3. 請求書詳細ページの修正
+
+### タイトル改行問題
+**現状** (line 100-109):
+```tsx
+<div className="flex items-center gap-3">
+  <h1 className="text-3xl font-bold">{invoice.title}</h1>
+  <Badge variant={status.variant}>...</Badge>
 </div>
 ```
 
-#### 5.3 フック更新
-**ファイル**: `src/hooks/useCompany.ts:369-435`
-
-```typescript
-mutationFn: async ({
-  companyId,
-  email,
-  role,
-  name,  // 追加
-  permissions,
-}: {
-  companyId: string;
-  email: string;
-  role: MemberRole;
-  name?: string;  // 追加
-  permissions?: PermissionType[];
-}) => {
-  const { data, error } = await supabase
-    .from("company_invitations")
-    .insert({
-      company_id: companyId,
-      email,
-      role,
-      invitee_name: name || null,  // 追加
-      permissions: permissions || [],
-      invited_by: user.id,
-    })
-    .select()
-    .single();
+**修正後:**
+```tsx
+<div className="flex items-center gap-3 flex-wrap md:flex-nowrap">
+  <h1 className="text-3xl font-bold truncate max-w-[400px] md:max-w-none">
+    {invoice.title}
+  </h1>
+  <Badge variant={status.variant} className="shrink-0">...</Badge>
+</div>
 ```
 
-#### 5.4 招待受諾の自動化
-**ファイル**: `src/pages/Invite.tsx:18-23`
+---
 
-```typescript
-useEffect(() => {
-  if (!authLoading && !user && token) {
-    navigate(`/auth?redirect=/invite?token=${token}`);
-    return;
-  }
-  
-  // ログイン済みの場合は自動で受諾処理を実行
-  if (!authLoading && user && token && status === 'idle') {
-    handleAccept();
-  }
-}, [authLoading, user, token, status]);
+## 4. 招待ワンクリック完了
+
+### 現状の問題
+`src/pages/Invite.tsx:26-28` で自動受諾を呼び出していますが、UIには「招待を受諾する」ボタンがまだ表示されています（102-105行目）。
+
+### 修正
+自動受諾中は処理中UIを表示し、ボタンを非表示にします：
+
+```tsx
+// src/pages/Invite.tsx
+return (
+  <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <Card className="w-full max-w-md">
+      <CardHeader>
+        <CardTitle>
+          {status === "success" ? (
+            <span className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-500" />
+              参加完了
+            </span>
+          ) : status === "error" ? (
+            <span className="flex items-center gap-2">
+              <XCircle className="h-5 w-5 text-destructive" />
+              エラー
+            </span>
+          ) : (
+            <span className="flex items-center gap-2">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              チームに参加しています...
+            </span>
+          )}
+        </CardTitle>
+        <CardDescription>
+          {status === "success"
+            ? "ダッシュボードへ移動します..."
+            : status === "error"
+            ? errorMessage
+            : "招待を処理中です。少々お待ちください..."}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* idle状態のボタンを削除 - 自動処理のため不要 */}
+        {status === "accepting" && (
+          <div className="flex justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        )}
+        {status === "error" && (
+          <Button onClick={() => navigate("/")} variant="outline" className="w-full">
+            ホームへ戻る
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  </div>
+);
 ```
-
-#### 5.5 招待メールへの名前反映
-**ファイル**: `supabase/functions/send-invitation/index.ts`
-
-招待時に名前が入力されていた場合、メール本文に「○○様」として表示します。
 
 ---
 
 ## 実装ファイル一覧
 
 ### 新規作成
-| ファイル | 内容 |
+| ファイル | 説明 |
 |----------|------|
-| `supabase/migrations/XXXXXX_advance_payments.sql` | 仮払いテーブル・RLS |
-| `supabase/migrations/XXXXXX_invitation_name.sql` | 招待テーブルにname追加 |
-| `src/hooks/useAdvancePayments.ts` | 仮払いデータ取得・操作フック |
+| `supabase/migrations/XXXXXX_messenger.sql` | メッセンジャーテーブル |
+| `src/pages/Messages.tsx` | メッセンジャーページ |
+| `src/components/messenger/ConversationList.tsx` | 会話一覧 |
+| `src/components/messenger/MessageThread.tsx` | メッセージスレッド |
+| `src/components/messenger/MessageInput.tsx` | 入力欄 |
+| `src/components/messenger/NewConversationDialog.tsx` | 新規作成ダイアログ |
+| `src/hooks/useMessages.ts` | メッセージフック |
+| `src/hooks/useConversations.ts` | 会話フック |
 
 ### 修正
 | ファイル | 変更内容 |
 |----------|----------|
-| `src/lib/fonts/noto-sans-jp.ts` | フォントURL・読み込み処理の改善 |
-| `src/lib/pdf-generator.ts` | フォント登録後の検証ログ追加 |
-| `src/pages/AdvancePayment.tsx` | モック→実データ連携 |
-| `src/pages/TeamMembers.tsx` | 名前入力フィールド追加 |
-| `src/pages/Invite.tsx` | 自動受諾ロジック追加 |
-| `src/hooks/useCompany.ts` | 招待作成時にname引数追加 |
-| `supabase/functions/send-invitation/index.ts` | メールに名前反映 |
+| `src/lib/fonts/noto-sans-jp.ts` | フォントURL変更・変換改善 |
+| `src/pages/InvoiceDetail.tsx` | タイトル改行修正 |
+| `src/pages/Invite.tsx` | 自動処理UI改善 |
+| `src/App.tsx` | `/messages` ルート追加 |
+| `src/components/layout/AppSidebar.tsx` | メッセージメニュー追加 |
 
 ---
 
 ## 実装優先順位
 
-1. **PDF日本語修正** - ユーザーへの影響大、即座に対応
-2. **招待フロー改善** - 比較的シンプルな変更
-3. **仮払い機能実装** - DB作成含む中規模変更
+1. **PDF日本語修正** - 即座に対応
+2. **請求書タイトル・招待フロー** - シンプルな修正
+3. **メッセンジャー機能** - 新規機能（DB作成から）
 
 ---
 
 ## テスト項目
 
 ### PDF
-- 請求書PDFをダウンロードし、すべての日本語（漢字・ひらがな・カタカナ）が正しく表示されることを確認
-- コンソールログで `[Font] Font loaded: X.XX MB` と表示されることを確認
+- 請求書PDFをダウンロードし、「請求書」「発行日」などの日本語が正しく表示されることを確認
+- 取引先名（漢字）、品目名が正しく表示されることを確認
 
 ### 招待
-- 名前を入力して招待を送信し、メール本文に名前が反映されることを確認
-- 招待リンクをクリックしてログイン後、自動的にダッシュボードへリダイレクトされることを確認
-- 会社メンバー一覧に新メンバーが追加されていることを確認
+- 招待リンクをクリックすると自動的に処理が開始されること
+- 「招待を受諾する」ボタンが表示されないこと
+- 処理完了後、自動でダッシュボードへ移動すること
 
-### 仮払い
-- 仮払い申請を作成し、データベースに保存されることを確認
-- 一覧に反映されることを確認
-- ステータス変更が機能することを確認
+### メッセンジャー
+- 新規DM作成・送信ができること
+- メッセージがリアルタイムで更新されること
+- 未読バッジが正しく表示されること
