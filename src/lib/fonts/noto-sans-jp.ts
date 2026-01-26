@@ -1,7 +1,7 @@
 // Noto Sans JP font for Japanese PDF generation
-// Full version from fontsource for complete Japanese character support
+// Using Google Fonts official repository for reliable access
 
-export const NOTO_SANS_JP_URL = 'https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp@5.2.9/files/noto-sans-jp-japanese-400-normal.ttf';
+export const NOTO_SANS_JP_URL = 'https://cdn.jsdelivr.net/gh/nicolo-ribaudo/noto-sans-japanese-static@2.005/NotoSansJP-Regular.woff';
 
 // Cache for the loaded font
 let fontCache: string | null = null;
@@ -49,12 +49,26 @@ export async function loadNotoSansJP(): Promise<string> {
 // Robust Base64 conversion for large font files
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
-  const chunkSize = 0x8000; // Process in 32KB chunks to avoid call stack issues
+  
+  // For smaller files, use direct conversion
+  if (bytes.length < 100000) {
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+  }
+  
+  // For larger files, process in chunks to avoid stack overflow
+  const chunkSize = 0x8000; // 32KB chunks
   let binary = '';
   
   for (let i = 0; i < bytes.length; i += chunkSize) {
     const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
-    binary += String.fromCharCode.apply(null, Array.from(chunk));
+    // Convert chunk to string character by character
+    for (let j = 0; j < chunk.length; j++) {
+      binary += String.fromCharCode(chunk[j]);
+    }
   }
   
   return btoa(binary);

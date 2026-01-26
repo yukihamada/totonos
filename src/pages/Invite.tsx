@@ -79,7 +79,7 @@ export default function Invite() {
             {status === "success" ? (
               <span className="flex items-center gap-2">
                 <CheckCircle className="h-5 w-5 text-green-500" />
-                招待を受諾しました
+                参加完了
               </span>
             ) : status === "error" ? (
               <span className="flex items-center gap-2">
@@ -87,7 +87,10 @@ export default function Invite() {
                 エラー
               </span>
             ) : (
-              "チームへの招待"
+              <span className="flex items-center gap-2">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                チームに参加しています...
+              </span>
             )}
           </CardTitle>
           <CardDescription>
@@ -95,20 +98,14 @@ export default function Invite() {
               ? "ダッシュボードへ移動します..."
               : status === "error"
               ? errorMessage
-              : "招待を受諾してチームに参加しますか？"}
+              : "招待を処理中です。少々お待ちください..."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {status === "idle" && (
-            <Button onClick={handleAccept} className="w-full">
-              招待を受諾する
-            </Button>
-          )}
-          {status === "accepting" && (
-            <Button disabled className="w-full">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              処理中...
-            </Button>
+          {(status === "idle" || status === "accepting") && (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
           )}
           {status === "error" && (
             <Button onClick={() => navigate("/")} variant="outline" className="w-full">

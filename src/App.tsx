@@ -125,6 +125,7 @@ import EmployeePortal from "./pages/EmployeePortal";
 import Showcase from "./pages/Showcase";
 import GettingStarted from "./pages/GettingStarted";
 import Invite from "./pages/Invite";
+import Messages from "./pages/Messages";
 // Industry LP
 import Industries from "./pages/Industries";
 import IndustryLanding from "./pages/lp/IndustryLanding";
@@ -323,6 +324,7 @@ function AppRoutes() {
       <Route path="/dev/pages" element={<ProtectedRoute><PageIndex /></ProtectedRoute>} />
       {/* New Features */}
       <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+      <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
       <Route path="/team" element={<ProtectedRoute><TeamMembers /></ProtectedRoute>} />
       <Route path="/bank-connections" element={<ProtectedRoute><BankConnections /></ProtectedRoute>} />
       <Route path="/workflows" element={<ProtectedRoute><Workflows /></ProtectedRoute>} />
