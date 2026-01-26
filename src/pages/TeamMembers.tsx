@@ -95,6 +95,7 @@ export default function TeamMembers() {
 
   const [search, setSearch] = useState('');
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [inviteName, setInviteName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<MemberRole>('member');
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
@@ -124,8 +125,10 @@ export default function TeamMembers() {
         companyId: company.id,
         email: inviteEmail,
         role: inviteRole,
+        name: inviteName || undefined,
       });
       setInviteDialogOpen(false);
+      setInviteName('');
       setInviteEmail('');
       setInviteRole('member');
       
@@ -253,6 +256,14 @@ export default function TeamMembers() {
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>名前（オプション）</Label>
+                  <Input
+                    placeholder="山田太郎"
+                    value={inviteName}
+                    onChange={(e) => setInviteName(e.target.value)}
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label>メールアドレス</Label>
                   <Input

@@ -85,6 +85,7 @@ const initializeJapaneseFont = async (doc: jsPDF): Promise<void> => {
     if (!fontCache) {
       console.log('[PDF] Loading Japanese font for the first time...');
       fontCache = await loadNotoSansJP();
+      console.log('[PDF] Font data loaded, length:', fontCache.length);
     }
     
     // Register font with this specific document instance

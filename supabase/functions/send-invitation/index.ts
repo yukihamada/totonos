@@ -75,6 +75,7 @@ serve(async (req) => {
     }
 
     const companyName = invitation.companies?.display_name || invitation.companies?.name || "チーム";
+    const inviteeName = invitation.invitee_name;
     const appUrl = Deno.env.get("APP_URL") || "https://totonos.lovable.app";
     const acceptUrl = `${appUrl}/invite?token=${invitation.token}`;
 
@@ -85,6 +86,7 @@ serve(async (req) => {
     };
 
     const roleLabel = roleLabels[invitation.role] || invitation.role;
+    const greeting = inviteeName ? `${inviteeName}様` : "";
 
     // Send email via Resend
     if (resendApiKey) {
@@ -104,6 +106,7 @@ serve(async (req) => {
                 <h1 style="color: #1a1a1a; font-size: 24px; margin: 0;">Totonos</h1>
               </div>
               
+              ${greeting ? `<p style="color: #1a1a1a; font-size: 16px; margin-bottom: 8px;">${greeting}</p>` : ""}
               <h2 style="color: #1a1a1a; font-size: 20px; margin-bottom: 16px;">チームへの招待</h2>
               
               <p style="color: #4a4a4a; line-height: 1.6; margin-bottom: 16px;">
