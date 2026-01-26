@@ -1516,6 +1516,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           id: string
+          includes_ai: boolean | null
           name: string | null
           type: string
           updated_at: string | null
@@ -1525,6 +1526,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
+          includes_ai?: boolean | null
           name?: string | null
           type?: string
           updated_at?: string | null
@@ -1534,6 +1536,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
+          includes_ai?: boolean | null
           name?: string | null
           type?: string
           updated_at?: string | null
@@ -5324,31 +5327,37 @@ export type Database = {
       }
       messages: {
         Row: {
+          ai_metadata: Json | null
           content: string
           conversation_id: string
           created_at: string | null
           file_url: string | null
           id: string
+          is_ai_message: boolean | null
           message_type: string | null
           sender_id: string
           updated_at: string | null
         }
         Insert: {
+          ai_metadata?: Json | null
           content: string
           conversation_id: string
           created_at?: string | null
           file_url?: string | null
           id?: string
+          is_ai_message?: boolean | null
           message_type?: string | null
           sender_id: string
           updated_at?: string | null
         }
         Update: {
+          ai_metadata?: Json | null
           content?: string
           conversation_id?: string
           created_at?: string | null
           file_url?: string | null
           id?: string
+          is_ai_message?: boolean | null
           message_type?: string | null
           sender_id?: string
           updated_at?: string | null

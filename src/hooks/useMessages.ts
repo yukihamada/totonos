@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useMessengerAI, shouldTriggerAI } from "@/hooks/useMessengerAI";
+import { isAIBot, AI_BOT } from "@/lib/ai-bot";
 
 export interface Message {
   id: string;
@@ -12,6 +14,8 @@ export interface Message {
   file_url: string | null;
   created_at: string;
   updated_at: string;
+  is_ai_message?: boolean;
+  ai_metadata?: Record<string, unknown> | null;
   sender?: {
     display_name: string | null;
     avatar_url: string | null;
@@ -34,18 +38,28 @@ export function useMessages(conversationId: string | undefined) {
 
       if (error) throw error;
 
-      // Get sender profiles
-      const senderIds = [...new Set(data?.map(m => m.sender_id) || [])];
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('user_id, display_name')
-        .in('user_id', senderIds);
+      // Get sender profiles (exclude AI bot ID)
+      const humanSenderIds = [...new Set(data?.map(m => m.sender_id) || [])].filter(id => !isAIBot(id));
+      const { data: profiles } = humanSenderIds.length > 0 
+        ? await supabase.from('profiles').select('user_id, display_name').in('user_id', humanSenderIds)
+        : { data: [] };
 
       return (data || []).map(message => {
+        // AI messages get special sender info
+        if (isAIBot(message.sender_id)) {
+          return {
+            ...message,
+            message_type: message.message_type as 'text' | 'file' | 'system',
+            is_ai_message: true,
+            sender: { display_name: AI_BOT.displayName, avatar_url: null }
+          };
+        }
+        
         const profile = profiles?.find((p: any) => p.user_id === message.sender_id);
         return {
           ...message,
           message_type: message.message_type as 'text' | 'file' | 'system',
+          is_ai_message: false,
           sender: profile ? { display_name: profile.display_name, avatar_url: null } : null
         };
       }) as Message[];
