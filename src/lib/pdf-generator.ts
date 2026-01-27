@@ -88,17 +88,22 @@ const initializeJapaneseFont = async (doc: jsPDF): Promise<void> => {
       console.log('[PDF] Font data loaded, length:', fontCache.length);
     }
     
-    // Register font with this specific document instance
+    // Validate font data before using
+    if (!fontCache || fontCache.length < 100000) {
+      throw new Error(`Invalid font data: size ${fontCache?.length || 0} is too small for a Japanese font`);
+    }
+    
+    // Register font with this specific document instance (use .ttf extension for jsPDF compatibility)
     doc.addFileToVFS('NotoSansJP-Regular.ttf', fontCache);
     doc.addFont('NotoSansJP-Regular.ttf', 'NotoSansJP', 'normal');
     doc.setFont('NotoSansJP');
     
-    console.log('[PDF] Japanese font initialized successfully');
+    console.log('[PDF] ✓ Japanese font initialized successfully');
   } catch (error) {
     console.error('[PDF] Failed to initialize Japanese font:', error);
-    // Fallback to helvetica if font loading fails
-    doc.setFont('helvetica');
-    console.warn('[PDF] Falling back to helvetica font');
+    // Reset cache to allow retry with fresh data
+    fontCache = null;
+    throw new Error('日本語フォントの読み込みに失敗しました。ページを再読み込みしてください。');
   }
 };
 
