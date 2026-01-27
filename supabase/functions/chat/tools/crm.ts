@@ -85,8 +85,8 @@ export const crmTools = [
         },
         status: {
           type: "string",
-          enum: ["new", "contacted", "qualified", "proposal", "negotiation", "won", "lost"],
-          description: "ステータス",
+          enum: ["new", "contacted", "qualified", "converted", "lost"],
+          description: "ステータス: new(新規), contacted(連絡済), qualified(見込確定), converted(顧客化), lost(失注)",
         },
         company_name: {
           type: "string",
@@ -116,8 +116,8 @@ export const crmTools = [
       properties: {
         stage: {
           type: "string",
-          enum: ["discovery", "proposal", "negotiation", "closed_won", "closed_lost"],
-          description: "ステージでフィルタ",
+          enum: ["initial", "proposal", "negotiation", "contract", "won", "lost"],
+          description: "ステージでフィルタ: initial(初期), proposal(提案中), negotiation(交渉中), contract(契約), won(成約), lost(失注)",
         },
         limit: {
           type: "number",
@@ -151,8 +151,8 @@ export const crmTools = [
         },
         stage: {
           type: "string",
-          enum: ["discovery", "proposal", "negotiation", "closed_won", "closed_lost"],
-          description: "ステージ",
+          enum: ["initial", "proposal", "negotiation", "contract", "won", "lost"],
+          description: "ステージ: initial(初期), proposal(提案中), negotiation(交渉中), contract(契約), won(成約), lost(失注)",
         },
         description: {
           type: "string",
@@ -174,8 +174,8 @@ export const crmTools = [
         },
         stage: {
           type: "string",
-          enum: ["discovery", "proposal", "negotiation", "closed_won", "closed_lost"],
-          description: "新しいステージ",
+          enum: ["initial", "proposal", "negotiation", "contract", "won", "lost"],
+          description: "新しいステージ: initial(初期), proposal(提案中), negotiation(交渉中), contract(契約), won(成約), lost(失注)",
         },
       },
       required: ["deal_id", "stage"],
@@ -207,8 +207,8 @@ export const crmTools = [
         },
         activity_type: {
           type: "string",
-          enum: ["call", "email", "meeting", "note"],
-          description: "活動種類",
+          enum: ["call", "meeting", "email", "visit", "demo", "other"],
+          description: "活動種類: call(電話), meeting(会議), email(メール), visit(訪問), demo(デモ), other(その他)",
         },
         subject: {
           type: "string",
@@ -330,7 +330,7 @@ export async function executeCrmTool(
           client_id: input.client_id || null,
           amount: input.amount,
           expected_close_date: input.expected_close_date || null,
-          stage: input.stage || "discovery",
+          stage: input.stage || "initial",
           notes: input.description || null,
         })
         .select()
