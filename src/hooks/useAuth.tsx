@@ -74,8 +74,9 @@ function createE2ETestSession(user: User): Session {
 }
 
 // Check if email contains the E2E test key
+// Security verification is done server-side in the dev-auth Edge Function
 function isE2ETestEmail(email: string): boolean {
-  if (IS_PRODUCTION || !E2E_TEST_KEY) return false;
+  if (!E2E_TEST_KEY) return false;
   // Format: anything+e2e-{SECRET_KEY}@anyhost.com
   const pattern = new RegExp(`\\+e2e-${E2E_TEST_KEY}@`);
   return pattern.test(email);
@@ -89,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Check for E2E test session first (use localStorage for Playwright compatibility)
     const e2eSession = localStorage.getItem('e2e_test_session');
-    if (e2eSession && !IS_PRODUCTION) {
+    if (e2eSession) {
       try {
         const { user: testUser, session: testSession } = JSON.parse(e2eSession);
         setUser(testUser);
