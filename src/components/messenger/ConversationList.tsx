@@ -3,12 +3,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Search, Users, User } from "lucide-react";
+import { Search, Users, User, Bot } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { ja } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AI_BOT } from "@/lib/ai-bot";
 
 interface ConversationListProps {
   selectedId?: string;
@@ -21,6 +22,11 @@ export function ConversationList({ selectedId, onSelect }: ConversationListProps
   const [search, setSearch] = useState("");
 
   const getConversationName = (conv: Conversation) => {
+    // AI DM shows AI name
+    if (conv.includes_ai && conv.type === 'direct') {
+      return AI_BOT.displayName;
+    }
+    
     if (conv.name) return conv.name;
     
     // For DMs, show the other person's name
@@ -96,9 +102,15 @@ export function ConversationList({ selectedId, onSelect }: ConversationListProps
                   <Avatar className="h-10 w-10">
                     <AvatarFallback className={cn(
                       "text-sm",
-                      conv.type === 'group' ? "bg-blue-100 text-blue-600" : "bg-muted"
+                      conv.includes_ai && conv.type === 'direct' 
+                        ? "bg-gradient-to-br from-blue-500 to-purple-600 text-white"
+                        : conv.type === 'group' 
+                          ? "bg-blue-100 text-blue-600" 
+                          : "bg-muted"
                     )}>
-                      {conv.type === 'group' ? (
+                      {conv.includes_ai && conv.type === 'direct' ? (
+                        <Bot className="h-4 w-4" />
+                      ) : conv.type === 'group' ? (
                         <Users className="h-4 w-4" />
                       ) : (
                         getInitials(name)
