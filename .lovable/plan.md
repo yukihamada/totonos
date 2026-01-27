@@ -1,212 +1,296 @@
 
-# PDF日本語表示の確実な修正プラン
 
-## 問題の根本原因
+# AIエージェント機能テストプラン
 
-**jsPDFはTTF形式のみをサポートしていますが、現在のコードは`.woff`形式のフォントをロードしています。**
+## 概要
 
-| 項目 | 現状 | 正しい設定 |
-|------|------|-----------|
-| フォント形式 | `.woff` | `.ttf` |
-| URL | `...NotoSansJP-Regular.woff` | `.ttf`ファイルのURL |
-| jsPDF互換性 | ❌ 非対応 | ✅ 対応 |
-
-この形式の不一致により、jsPDFがフォントデータを正しく解析できず、日本語が文字化けまたは表示されない状態になっています。
+トトノスのAIアシスタント「ミナト」が提供する全ツールをテストするためのプロンプト集を作成します。各カテゴリごとにテスト用プロンプトを用意し、機能が正しく動作するか確認できます。
 
 ---
 
-## 修正方法
+## テスト対象ツール一覧
 
-### 1. フォントURLをTTF形式に変更
+| カテゴリ | ツール数 | 主な機能 |
+|----------|----------|----------|
+| CRM（リード・案件） | 7 | リード/案件の作成・更新・一覧 |
+| 取引先 | 5 | 取引先の作成・更新・削除 |
+| 請求書 | 7 | 請求書作成・ステータス更新・統計 |
+| 見積書 | 5 | 見積書作成・請求書変換 |
+| 契約書 | 4 | 契約書作成・検索 |
+| プロジェクト・タスク | 7 | プロジェクト/タスク管理 |
+| 会計 | 6 | 仕訳・試算表・経費 |
+| HR（人事） | 5 | 従業員・勤怠・給与 |
+| Wiki | 4 | 記事作成・検索 |
+| IT資産 | 4 | 資産管理 |
+| 発注書 | 4 | 発注書管理 |
+| メール | 3 | メール送信・一覧 |
+| 自動化 | 3 | スケジュール実行設定 |
 
-**ファイル**: `src/lib/fonts/noto-sans-jp.ts`
+---
 
-信頼できるCDNからNoto Sans JP の **TTF形式** を取得するようURLを変更します。
+## カテゴリ別テストプロンプト
 
-```typescript
-// 変更前（WOFF形式 - jsPDF非対応）
-export const NOTO_SANS_JP_URL = 'https://cdn.jsdelivr.net/gh/nicolo-ribaudo/noto-sans-japanese-static@2.005/NotoSansJP-Regular.woff';
+### 1. CRM（リード管理）
 
-// 変更後（TTF形式 - jsPDF対応）
-export const NOTO_SANS_JP_URL = 'https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp@5.0.19/files/noto-sans-jp-all-400-normal.woff';
-// ↑ まだWOFFのため、別のソースが必要
+```text
+# 一覧取得
+「リードの一覧を見せて」
 
-// 確実に動作するTTFソース（Google Fonts公式リポジトリ）
-export const NOTO_SANS_JP_URL = 'https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/Japanese/NotoSansCJKjp-Regular.otf';
-// ↑ OTFもjsPDFで動作する場合があるが、TTFが最も安全
+# 作成
+「ABC株式会社の田中さんをリードとして登録して。メールはtanaka@abc.co.jpで」
 
-// 最も推奨されるソース
-export const NOTO_SANS_JP_URL = 'https://cdn.jsdelivr.net/gh/nicolo-ribaudo/noto-sans-japanese-static@2.005/NotoSansJP-Regular.otf';
+# 更新
+「さっき登録したリードのステータスを連絡済みにして」
+
+# 案件作成
+「ABC株式会社との商談を作成して。金額は50万円」
+
+# パイプライン統計
+「営業パイプラインの状況を教えて」
 ```
 
-**推奨される最終的なURL**:
-複数のソースをテストし、確実に動作するものを使用：
+### 2. 取引先
 
-```typescript
-// Option 1: Google Fonts StaticからのTTF（軽量版）
-export const NOTO_SANS_JP_URL = 'https://cdn.jsdelivr.net/gh/nicolo-ribaudo/noto-sans-japanese-static@2.005/NotoSansJP-Regular.otf';
+```text
+# 一覧取得
+「取引先の一覧を表示して」
 
-// Option 2: fonts.bunny.net からのTTF（高速CDN）
-export const NOTO_SANS_JP_URL = 'https://fonts.bunny.net/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2';
-// ↑ WOFF2は非対応
+# 作成
+「XYZ商事という取引先を追加して。住所は東京都港区」
 
-// Option 3: 事前にBase64としてプロジェクトに埋め込み（最も確実）
-// → フォントファイルを手動でBase64に変換し、静的ファイルとして含める
+# 検索
+「名前に"株式会社"が含まれる取引先を探して」
+
+# 更新
+「XYZ商事のメールアドレスをinfo@xyz.co.jpに変更して」
 ```
 
-### 2. 確実な解決策：事前埋め込みBase64
+### 3. 請求書
 
-動的なCDN取得ではなく、**ビルド時にフォントを含める**ことで確実性を担保します。
+```text
+# 一覧取得
+「請求書の一覧を見せて」
+「未払いの請求書だけ表示して」
 
-**新規ファイル**: `src/lib/fonts/noto-sans-jp-embedded.ts`
+# 作成
+「請求書を作成して。件名は「コンサルティング料金」、品目は「コンサルティングサービス 10時間 x 15,000円」、期限は来月末」
 
-```typescript
-// Noto Sans JP Regular - Pre-encoded Base64 TTF
-// Generated from https://github.com/googlefonts/noto-cjk
-// File size: ~2MB (base64: ~2.7MB)
+# ステータス更新
+「INV-XXXXXXX を入金済みにして」
 
-export const NOTO_SANS_JP_BASE64 = "AAEAAAASAQAABAAgR0RFRj..." // 約2.7MB
+# 統計
+「請求書の統計を見せて」
 
-export function getEmbeddedFont(): string {
-  return NOTO_SANS_JP_BASE64;
-}
+# 決済リンク作成
+「INV-XXXXXXX の決済リンクを作成して」
 ```
 
-**注意**: Base64埋め込みはバンドルサイズが大きくなるため、動的ロードが失敗した場合のフォールバックとして使用することを推奨。
+### 4. 見積書
 
-### 3. フォントロード関数の改善
+```text
+# 一覧取得
+「見積書一覧を表示して」
 
-**ファイル**: `src/lib/fonts/noto-sans-jp.ts`
+# 作成
+「見積書を作成して。タイトルは「Webサイト制作」、品目は「デザイン 1式 300,000円」「開発 1式 500,000円」、有効期限は1ヶ月後」
 
-```typescript
-// 複数のフォントソースを試行するフォールバック機能
-const FONT_SOURCES = [
-  // Primary: jsdelivr CDN (TTF/OTF)
-  'https://cdn.jsdelivr.net/gh/nicolo-ribaudo/noto-sans-japanese-static@2.005/NotoSansJP-Regular.otf',
-  // Fallback 1: Google Fonts GitHub (OTF)  
-  'https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/Japanese/NotoSansCJKjp-Regular.otf',
-  // Fallback 2: Alternative CDN
-  'https://unpkg.com/noto-sans-jp-subset@1.0.0/fonts/NotoSansJP-Regular.otf',
-];
-
-export async function loadNotoSansJP(): Promise<string> {
-  if (fontCache) {
-    return fontCache;
-  }
-
-  let lastError: Error | null = null;
-
-  for (const url of FONT_SOURCES) {
-    try {
-      console.log(`[Font] Trying: ${url}`);
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      
-      const arrayBuffer = await response.arrayBuffer();
-      
-      // Validate minimum size (Japanese fonts should be > 1MB)
-      if (arrayBuffer.byteLength < 500000) {
-        throw new Error('Font file too small, likely invalid');
-      }
-      
-      const base64 = arrayBufferToBase64(arrayBuffer);
-      fontCache = base64;
-      console.log('[Font] Successfully loaded from:', url);
-      return base64;
-    } catch (error) {
-      console.warn(`[Font] Failed to load from ${url}:`, error);
-      lastError = error as Error;
-    }
-  }
-
-  throw lastError || new Error('All font sources failed');
-}
+# 請求書変換
+「EST-XXXXXXX を請求書に変換して、期限は来月末で」
 ```
 
-### 4. pdf-generatorの検証ログ追加
+### 5. 契約書
 
-**ファイル**: `src/lib/pdf-generator.ts`
+```text
+# 一覧取得
+「契約書の一覧を見せて」
 
-初期化成功をより明確に検証：
+# 作成
+「業務委託契約書を作成して。タイトルは「システム開発業務委託契約」、金額は100万円」
 
-```typescript
-const initializeJapaneseFont = async (doc: jsPDF): Promise<void> => {
-  try {
-    if (!fontCache) {
-      console.log('[PDF] Loading Japanese font...');
-      fontCache = await loadNotoSansJP();
-    }
-    
-    // Validate font data
-    if (!fontCache || fontCache.length < 100000) {
-      throw new Error('Invalid font data: too small');
-    }
-    
-    doc.addFileToVFS('NotoSansJP-Regular.ttf', fontCache);
-    doc.addFont('NotoSansJP-Regular.ttf', 'NotoSansJP', 'normal');
-    doc.setFont('NotoSansJP');
-    
-    // Verify font is actually set
-    const currentFont = doc.getFont();
-    if (currentFont.fontName !== 'NotoSansJP') {
-      throw new Error('Font was not set correctly');
-    }
-    
-    console.log('[PDF] ✓ Japanese font ready:', currentFont);
-  } catch (error) {
-    console.error('[PDF] Font initialization failed:', error);
-    // エラー時はPDF生成を中止するか、ユーザーに警告
-    throw new Error('日本語フォントの読み込みに失敗しました。');
-  }
-};
+# 検索
+「有効期限が今月の契約を検索して」
+```
+
+### 6. プロジェクト・タスク
+
+```text
+# プロジェクト一覧
+「プロジェクト一覧を表示」
+
+# プロジェクト作成
+「新しいプロジェクト「ECサイトリニューアル」を作成して。開始日は今日で」
+
+# タスク作成
+「ECサイトリニューアルプロジェクトにタスク「要件定義」を追加して。優先度は高で」
+
+# タスク一覧
+「未完了のタスクを見せて」
+
+# ステータス更新
+「要件定義タスクを進行中にして」
+```
+
+### 7. 会計
+
+```text
+# 仕訳作成
+「今日、現金で消耗品を5,000円購入した仕訳を登録して」
+
+# 仕訳一覧
+「今月の仕訳一覧を見せて」
+
+# 試算表
+「今月末時点の試算表を出して」
+
+# 損益計算書
+「今月の損益計算書を表示して」
+
+# 貸借対照表
+「今日時点の貸借対照表を見せて」
+
+# 経費登録
+「今日、タクシー代3,000円を経費として登録して。目的地は取引先訪問」
+```
+
+### 8. HR（人事）
+
+```text
+# 従業員一覧
+「従業員一覧を表示して」
+
+# 従業員作成
+「新入社員を登録して。名前は佐藤花子、部署は営業部、入社日は今日」
+
+# 勤怠記録
+「佐藤花子さんの今日の出勤を9:00で記録して」
+
+# 給与計算
+「今月の給与を計算して」
+```
+
+### 9. Wiki
+
+```text
+# 検索
+「社内規程についてWikiを検索して」
+
+# 記事作成
+「Wikiに「テレワーク規程」という記事を作成して。内容は「週3日までテレワーク可能」」
+
+# 一覧
+「Wikiの記事一覧を見せて」
+```
+
+### 10. IT資産
+
+```text
+# 一覧
+「IT資産の一覧を表示して」
+
+# 登録
+「PC資産を登録して。名前は「MacBook Pro 14インチ」、シリアル番号はXXXXX」
+
+# 検索
+「利用可能なPCを探して」
+```
+
+### 11. 発注書
+
+```text
+# 一覧
+「発注書の一覧を見せて」
+
+# 作成
+「発注書を作成して。サプライヤーはXYZ商事、品目は「オフィス用品 10セット x 5,000円」」
+```
+
+### 12. メール
+
+```text
+# 一覧
+「未読のメールを見せて」
+
+# 送信
+「info@example.comに「ミーティングのお知らせ」という件名でメールを送って」
+```
+
+### 13. 自動化（ワークフロー）
+
+```text
+# 設定
+「毎月1日の9時に、ABC株式会社宛ての月額サポート料10万円の請求書を自動作成するワークフローを登録して」
+
+# 一覧
+「設定済みの自動化一覧を見せて」
 ```
 
 ---
 
-## 実装ファイル一覧
+## 複合テスト（実業務フロー）
 
-| ファイル | 変更内容 |
-|----------|----------|
-| `src/lib/fonts/noto-sans-jp.ts` | TTF/OTF形式のURLに変更、フォールバック機能追加 |
-| `src/lib/pdf-generator.ts` | フォント検証ロジック追加、エラーハンドリング改善 |
+```text
+# リード → 案件 → 見積書 → 請求書のフロー
+「新しい見込み客「テスト株式会社」をリードに登録して、そのまま50万円の案件を作成して」
 
----
+# 見積書から請求書への変換
+「一番新しい見積書を請求書に変換して」
 
-## 技術的詳細
-
-### jsPDFのフォント対応形式
-| 形式 | 対応状況 | 備考 |
-|------|----------|------|
-| TTF | ✅ 完全対応 | 推奨 |
-| OTF | ✅ 対応 | TTFとほぼ同等 |
-| WOFF | ❌ 非対応 | Web専用の圧縮形式 |
-| WOFF2 | ❌ 非対応 | Web専用の圧縮形式 |
-
-### 推奨フォントソース
-
-1. **jsdelivr CDN** (高速・安定)
-   - `https://cdn.jsdelivr.net/gh/nicolo-ribaudo/noto-sans-japanese-static@2.005/NotoSansJP-Regular.otf`
-
-2. **GitHub Raw** (公式ソース)
-   - `https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/Japanese/NotoSansCJKjp-Regular.otf`
+# プロジェクト + タスク一括作成
+「新プロジェクト「モバイルアプリ開発」を作成して、要件定義・設計・開発・テストの4つのタスクも追加して」
+```
 
 ---
 
-## テスト項目
+## テスト手順
 
-1. **請求書PDFダウンロード**
-   - 「請求書」ヘッダーが正しく表示される
-   - 品目名、会社名などの日本語がすべて正しく表示される
+### Step 1: AIチャットを開く
+- サイドバーの「チャット」アイコンをクリック
+- または画面右下の「ミナト」ボタンをクリック
 
-2. **見積書PDFダウンロード**
-   - 「見積書」ヘッダーが正しく表示される
+### Step 2: プロンプトを入力
+- 上記のテストプロンプトをコピー＆ペースト
+- または自然な日本語で指示
 
-3. **契約書PDFダウンロード**
-   - 「契約書」ヘッダーが正しく表示される
-   - 長い日本語テキストが正しく折り返される
+### Step 3: 結果を確認
+- AIがツールを呼び出し、結果を表示するか確認
+- エラーが発生した場合はエラーメッセージを記録
 
-4. **エラーケース**
-   - ネットワークエラー時に適切なエラーメッセージが表示される
+### Step 4: データを確認
+- 各機能ページ（請求書、取引先など）で実際にデータが作成/更新されているか確認
+
+---
+
+## 期待される動作
+
+| 操作 | 期待結果 |
+|------|----------|
+| 一覧取得 | データがテーブル形式で表示される |
+| 作成 | 「〇〇を作成しました」メッセージとリンク |
+| 更新 | 「〇〇を更新しました」メッセージ |
+| 削除 | 「〇〇を削除しました」メッセージ |
+| 統計 | 集計結果がわかりやすく表示される |
+
+---
+
+## トラブルシューティング
+
+### AIが応答しない場合
+- ログイン状態を確認
+- ページをリロード
+- クレジット残高を確認
+
+### ツールが実行されない場合
+- プロンプトをより具体的に記述
+- 必須パラメータが含まれているか確認
+
+### エラーが表示される場合
+- コンソールログを確認
+- Edge Functionのログを確認
+
+---
+
+## 実装後のテスト実行
+
+このプランを承認後、実際にAIチャット画面で各プロンプトをテストできます。
+テスト結果に基づいて、必要に応じてツールの修正・改善を行います。
+
