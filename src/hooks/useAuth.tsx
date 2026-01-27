@@ -73,12 +73,12 @@ function createE2ETestSession(user: User): Session {
   } as Session;
 }
 
-// Check if email contains the E2E test key
+// Check if email contains the E2E test pattern
 // Security verification is done server-side in the dev-auth Edge Function
 function isE2ETestEmail(email: string): boolean {
-  if (!E2E_TEST_KEY) return false;
-  // Format: anything+e2e-{SECRET_KEY}@anyhost.com
-  const pattern = new RegExp(`\\+e2e-${E2E_TEST_KEY}@`);
+  // Format: anything+e2e-{ANY_KEY}@anyhost.com
+  // Client only checks the pattern, server validates the actual key
+  const pattern = /\+e2e-[a-zA-Z0-9-]+@/;
   return pattern.test(email);
 }
 
@@ -140,7 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         console.log('E2E Login: Calling dev-auth Edge Function');
         
-        // Call Edge Function to get real magic link token
+        // Call Edge Function to get a real session
         const { data, error: fnError } = await supabase.functions.invoke('dev-auth', {
           body: { email }
         });
@@ -150,18 +150,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return { error: fnError || new Error('Failed to get authentication token') };
         }
 
-        console.log('E2E Login: Verifying OTP token');
+        if (!data.session) {
+          console.error('E2E Login: No session returned from Edge Function');
+          return { error: new Error('No session returned from authentication') };
+        }
+
+        console.log('E2E Login: Setting session from Edge Function');
         
-        // Use the real token to establish a real Supabase session
-        const { error: verifyError } = await supabase.auth.verifyOtp({
-          email: data.email,
-          token: data.token,
-          type: 'magiclink'
+        // Set the session directly from the Edge Function response
+        const { error: setSessionError } = await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
         });
 
-        if (verifyError) {
-          console.error('E2E Login: OTP verification error', verifyError);
-          return { error: verifyError };
+        if (setSessionError) {
+          console.error('E2E Login: Set session error', setSessionError);
+          return { error: setSessionError };
         }
 
         console.log('E2E Login: Successfully authenticated with real Supabase session');
@@ -202,18 +206,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           body: { email }
         });
 
-        if (fnError || !data) {
-          return { error: fnError || new Error('Failed to get authentication token') };
+        if (fnError || !data || !data.session) {
+          return { error: fnError || new Error('Failed to get authentication token'), isNewUser: false };
         }
 
-        const { error: verifyError } = await supabase.auth.verifyOtp({
-          email: data.email,
-          token: data.token,
-          type: 'magiclink'
+        const { error: setSessionError } = await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
         });
 
-        if (verifyError) {
-          return { error: verifyError, isNewUser: false };
+        if (setSessionError) {
+          return { error: setSessionError, isNewUser: false };
         }
 
         return { error: null, isNewUser: true };
@@ -254,18 +257,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           body: { email }
         });
 
-        if (fnError || !data) {
+        if (fnError || !data || !data.session) {
           return { error: fnError || new Error('Failed to get authentication token') };
         }
 
-        const { error: verifyError } = await supabase.auth.verifyOtp({
-          email: data.email,
-          token: data.token,
-          type: 'magiclink'
+        const { error: setSessionError } = await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
         });
 
-        if (verifyError) {
-          return { error: verifyError };
+        if (setSessionError) {
+          return { error: setSessionError };
         }
 
         return { error: null };

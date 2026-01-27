@@ -37,8 +37,10 @@ Deno.serve(async (req) => {
 
     // Validate E2E test email pattern: anything+e2e-{SECRET_KEY}@anyhost.com
     const pattern = new RegExp(`\\+e2e-${E2E_TEST_KEY}@`);
+    console.log("Email received:", email);
+    console.log("E2E key pattern check:", pattern.toString());
     if (!pattern.test(email)) {
-      console.error("Invalid E2E test email pattern");
+      console.error("Invalid E2E test email pattern - expected pattern:", pattern.toString());
       return new Response(
         JSON.stringify({ error: "Invalid test email" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -55,6 +57,9 @@ Deno.serve(async (req) => {
         persistSession: false,
       },
     });
+
+    // Fixed password for E2E test users
+    const testPassword = `e2e-test-${E2E_TEST_KEY}-secure`;
 
     // Check if user already exists
     const { data: existingUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers();
@@ -74,7 +79,7 @@ Deno.serve(async (req) => {
       console.log("Creating new E2E test user:", email);
       const { data: newUserData, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email,
-        password: `e2e-test-${E2E_TEST_KEY}-secure`,
+        password: testPassword,
         email_confirm: true,
         user_metadata: {
           display_name: "E2E Test User",
@@ -100,28 +105,68 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Generate a real magic link for the user
-    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-      type: "magiclink",
-      email: user.email!,
+    // Sign in as the user to get a real session
+    // Use a separate client with anon key for actual sign-in
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
     });
 
-    if (linkError || !linkData) {
-      console.error("Error generating magic link:", linkError);
+    const { data: signInData, error: signInError } = await supabaseClient.auth.signInWithPassword({
+      email: user.email!,
+      password: testPassword,
+    });
+
+    if (signInError || !signInData.session) {
+      console.error("Error signing in test user:", signInError);
+      
+      // If sign in fails, user might have a different password - update it
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(user.id, {
+        password: testPassword,
+      });
+
+      if (updateError) {
+        console.error("Error updating user password:", updateError);
+        return new Response(
+          JSON.stringify({ error: "Failed to authenticate test user" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Try signing in again
+      const { data: retryData, error: retryError } = await supabaseClient.auth.signInWithPassword({
+        email: user.email!,
+        password: testPassword,
+      });
+
+      if (retryError || !retryData.session) {
+        console.error("Error signing in after password update:", retryError);
+        return new Response(
+          JSON.stringify({ error: "Failed to authenticate test user" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      console.log("E2E user authenticated successfully (after password update):", user.email);
       return new Response(
-        JSON.stringify({ error: "Failed to generate authentication link" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          session: retryData.session,
+          user: retryData.user,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("Generated magic link for E2E user:", user.email);
+    console.log("E2E user authenticated successfully:", user.email);
 
-    // Return the token hash that can be used with verifyOtp
+    // Return the real session
     return new Response(
       JSON.stringify({
-        token: linkData.properties.hashed_token,
-        email: user.email,
-        type: "magiclink",
+        session: signInData.session,
+        user: signInData.user,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
