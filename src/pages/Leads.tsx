@@ -33,6 +33,7 @@ const statusColors: Record<LeadStatus, string> = {
 
 export default function Leads() {
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     company_name: "",
@@ -49,10 +50,12 @@ export default function Leads() {
   const deleteLead = useDeleteLead();
   const updateLead = useUpdateLead();
 
-  const filtered = leads.filter(l =>
-    l.company_name.toLowerCase().includes(search.toLowerCase()) ||
-    l.contact_name?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = leads.filter(l => {
+    const matchesSearch = l.company_name.toLowerCase().includes(search.toLowerCase()) ||
+      l.contact_name?.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = statusFilter === "all" || l.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,11 +106,22 @@ export default function Leads() {
           </Dialog>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+          <div className="relative flex-1 max-w-sm w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="検索..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
           </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="ステータス" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">すべてのステータス</SelectItem>
+              {Object.entries(leadStatusLabels).map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="border rounded-lg">

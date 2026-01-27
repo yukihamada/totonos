@@ -7,6 +7,7 @@ import { useDeals, useUpdateDeal } from "@/hooks/useCRM";
 import { TrendingUp, TrendingDown, DollarSign, Target, Users, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/types/database";
 import type { Database } from "@/integrations/supabase/types";
+import { cn } from "@/lib/utils";
 
 type DealStage = Database['public']['Enums']['deal_stage'];
 
@@ -164,9 +165,15 @@ export default function Pipeline() {
                   {stageDeals.map(deal => (
                     <Card
                       key={deal.id}
-                      className="cursor-grab active:cursor-grabbing bg-white shadow-sm hover:shadow-md transition-shadow"
+                      className={cn(
+                        "cursor-grab active:cursor-grabbing bg-white shadow-sm transition-all duration-200",
+                        draggedDeal === deal.id 
+                          ? "scale-105 shadow-xl opacity-75 rotate-2 ring-2 ring-primary" 
+                          : "hover:shadow-md hover:-translate-y-0.5"
+                      )}
                       draggable
                       onDragStart={() => handleDragStart(deal.id)}
+                      onDragEnd={() => setDraggedDeal(null)}
                     >
                       <CardContent className="p-3">
                         <div className="space-y-2">
