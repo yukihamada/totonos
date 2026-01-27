@@ -15,11 +15,13 @@ import { useDeals, useCreateDeal, useUpdateDeal } from "@/hooks/useCRM";
 import { stageLabels, stageColors } from "@/types/crm";
 import type { DealStage } from "@/types/crm";
 import { LoadingWithTips } from "@/components/LoadingWithTips";
+import { cn } from "@/lib/utils";
 
 const stages: DealStage[] = ['initial', 'proposal', 'negotiation', 'contract', 'won', 'lost'];
 
 export default function Deals() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     deal_name: "",
     amount: 0,
@@ -41,6 +43,11 @@ export default function Deals() {
 
   const handleDragStart = (e: React.DragEvent, dealId: string) => {
     e.dataTransfer.setData("dealId", dealId);
+    setDraggingId(dealId);
+  };
+
+  const handleDragEnd = () => {
+    setDraggingId(null);
   };
 
   const handleDrop = (e: React.DragEvent, stage: DealStage) => {
@@ -111,7 +118,13 @@ export default function Deals() {
                         key={deal.id}
                         draggable
                         onDragStart={e => handleDragStart(e, deal.id)}
-                        className="cursor-move hover:shadow-md transition-shadow"
+                        onDragEnd={handleDragEnd}
+                        className={cn(
+                          "cursor-move transition-all duration-200",
+                          draggingId === deal.id 
+                            ? "scale-105 shadow-xl opacity-75 rotate-2 ring-2 ring-primary" 
+                            : "hover:shadow-md hover:-translate-y-0.5"
+                        )}
                       >
                         <CardHeader className="p-2 sm:p-3 pb-1">
                           <CardTitle className="text-xs sm:text-sm font-medium truncate">{deal.deal_name}</CardTitle>

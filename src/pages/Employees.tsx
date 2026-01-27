@@ -44,8 +44,16 @@ const employmentTypeLabels: Record<EmploymentType, string> = {
   intern: 'インターン',
 };
 
+const statusLabels = {
+  active: '在籍',
+  on_leave: '休職中',
+  resigned: '退職',
+};
+
 export default function Employees() {
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [departmentFilter, setDepartmentFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     employee_number: "",
@@ -63,11 +71,17 @@ export default function Employees() {
   const createEmployee = useCreateEmployee();
   const deleteEmployee = useDeleteEmployee();
 
-  const filtered = employees.filter(e =>
-    e.name.toLowerCase().includes(search.toLowerCase()) ||
-    e.employee_number.toLowerCase().includes(search.toLowerCase()) ||
-    e.department?.toLowerCase().includes(search.toLowerCase())
-  );
+  // Get unique departments for filter
+  const departments = [...new Set(employees.map(e => e.department).filter(Boolean))];
+
+  const filtered = employees.filter(e => {
+    const matchesSearch = e.name.toLowerCase().includes(search.toLowerCase()) ||
+      e.employee_number.toLowerCase().includes(search.toLowerCase()) ||
+      e.department?.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = statusFilter === "all" || e.status === statusFilter;
+    const matchesDepartment = departmentFilter === "all" || e.department === departmentFilter;
+    return matchesSearch && matchesStatus && matchesDepartment;
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -180,8 +194,8 @@ export default function Employees() {
           </Dialog>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+          <div className="relative flex-1 max-w-sm w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="検索..."
@@ -190,6 +204,28 @@ export default function Employees() {
               className="pl-9"
             />
           </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-[140px]">
+              <SelectValue placeholder="ステータス" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">すべて</SelectItem>
+              {Object.entries(statusLabels).map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+            <SelectTrigger className="w-full sm:w-[160px]">
+              <SelectValue placeholder="部署" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">すべての部署</SelectItem>
+              {departments.map(dept => (
+                <SelectItem key={dept} value={dept!}>{dept}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="border rounded-lg">

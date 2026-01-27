@@ -13,8 +13,8 @@ export const hrTools = [
         },
         status: {
           type: "string",
-          enum: ["active", "inactive", "on_leave"],
-          description: "ステータスでフィルタ",
+          enum: ["active", "on_leave", "resigned"],
+          description: "ステータスでフィルタ: active(在籍), on_leave(休職中), resigned(退職)",
         },
         limit: {
           type: "number",
@@ -92,8 +92,8 @@ export const hrTools = [
         },
         status: {
           type: "string",
-          enum: ["active", "inactive", "on_leave"],
-          description: "ステータス",
+          enum: ["active", "on_leave", "resigned"],
+          description: "ステータス: active(在籍), on_leave(休職中), resigned(退職)",
         },
         salary: {
           type: "number",
