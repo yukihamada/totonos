@@ -134,15 +134,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInWithMagicLink = async (email: string): Promise<{ error: Error | null; isE2ELogin?: boolean }> => {
-    // E2E Test: Auto-login when email contains test key
+    // E2E Test: Use real Supabase authentication via Edge Function
     if (isE2ETestEmail(email)) {
-      const testUser = createE2ETestUser(email);
-      const testSession = createE2ETestSession(testUser);
-      setUser(testUser);
-      setSession(testSession);
-      // Store in localStorage for Playwright storageState persistence
-      localStorage.setItem('e2e_test_session', JSON.stringify({ user: testUser, session: testSession }));
-      return { error: null, isE2ELogin: true };
+      try {
+        console.log('E2E Login: Calling dev-auth Edge Function');
+        
+        // Call Edge Function to get real magic link token
+        const { data, error: fnError } = await supabase.functions.invoke('dev-auth', {
+          body: { email }
+        });
+
+        if (fnError || !data) {
+          console.error('E2E Login: Edge Function error', fnError);
+          return { error: fnError || new Error('Failed to get authentication token') };
+        }
+
+        console.log('E2E Login: Verifying OTP token');
+        
+        // Use the real token to establish a real Supabase session
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+          email: data.email,
+          token: data.token,
+          type: 'magiclink'
+        });
+
+        if (verifyError) {
+          console.error('E2E Login: OTP verification error', verifyError);
+          return { error: verifyError };
+        }
+
+        console.log('E2E Login: Successfully authenticated with real Supabase session');
+        return { error: null, isE2ELogin: true };
+      } catch (err) {
+        console.error('E2E Login: Unexpected error', err);
+        return { error: err as Error };
+      }
     }
 
     const redirectUrl = `${window.location.origin}/dashboard`;
@@ -152,10 +178,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         emailRedirectTo: redirectUrl,
       },
     });
-
-    // Note: Supabase handles the OTP email internally
-    // If you want to fully customize, you'd need to use a custom SMTP setup
-    // The edge function is available for additional welcome/notification emails
 
     return { error: error as Error | null };
   };
@@ -172,14 +194,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (email: string, password: string) => {
-    // E2E Test: Auto-login when email contains test key
+    // E2E Test: Use real Supabase authentication via Edge Function
     if (isE2ETestEmail(email)) {
-      const testUser = createE2ETestUser(email);
-      const testSession = createE2ETestSession(testUser);
-      setUser(testUser);
-      setSession(testSession);
-      localStorage.setItem('e2e_test_session', JSON.stringify({ user: testUser, session: testSession }));
-      return { error: null, isNewUser: true };
+      try {
+        const { data, error: fnError } = await supabase.functions.invoke('dev-auth', {
+          body: { email }
+        });
+
+        if (fnError || !data) {
+          return { error: fnError || new Error('Failed to get authentication token') };
+        }
+
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+          email: data.email,
+          token: data.token,
+          type: 'magiclink'
+        });
+
+        if (verifyError) {
+          return { error: verifyError, isNewUser: false };
+        }
+
+        return { error: null, isNewUser: true };
+      } catch (err) {
+        return { error: err as Error, isNewUser: false };
+      }
     }
 
     const redirectUrl = `${window.location.origin}/dashboard`;
@@ -207,14 +246,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    // E2E Test: Auto-login when email contains test key
+    // E2E Test: Use real Supabase authentication via Edge Function
     if (isE2ETestEmail(email)) {
-      const testUser = createE2ETestUser(email);
-      const testSession = createE2ETestSession(testUser);
-      setUser(testUser);
-      setSession(testSession);
-      localStorage.setItem('e2e_test_session', JSON.stringify({ user: testUser, session: testSession }));
-      return { error: null };
+      try {
+        const { data, error: fnError } = await supabase.functions.invoke('dev-auth', {
+          body: { email }
+        });
+
+        if (fnError || !data) {
+          return { error: fnError || new Error('Failed to get authentication token') };
+        }
+
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+          email: data.email,
+          token: data.token,
+          type: 'magiclink'
+        });
+
+        if (verifyError) {
+          return { error: verifyError };
+        }
+
+        return { error: null };
+      } catch (err) {
+        return { error: err as Error };
+      }
     }
 
     const { error } = await supabase.auth.signInWithPassword({
