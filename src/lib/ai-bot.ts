@@ -21,3 +21,13 @@ export function isAIBot(senderId: string | null | undefined): boolean {
 export function containsAIMention(content: string): boolean {
   return content.includes(AI_BOT.mentionTrigger) || content.includes('@ミナト');
 }
+
+// Get AI bot as a selectable member format
+export function getAIBotAsMember() {
+  return {
+    user_id: AI_BOT.id,
+    isAI: true,
+    displayName: AI_BOT.displayName,
+    name: AI_BOT.name
+  };
+}

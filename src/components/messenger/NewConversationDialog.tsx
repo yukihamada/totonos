@@ -17,8 +17,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Users, Loader2 } from "lucide-react";
+import { User, Users, Loader2, Bot } from "lucide-react";
 import { toast } from "sonner";
+import { AI_BOT } from "@/lib/ai-bot";
 
 interface NewConversationDialogProps {
   open: boolean;
@@ -40,6 +41,9 @@ export function NewConversationDialog({
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
   const otherMembers = members?.filter(m => m.user_id !== user?.id) || [];
+  
+  // Check if AI is selected
+  const isAISelected = selectedUsers.includes(AI_BOT.id);
 
   const handleToggleUser = (userId: string) => {
     if (type === 'direct') {
@@ -68,7 +72,8 @@ export function NewConversationDialog({
       const conversation = await createConversation.mutateAsync({
         name: type === 'group' ? groupName.trim() : undefined,
         type,
-        participantIds: selectedUsers
+        participantIds: selectedUsers.filter(id => id !== AI_BOT.id),
+        includesAI: isAISelected
       });
       
       onCreated(conversation.id);
@@ -140,42 +145,69 @@ export function NewConversationDialog({
             <div className="flex items-center justify-center h-full">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-          ) : otherMembers.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-              他のメンバーがいません
-            </div>
           ) : (
             <div className="p-2 space-y-1">
-              {otherMembers.map((member) => {
-                const displayName = getDisplayName(member);
-                const isSelected = selectedUsers.includes(member.user_id);
-                
-                return (
-                  <button
-                    key={member.user_id}
-                    onClick={() => handleToggleUser(member.user_id)}
-                    className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    {type === 'group' && (
-                      <Checkbox checked={isSelected} />
-                    )}
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="text-xs bg-muted">
-                        {displayName.slice(0, 2)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 text-left">
-                      <p className="font-medium">{displayName}</p>
-                      <p className="text-xs text-muted-foreground capitalize">
-                        {member.role}
-                      </p>
-                    </div>
-                    {type === 'direct' && isSelected && (
-                      <div className="w-2 h-2 rounded-full bg-primary" />
-                    )}
-                  </button>
-                );
-              })}
+              {/* AI Bot Option - Always First */}
+              <button
+                onClick={() => handleToggleUser(AI_BOT.id)}
+                className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors border-b border-border mb-1"
+              >
+                {type === 'group' && (
+                  <Checkbox checked={isAISelected} />
+                )}
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="text-xs bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                    <Bot className="h-4 w-4" />
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 text-left">
+                  <p className="font-medium">{AI_BOT.displayName}</p>
+                  <p className="text-xs text-muted-foreground">
+                    AIアシスタント
+                  </p>
+                </div>
+                {type === 'direct' && isAISelected && (
+                  <div className="w-2 h-2 rounded-full bg-primary" />
+                )}
+              </button>
+              
+              {/* Human Members */}
+              {otherMembers.length === 0 ? (
+                <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
+                  他のメンバーがいません
+                </div>
+              ) : (
+                otherMembers.map((member) => {
+                  const displayName = getDisplayName(member);
+                  const isSelected = selectedUsers.includes(member.user_id);
+                  
+                  return (
+                    <button
+                      key={member.user_id}
+                      onClick={() => handleToggleUser(member.user_id)}
+                      className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      {type === 'group' && (
+                        <Checkbox checked={isSelected} />
+                      )}
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback className="text-xs bg-muted">
+                          {displayName.slice(0, 2)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 text-left">
+                        <p className="font-medium">{displayName}</p>
+                        <p className="text-xs text-muted-foreground capitalize">
+                          {member.role}
+                        </p>
+                      </div>
+                      {type === 'direct' && isSelected && (
+                        <div className="w-2 h-2 rounded-full bg-primary" />
+                      )}
+                    </button>
+                  );
+                })
+              )}
             </div>
           )}
         </ScrollArea>

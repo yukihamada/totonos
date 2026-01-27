@@ -4,20 +4,21 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { AI_BOT } from "@/lib/ai-bot";
 import { cn } from "@/lib/utils";
 
-interface MentionCandidate {
+export interface MentionCandidate {
   id: string;
   name: string;
   isAI: boolean;
 }
 
-interface MentionPopupProps {
+export interface MentionPopupProps {
+  isOpen: boolean;
   candidates: MentionCandidate[];
   selectedIndex: number;
   onSelect: (candidate: MentionCandidate) => void;
-  position: { top: number; left: number };
+  onClose: () => void;
 }
 
-export function MentionPopup({ candidates, selectedIndex, onSelect, position }: MentionPopupProps) {
+export function MentionPopup({ isOpen, candidates, selectedIndex, onSelect, onClose }: MentionPopupProps) {
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -25,12 +26,11 @@ export function MentionPopup({ candidates, selectedIndex, onSelect, position }: 
     selectedEl?.scrollIntoView({ block: "nearest" });
   }, [selectedIndex]);
 
-  if (candidates.length === 0) return null;
+  if (!isOpen || candidates.length === 0) return null;
 
   return (
     <div
-      className="absolute z-50 bg-popover border border-border rounded-lg shadow-lg overflow-hidden min-w-[200px]"
-      style={{ bottom: position.top, left: position.left }}
+      className="absolute bottom-full left-0 mb-2 z-50 bg-popover border border-border rounded-lg shadow-lg overflow-hidden min-w-[200px]"
     >
       <div ref={listRef} className="max-h-48 overflow-y-auto">
         {candidates.map((candidate, idx) => (
@@ -71,8 +71,8 @@ export function MentionPopup({ candidates, selectedIndex, onSelect, position }: 
 
 // Create mention candidates including AI bot
 export function createMentionCandidates(
-  members: Array<{ user_id: string; profiles?: { display_name: string | null } }>,
-  currentUserId: string | undefined
+  members: Array<{ user_id: string; profiles?: { display_name: string | null } | null }>,
+  currentUserId?: string
 ): MentionCandidate[] {
   const candidates: MentionCandidate[] = [
     {

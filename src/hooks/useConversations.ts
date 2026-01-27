@@ -11,6 +11,7 @@ export interface Conversation {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  includes_ai?: boolean;
   participants?: ConversationParticipant[];
   last_message?: {
     content: string;
@@ -57,7 +58,14 @@ export function useConversations() {
       const { data: conversations, error } = await supabase
         .from('conversations')
         .select(`
-          *,
+          id,
+          company_id,
+          name,
+          type,
+          created_by,
+          created_at,
+          updated_at,
+          includes_ai,
           participants:conversation_participants(
             id,
             user_id,
@@ -164,11 +172,13 @@ export function useCreateConversation() {
     mutationFn: async ({
       name,
       type,
-      participantIds
+      participantIds,
+      includesAI = false
     }: {
       name?: string;
       type: 'direct' | 'group' | 'channel';
       participantIds: string[];
+      includesAI?: boolean;
     }) => {
       if (!user || !company) throw new Error('User or company not found');
 
@@ -213,7 +223,8 @@ export function useCreateConversation() {
           company_id: company.id,
           name: name || null,
           type,
-          created_by: user.id
+          created_by: user.id,
+          includes_ai: includesAI
         })
         .select()
         .single();
