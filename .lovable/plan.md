@@ -1,183 +1,212 @@
 
-# メッセンジャーAI統合 - 残り実装プラン
+# PDF日本語表示の確実な修正プラン
 
-## 概要
+## 問題の根本原因
 
-前回完了した部分（DB変更、AIボット定義、Edge Function、AIMessageBubble等）に加えて、以下の残りの機能を実装します。
+**jsPDFはTTF形式のみをサポートしていますが、現在のコードは`.woff`形式のフォントをロードしています。**
 
-## 実装内容
+| 項目 | 現状 | 正しい設定 |
+|------|------|-----------|
+| フォント形式 | `.woff` | `.ttf` |
+| URL | `...NotoSansJP-Regular.woff` | `.ttf`ファイルのURL |
+| jsPDF互換性 | ❌ 非対応 | ✅ 対応 |
 
-### 1. NewConversationDialog - AI選択オプション追加
+この形式の不一致により、jsPDFがフォントデータを正しく解析できず、日本語が文字化けまたは表示されない状態になっています。
 
-**ファイル**: `src/components/messenger/NewConversationDialog.tsx`
+---
 
-**変更内容**:
-- AI_BOTをインポートして選択肢として表示
-- AIが選択された場合は`includes_ai: true`フラグを設定
-- AI専用のアイコン（Bot）を表示
+## 修正方法
+
+### 1. フォントURLをTTF形式に変更
+
+**ファイル**: `src/lib/fonts/noto-sans-jp.ts`
+
+信頼できるCDNからNoto Sans JP の **TTF形式** を取得するようURLを変更します。
 
 ```typescript
-import { AI_BOT } from "@/lib/ai-bot";
-import { Bot } from "lucide-react";
+// 変更前（WOFF形式 - jsPDF非対応）
+export const NOTO_SANS_JP_URL = 'https://cdn.jsdelivr.net/gh/nicolo-ribaudo/noto-sans-japanese-static@2.005/NotoSansJP-Regular.woff';
 
-// 選択可能なメンバーリストにAIを追加
-const selectableMembers = [
-  {
-    user_id: AI_BOT.id,
-    isAI: true,
-    displayName: AI_BOT.displayName,
-  },
-  ...otherMembers
-];
+// 変更後（TTF形式 - jsPDF対応）
+export const NOTO_SANS_JP_URL = 'https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp@5.0.19/files/noto-sans-jp-all-400-normal.woff';
+// ↑ まだWOFFのため、別のソースが必要
+
+// 確実に動作するTTFソース（Google Fonts公式リポジトリ）
+export const NOTO_SANS_JP_URL = 'https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/Japanese/NotoSansCJKjp-Regular.otf';
+// ↑ OTFもjsPDFで動作する場合があるが、TTFが最も安全
+
+// 最も推奨されるソース
+export const NOTO_SANS_JP_URL = 'https://cdn.jsdelivr.net/gh/nicolo-ribaudo/noto-sans-japanese-static@2.005/NotoSansJP-Regular.otf';
 ```
 
-### 2. useConversations - AI会話対応
-
-**ファイル**: `src/hooks/useConversations.ts`
-
-**変更内容**:
-- `includes_ai`フラグをクエリに追加
-- AI会話作成時に`includes_ai: true`を設定
-- AIユーザーの場合は参加者として追加しない（仮想ユーザーのため）
+**推奨される最終的なURL**:
+複数のソースをテストし、確実に動作するものを使用：
 
 ```typescript
-// AI会話作成時
-const { data: conversation } = await supabase
-  .from('conversations')
-  .insert({
-    company_id: company.id,
-    name: includesAI ? 'ミナト (AI)' : name,
-    type,
-    created_by: user.id,
-    includes_ai: includesAI
-  })
+// Option 1: Google Fonts StaticからのTTF（軽量版）
+export const NOTO_SANS_JP_URL = 'https://cdn.jsdelivr.net/gh/nicolo-ribaudo/noto-sans-japanese-static@2.005/NotoSansJP-Regular.otf';
+
+// Option 2: fonts.bunny.net からのTTF（高速CDN）
+export const NOTO_SANS_JP_URL = 'https://fonts.bunny.net/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff2';
+// ↑ WOFF2は非対応
+
+// Option 3: 事前にBase64としてプロジェクトに埋め込み（最も確実）
+// → フォントファイルを手動でBase64に変換し、静的ファイルとして含める
 ```
 
-### 3. ConversationList - AI会話の表示対応
+### 2. 確実な解決策：事前埋め込みBase64
 
-**ファイル**: `src/components/messenger/ConversationList.tsx`
+動的なCDN取得ではなく、**ビルド時にフォントを含める**ことで確実性を担保します。
 
-**変更内容**:
-- AI会話には特別なアイコン（Bot）を表示
-- AIとのDMの場合は名前を「ミナト (AI)」に設定
+**新規ファイル**: `src/lib/fonts/noto-sans-jp-embedded.ts`
 
 ```typescript
-import { Bot } from "lucide-react";
-import { AI_BOT, isAIBot } from "@/lib/ai-bot";
+// Noto Sans JP Regular - Pre-encoded Base64 TTF
+// Generated from https://github.com/googlefonts/noto-cjk
+// File size: ~2MB (base64: ~2.7MB)
 
-// 会話名の取得時
-const getConversationName = (conv: Conversation) => {
-  if (conv.includes_ai && conv.type === 'direct') {
-    return AI_BOT.displayName;
-  }
-  // ... 既存ロジック
-};
+export const NOTO_SANS_JP_BASE64 = "AAEAAAASAQAABAAgR0RFRj..." // 約2.7MB
 
-// アバター表示時
-{conv.includes_ai && conv.type === 'direct' ? (
-  <Bot className="h-4 w-4" />
-) : conv.type === 'group' ? (
-  <Users className="h-4 w-4" />
-) : (
-  getInitials(name)
-)}
-```
-
-### 4. MessageInput - メンション補完機能
-
-**ファイル**: `src/components/messenger/MessageInput.tsx`
-
-**変更内容**:
-- `@`入力時にメンション候補をポップアップ表示
-- MentionPopupコンポーネントを使用
-- 矢印キーで選択、Enterで確定
-- メンバー一覧 + AI「ミナト」を候補に表示
-
-```typescript
-import { MentionPopup, createMentionCandidates } from "./MentionPopup";
-import { useConversation } from "@/hooks/useConversations";
-import { useCompanyMembers } from "@/hooks/useCompany";
-
-// メンション状態管理
-const [showMentionPopup, setShowMentionPopup] = useState(false);
-const [mentionQuery, setMentionQuery] = useState("");
-const [selectedIndex, setSelectedIndex] = useState(0);
-
-// @入力検知
-const handleChange = (e) => {
-  const value = e.target.value;
-  setContent(value);
-  
-  // @の後のテキストを検出
-  const lastAtIndex = value.lastIndexOf('@');
-  if (lastAtIndex !== -1) {
-    const query = value.slice(lastAtIndex + 1);
-    if (!query.includes(' ')) {
-      setMentionQuery(query);
-      setShowMentionPopup(true);
-    }
-  } else {
-    setShowMentionPopup(false);
-  }
-};
-
-// メンション選択時
-const handleSelectMention = (candidate) => {
-  const lastAtIndex = content.lastIndexOf('@');
-  const newContent = content.slice(0, lastAtIndex) + '@' + candidate.name + ' ';
-  setContent(newContent);
-  setShowMentionPopup(false);
-};
-```
-
-### 5. useSendMessage - AI応答トリガー追加
-
-**ファイル**: `src/hooks/useMessages.ts`
-
-**変更内容**:
-- メッセージ送信後に`@ミナト`を検出
-- 会話に`includes_ai`がある場合もAI応答をトリガー
-- `useMessengerAI`フックを使用
-
-```typescript
-import { useMessengerAI, shouldTriggerAI } from "@/hooks/useMessengerAI";
-import { containsAIMention } from "@/lib/ai-bot";
-
-// useSendMessage内
-const { triggerAIResponse } = useMessengerAI();
-
-// メッセージ送信後
-if (shouldTriggerAI(content, conversation.includes_ai)) {
-  triggerAIResponse(conversationId, content, conversation.includes_ai);
+export function getEmbeddedFont(): string {
+  return NOTO_SANS_JP_BASE64;
 }
 ```
 
+**注意**: Base64埋め込みはバンドルサイズが大きくなるため、動的ロードが失敗した場合のフォールバックとして使用することを推奨。
+
+### 3. フォントロード関数の改善
+
+**ファイル**: `src/lib/fonts/noto-sans-jp.ts`
+
+```typescript
+// 複数のフォントソースを試行するフォールバック機能
+const FONT_SOURCES = [
+  // Primary: jsdelivr CDN (TTF/OTF)
+  'https://cdn.jsdelivr.net/gh/nicolo-ribaudo/noto-sans-japanese-static@2.005/NotoSansJP-Regular.otf',
+  // Fallback 1: Google Fonts GitHub (OTF)  
+  'https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/Japanese/NotoSansCJKjp-Regular.otf',
+  // Fallback 2: Alternative CDN
+  'https://unpkg.com/noto-sans-jp-subset@1.0.0/fonts/NotoSansJP-Regular.otf',
+];
+
+export async function loadNotoSansJP(): Promise<string> {
+  if (fontCache) {
+    return fontCache;
+  }
+
+  let lastError: Error | null = null;
+
+  for (const url of FONT_SOURCES) {
+    try {
+      console.log(`[Font] Trying: ${url}`);
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      const arrayBuffer = await response.arrayBuffer();
+      
+      // Validate minimum size (Japanese fonts should be > 1MB)
+      if (arrayBuffer.byteLength < 500000) {
+        throw new Error('Font file too small, likely invalid');
+      }
+      
+      const base64 = arrayBufferToBase64(arrayBuffer);
+      fontCache = base64;
+      console.log('[Font] Successfully loaded from:', url);
+      return base64;
+    } catch (error) {
+      console.warn(`[Font] Failed to load from ${url}:`, error);
+      lastError = error as Error;
+    }
+  }
+
+  throw lastError || new Error('All font sources failed');
+}
+```
+
+### 4. pdf-generatorの検証ログ追加
+
+**ファイル**: `src/lib/pdf-generator.ts`
+
+初期化成功をより明確に検証：
+
+```typescript
+const initializeJapaneseFont = async (doc: jsPDF): Promise<void> => {
+  try {
+    if (!fontCache) {
+      console.log('[PDF] Loading Japanese font...');
+      fontCache = await loadNotoSansJP();
+    }
+    
+    // Validate font data
+    if (!fontCache || fontCache.length < 100000) {
+      throw new Error('Invalid font data: too small');
+    }
+    
+    doc.addFileToVFS('NotoSansJP-Regular.ttf', fontCache);
+    doc.addFont('NotoSansJP-Regular.ttf', 'NotoSansJP', 'normal');
+    doc.setFont('NotoSansJP');
+    
+    // Verify font is actually set
+    const currentFont = doc.getFont();
+    if (currentFont.fontName !== 'NotoSansJP') {
+      throw new Error('Font was not set correctly');
+    }
+    
+    console.log('[PDF] ✓ Japanese font ready:', currentFont);
+  } catch (error) {
+    console.error('[PDF] Font initialization failed:', error);
+    // エラー時はPDF生成を中止するか、ユーザーに警告
+    throw new Error('日本語フォントの読み込みに失敗しました。');
+  }
+};
+```
+
+---
+
 ## 実装ファイル一覧
 
-### 修正ファイル
 | ファイル | 変更内容 |
 |----------|----------|
-| `src/components/messenger/NewConversationDialog.tsx` | AI選択オプション追加、Botアイコン表示 |
-| `src/components/messenger/ConversationList.tsx` | AI会話のアイコン・名前表示対応 |
-| `src/components/messenger/MessageInput.tsx` | メンション補完機能追加 |
-| `src/hooks/useConversations.ts` | includes_aiフラグ対応、AI会話作成対応 |
-| `src/hooks/useMessages.ts` | AI応答トリガー統合 |
-| `src/lib/ai-bot.ts` | ヘルパー関数追加（containsAIMention等） |
+| `src/lib/fonts/noto-sans-jp.ts` | TTF/OTF形式のURLに変更、フォールバック機能追加 |
+| `src/lib/pdf-generator.ts` | フォント検証ロジック追加、エラーハンドリング改善 |
+
+---
+
+## 技術的詳細
+
+### jsPDFのフォント対応形式
+| 形式 | 対応状況 | 備考 |
+|------|----------|------|
+| TTF | ✅ 完全対応 | 推奨 |
+| OTF | ✅ 対応 | TTFとほぼ同等 |
+| WOFF | ❌ 非対応 | Web専用の圧縮形式 |
+| WOFF2 | ❌ 非対応 | Web専用の圧縮形式 |
+
+### 推奨フォントソース
+
+1. **jsdelivr CDN** (高速・安定)
+   - `https://cdn.jsdelivr.net/gh/nicolo-ribaudo/noto-sans-japanese-static@2.005/NotoSansJP-Regular.otf`
+
+2. **GitHub Raw** (公式ソース)
+   - `https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/Japanese/NotoSansCJKjp-Regular.otf`
+
+---
 
 ## テスト項目
 
-1. **新規会話でAI選択**
-   - ダイアログでミナト(AI)が選択肢として表示される
-   - AI選択でDM作成時、includes_ai=trueで保存される
+1. **請求書PDFダウンロード**
+   - 「請求書」ヘッダーが正しく表示される
+   - 品目名、会社名などの日本語がすべて正しく表示される
 
-2. **会話一覧でAI表示**
-   - AIとのDMにBotアイコンが表示される
-   - 会話名が「ミナト (AI)」と表示される
+2. **見積書PDFダウンロード**
+   - 「見積書」ヘッダーが正しく表示される
 
-3. **メンション補完**
-   - `@`入力でポップアップが表示される
-   - 候補にミナト(AI)が含まれる
-   - 選択で`@ミナト `がテキストに挿入される
+3. **契約書PDFダウンロード**
+   - 「契約書」ヘッダーが正しく表示される
+   - 長い日本語テキストが正しく折り返される
 
-4. **AI応答トリガー**
-   - メンション送信後、AIから応答がリアルタイムで表示される
+4. **エラーケース**
+   - ネットワークエラー時に適切なエラーメッセージが表示される
