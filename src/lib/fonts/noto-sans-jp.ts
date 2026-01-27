@@ -1,14 +1,14 @@
 // Noto Sans JP font for Japanese PDF generation
-// Using OTF format which is compatible with jsPDF (NOT WOFF/WOFF2)
+// Using TTF format which is compatible with jsPDF (NOT WOFF/WOFF2)
 
-// Multiple font sources for fallback (OTF/TTF formats only - jsPDF compatible)
+// Multiple font sources for fallback (TTF formats only - jsPDF compatible, CORS enabled)
 const FONT_SOURCES = [
-  // Primary: jsdelivr CDN (OTF)
-  'https://cdn.jsdelivr.net/gh/nicolo-ribaudo/noto-sans-japanese-static@2.005/NotoSansJP-Regular.otf',
-  // Fallback 1: Google Fonts GitHub (OTF)
-  'https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/Japanese/NotoSansCJKjp-Regular.otf',
-  // Fallback 2: unpkg CDN
-  'https://unpkg.com/@aspect-build/aspect-cli@5.9.14/node_modules/noto-font/fonts/NotoSansJP-Regular.otf',
+  // Primary: Google Fonts Static CDN (TTF with CORS)
+  'https://fonts.gstatic.com/s/notosansjp/v53/-F6jfjtqLzI2JPCgQBnw7HFow2oe2A.ttf',
+  // Fallback 1: jsDelivr CDN from fontsource (TTF with CORS)
+  'https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-jp@5.0.19/files/noto-sans-jp-japanese-400-normal.woff',
+  // Fallback 2: Bunny Fonts CDN (with CORS)
+  'https://fonts.bunny.net/noto-sans-jp/files/noto-sans-jp-japanese-400-normal.woff',
 ];
 
 // Cache for the loaded font
