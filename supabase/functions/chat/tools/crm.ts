@@ -9,8 +9,8 @@ export const crmTools = [
       properties: {
         status: {
           type: "string",
-          enum: ["new", "contacted", "qualified", "proposal", "negotiation", "won", "lost"],
-          description: "ステータスでフィルタ",
+          enum: ["new", "contacted", "qualified", "converted", "lost"],
+          description: "ステータスでフィルタ: new(新規), contacted(連絡済), qualified(見込確定), converted(顧客化), lost(失注)",
         },
         source: {
           type: "string",
@@ -361,7 +361,7 @@ export async function executeCrmTool(
 
       if (error) throw new Error(error.message);
 
-      const stages = ["discovery", "proposal", "negotiation", "closed_won", "closed_lost"];
+      const stages = ["initial", "proposal", "negotiation", "contract", "won", "lost"];
       const stats = stages.map((stage) => {
         const stageDeals = data?.filter((d) => d.stage === stage) || [];
         return {
