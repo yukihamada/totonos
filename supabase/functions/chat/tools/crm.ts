@@ -62,7 +62,8 @@ export const crmTools = [
         },
         source: {
           type: "string",
-          description: "リードソース（例：Web、紹介、展示会）",
+          enum: ["website", "referral", "exhibition", "cold_call", "advertising", "other"],
+          description: "リードソース: website(ウェブサイト), referral(紹介), exhibition(展示会), cold_call(コールド), advertising(広告), other(その他)",
         },
         notes: {
           type: "string",
@@ -271,7 +272,7 @@ export async function executeCrmTool(
           contact_name: input.contact_name,
           email: input.email,
           phone: input.phone,
-          source: input.source || "その他",
+          source: input.source || "other",
           notes: input.notes,
           status: "new",
         })
