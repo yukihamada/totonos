@@ -31,113 +31,10 @@ import {
   Building2,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useLeadScoring, ScoredLead } from '@/hooks/useLeadScoring';
+import { Skeleton } from '@/components/ui/skeleton';
 
-interface ScoredLead {
-  id: string;
-  companyName: string;
-  contactName: string;
-  email: string;
-  phone: string;
-  source: string;
-  score: number;
-  previousScore: number;
-  trend: 'up' | 'down' | 'stable';
-  factors: {
-    engagement: number;
-    fitScore: number;
-    activityRecency: number;
-    companySize: number;
-    budget: number;
-  };
-  predictedConversion: number;
-  recommendedAction: string;
-  lastActivity: string;
-  createdAt: string;
-}
-
-// Mock scored leads
-const mockScoredLeads: ScoredLead[] = [
-  {
-    id: '1',
-    companyName: '株式会社テックイノベーション',
-    contactName: '田中 健一',
-    email: 'tanaka@techinnovation.co.jp',
-    phone: '03-1234-5678',
-    source: 'ウェブサイト',
-    score: 92,
-    previousScore: 85,
-    trend: 'up',
-    factors: { engagement: 95, fitScore: 90, activityRecency: 88, companySize: 85, budget: 92 },
-    predictedConversion: 78,
-    recommendedAction: '今すぐ電話でフォローアップ',
-    lastActivity: '2026-01-13',
-    createdAt: '2025-12-01',
-  },
-  {
-    id: '2',
-    companyName: 'グローバルソリューションズ株式会社',
-    contactName: '山本 美咲',
-    email: 'yamamoto@globalsolutions.jp',
-    phone: '03-9876-5432',
-    source: '展示会',
-    score: 85,
-    previousScore: 82,
-    trend: 'up',
-    factors: { engagement: 80, fitScore: 92, activityRecency: 75, companySize: 95, budget: 88 },
-    predictedConversion: 65,
-    recommendedAction: '提案資料を送付',
-    lastActivity: '2026-01-12',
-    createdAt: '2025-11-15',
-  },
-  {
-    id: '3',
-    companyName: 'スタートアップABC',
-    contactName: '佐藤 大輔',
-    email: 'sato@startupABC.com',
-    phone: '080-1111-2222',
-    source: '紹介',
-    score: 72,
-    previousScore: 75,
-    trend: 'down',
-    factors: { engagement: 65, fitScore: 78, activityRecency: 60, companySize: 55, budget: 80 },
-    predictedConversion: 42,
-    recommendedAction: 'ナーチャリングメール送信',
-    lastActivity: '2026-01-08',
-    createdAt: '2025-12-20',
-  },
-  {
-    id: '4',
-    companyName: '大手製造株式会社',
-    contactName: '伊藤 花子',
-    email: 'ito@oteseizo.co.jp',
-    phone: '06-3333-4444',
-    source: '広告',
-    score: 68,
-    previousScore: 68,
-    trend: 'stable',
-    factors: { engagement: 55, fitScore: 88, activityRecency: 50, companySize: 92, budget: 60 },
-    predictedConversion: 35,
-    recommendedAction: '追加情報のヒアリング',
-    lastActivity: '2026-01-05',
-    createdAt: '2025-10-01',
-  },
-  {
-    id: '5',
-    companyName: 'ベンチャーキャピタルX',
-    contactName: '鈴木 一郎',
-    email: 'suzuki@vcx.co.jp',
-    phone: '03-5555-6666',
-    source: 'コールドコール',
-    score: 45,
-    previousScore: 50,
-    trend: 'down',
-    factors: { engagement: 30, fitScore: 60, activityRecency: 25, companySize: 70, budget: 55 },
-    predictedConversion: 15,
-    recommendedAction: '長期ナーチャリング対象',
-    lastActivity: '2025-12-20',
-    createdAt: '2025-09-15',
-  },
-];
+// Removed mock data - now using useLeadScoring hook
 
 function ScoreBadge({ score }: { score: number }) {
   let color = 'bg-red-100 text-red-800';
@@ -193,16 +90,31 @@ function ScoreFactors({ factors }: { factors: ScoredLead['factors'] }) {
 
 export default function LeadScoring() {
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { data: scoredLeads = [], isLoading, refetch } = useLeadScoring();
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 2000);
+    refetch().finally(() => setIsRefreshing(false));
   };
 
-  const hotLeads = mockScoredLeads.filter(l => l.score >= 80);
-  const warmLeads = mockScoredLeads.filter(l => l.score >= 60 && l.score < 80);
-  const avgScore = Math.round(mockScoredLeads.reduce((sum, l) => sum + l.score, 0) / mockScoredLeads.length);
-  const avgConversion = Math.round(mockScoredLeads.reduce((sum, l) => sum + l.predictedConversion, 0) / mockScoredLeads.length);
+  const hotLeads = scoredLeads.filter(l => l.score >= 80);
+  const warmLeads = scoredLeads.filter(l => l.score >= 60 && l.score < 80);
+  const avgScore = scoredLeads.length > 0 ? Math.round(scoredLeads.reduce((sum, l) => sum + l.score, 0) / scoredLeads.length) : 0;
+  const avgConversion = scoredLeads.length > 0 ? Math.round(scoredLeads.reduce((sum, l) => sum + l.predictedConversion, 0) / scoredLeads.length) : 0;
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="space-y-6">
+          <Skeleton className="h-10 w-64" />
+          <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24" />)}
+          </div>
+          <Skeleton className="h-96" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -357,7 +269,7 @@ export default function LeadScoring() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {[...mockScoredLeads].sort((a, b) => b.score - a.score).map((lead) => (
+                    {[...scoredLeads].sort((a, b) => b.score - a.score).map((lead) => (
                       <TableRow key={lead.id}>
                         <TableCell>
                           <div>

@@ -33,75 +33,10 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
+import { useCandidates } from "@/hooks/useCandidates";
+import { Skeleton } from "@/components/ui/skeleton";
 
-// Mock data
-const mockCandidates = [
-  {
-    id: "1",
-    name: "田中一郎",
-    email: "tanaka@example.com",
-    phone: "090-1234-5678",
-    position: "フロントエンドエンジニア",
-    status: "interview",
-    stage: "技術面接",
-    source: "LinkedIn",
-    rating: 4,
-    appliedAt: new Date("2024-01-14"),
-    avatar: "TI",
-  },
-  {
-    id: "2",
-    name: "鈴木花子",
-    email: "suzuki@example.com",
-    phone: "090-2345-6789",
-    position: "プロダクトマネージャー",
-    status: "screening",
-    stage: "書類選考",
-    source: "自社サイト",
-    rating: 3,
-    appliedAt: new Date("2024-01-13"),
-    avatar: "SH",
-  },
-  {
-    id: "3",
-    name: "佐藤次郎",
-    email: "sato@example.com",
-    phone: "090-3456-7890",
-    position: "フロントエンドエンジニア",
-    status: "offer",
-    stage: "内定",
-    source: "リファラル",
-    rating: 5,
-    appliedAt: new Date("2024-01-12"),
-    avatar: "SJ",
-  },
-  {
-    id: "4",
-    name: "高橋美咲",
-    email: "takahashi@example.com",
-    phone: "090-4567-8901",
-    position: "カスタマーサポート",
-    status: "interview",
-    stage: "一次面接",
-    source: "Indeed",
-    rating: 4,
-    appliedAt: new Date("2024-01-11"),
-    avatar: "TM",
-  },
-  {
-    id: "5",
-    name: "伊藤健太",
-    email: "ito@example.com",
-    phone: "090-5678-9012",
-    position: "プロダクトマネージャー",
-    status: "interview",
-    stage: "最終面接",
-    source: "Wantedly",
-    rating: 5,
-    appliedAt: new Date("2024-01-10"),
-    avatar: "IK",
-  },
-];
+// Removed mock data - now using useCandidates hook
 
 const statusConfig = {
   new: { label: "新規", color: "bg-gray-500" },
@@ -125,10 +60,11 @@ export default function Candidates() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [positionFilter, setPositionFilter] = useState("all");
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
+  const { data: candidates = [], isLoading } = useCandidates();
 
-  const positions = [...new Set(mockCandidates.map((c) => c.position))];
+  const positions = [...new Set(candidates.map((c) => c.position))];
 
-  const filteredCandidates = mockCandidates.filter((candidate) => {
+  const filteredCandidates = candidates.filter((candidate) => {
     const matchesSearch =
       candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       candidate.email.toLowerCase().includes(searchTerm.toLowerCase());
@@ -138,6 +74,17 @@ export default function Candidates() {
       positionFilter === "all" || candidate.position === positionFilter;
     return matchesSearch && matchesStatus && matchesPosition;
   });
+
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="space-y-6">
+          <Skeleton className="h-10 w-64" />
+          <Skeleton className="h-96" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   // Group by stage for kanban view
   const kanbanColumns = [
@@ -177,7 +124,7 @@ export default function Candidates() {
             <div>
               <h1 className="text-2xl font-bold">候補者管理</h1>
               <p className="text-muted-foreground">
-                {mockCandidates.length}名の候補者
+                {candidates.length}名の候補者
               </p>
             </div>
           </div>
