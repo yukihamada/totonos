@@ -9,12 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Plus, TrendingUp, TrendingDown, Target } from 'lucide-react';
+import { ArrowLeft, Plus, TrendingUp, TrendingDown, Target, Loader2 } from 'lucide-react';
 import { useAccounts, useJournalEntries } from '@/hooks/useAccounting';
+import { useBudgets, useUpsertBudget } from '@/hooks/useBudgets';
 import { formatCurrency } from '@/types/database';
 import { Badge } from '@/components/ui/badge';
 
-// For demo purposes - in production this would come from database
 interface BudgetItem {
   accountId: string;
   accountCode: string;
@@ -32,6 +32,14 @@ export default function AccountingBudget() {
 
   const { data: accounts } = useAccounts();
   const { data: entries } = useJournalEntries();
+  const { data: budgetsData, isLoading: budgetsLoading } = useBudgets(parseInt(year), parseInt(month));
+  const upsertBudget = useUpsertBudget();
+
+  // Convert budgets array to map for easy lookup
+  const budgets = (budgetsData || []).reduce((acc, b) => {
+    acc[b.account_id] = b.amount;
+    return acc;
+  }, {} as Record<string, number>);
 
   // Filter entries by date range
   const startDate = `${year}-${month}-01`;
@@ -54,9 +62,6 @@ export default function AccountingBudget() {
   // Filter expense accounts for budget tracking
   const expenseAccounts = accounts?.filter(a => a.account_type === 'expense') || [];
   const revenueAccounts = accounts?.filter(a => a.account_type === 'revenue') || [];
-
-  // Demo budget data - in production this would come from a budgets table
-  const [budgets, setBudgets] = useState<Record<string, number>>({});
 
   const budgetItems: BudgetItem[] = expenseAccounts.map(account => {
     const actual = actualByAccount[account.id];
@@ -94,12 +99,15 @@ export default function AccountingBudget() {
   const [editAccountId, setEditAccountId] = useState('');
   const [editBudgetAmount, setEditBudgetAmount] = useState('');
 
-  const handleSaveBudget = () => {
+  const handleSaveBudget = async () => {
     if (editAccountId && editBudgetAmount) {
-      setBudgets(prev => ({
-        ...prev,
-        [editAccountId]: parseInt(editBudgetAmount) || 0,
-      }));
+      await upsertBudget.mutateAsync({
+        account_id: editAccountId,
+        year: parseInt(year),
+        month: parseInt(month),
+        amount: parseInt(editBudgetAmount) || 0,
+        budget_type: 'expense',
+      });
       setIsOpen(false);
       setEditAccountId('');
       setEditBudgetAmount('');
