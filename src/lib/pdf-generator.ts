@@ -62,17 +62,19 @@ interface ContractData {
   notes?: string;
 }
 
+// Default company info - will be overridden by actual company data
+// These are placeholder values shown only when company data is not provided
 const defaultCompanyInfo: CompanyInfo = {
-  name: '株式会社サンプル',
-  address: '東京都渋谷区...',
-  phone: '03-1234-5678',
-  email: 'info@example.com',
-  taxNumber: 'T1234567890123',
-  bankName: '〇〇銀行',
-  bankBranch: '渋谷支店',
-  accountType: '普通',
-  accountNumber: '1234567',
-  accountName: 'カ）サンプル',
+  name: '（会社名未設定）',
+  address: '（住所未設定）',
+  phone: '（電話番号未設定）',
+  email: '（メール未設定）',
+  taxNumber: '',
+  bankName: '',
+  bankBranch: '',
+  accountType: '',
+  accountNumber: '',
+  accountName: '',
 };
 
 // Cache for loaded font data

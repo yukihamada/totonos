@@ -539,11 +539,11 @@ export default function Settings() {
                   </div>
                   <div className="space-y-2">
                     <Label>口座番号</Label>
-                    <Input placeholder="1234567" />
+                    <Input placeholder="口座番号を入力" />
                   </div>
                   <div className="space-y-2">
                     <Label>口座名義</Label>
-                    <Input placeholder="カ）サンプル" />
+                    <Input placeholder="口座名義を入力" />
                   </div>
                 </div>
               </CardContent>

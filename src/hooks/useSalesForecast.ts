@@ -212,9 +212,9 @@ export function useSalesForecast(): SalesForecastResult {
       
       forecasts.push({
         month: monthKey,
-        predicted: Math.round(actual * (0.9 + Math.random() * 0.2)),
+        predicted: actual, // Use actual as the "predicted" for past months (no random variance)
         actual,
-        confidence: 95,
+        confidence: 100, // Past months have 100% confidence since we have actual data
         trend: actual > 0 ? 'up' : 'stable',
       });
     }

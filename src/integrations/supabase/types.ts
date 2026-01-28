@@ -605,6 +605,60 @@ export type Database = {
           },
         ]
       }
+      budgets: {
+        Row: {
+          account_id: string | null
+          amount: number
+          budget_type: string
+          company_id: string | null
+          created_at: string
+          id: string
+          month: number
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          account_id?: string | null
+          amount?: number
+          budget_type?: string
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          month: number
+          updated_at?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          budget_type?: string
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          month?: number
+          updated_at?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budgets_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budgets_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       buildings: {
         Row: {
           address_line1: string | null
