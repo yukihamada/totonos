@@ -63,69 +63,8 @@ interface PaymentLink {
   expiresAt?: Date;
 }
 
-const mockLinks: PaymentLink[] = [
-  {
-    id: '1',
-    name: 'Webサイト制作費用',
-    amount: 500000,
-    currency: 'JPY',
-    type: 'one_time',
-    url: 'https://pay.example.com/pl_abc123',
-    shortUrl: 'https://pay.ex/abc',
-    status: 'active',
-    views: 45,
-    payments: 3,
-    totalCollected: 1500000,
-    createdAt: new Date('2024-12-01'),
-    expiresAt: new Date('2025-03-01'),
-  },
-  {
-    id: '2',
-    name: ' 月額サポートプラン',
-    amount: 50000,
-    currency: 'JPY',
-    type: 'subscription',
-    url: 'https://pay.example.com/pl_def456',
-    shortUrl: 'https://pay.ex/def',
-    status: 'active',
-    views: 120,
-    payments: 15,
-    totalCollected: 750000,
-    createdAt: new Date('2024-10-15'),
-  },
-  {
-    id: '3',
-    name: 'コンサルティング費用',
-    amount: 100000,
-    currency: 'JPY',
-    type: 'one_time',
-    url: 'https://pay.example.com/pl_ghi789',
-    shortUrl: 'https://pay.ex/ghi',
-    status: 'completed',
-    views: 5,
-    payments: 1,
-    totalCollected: 100000,
-    createdAt: new Date('2024-11-20'),
-  },
-  {
-    id: '4',
-    name: 'トレーニング費用',
-    amount: 30000,
-    currency: 'JPY',
-    type: 'one_time',
-    url: 'https://pay.example.com/pl_jkl012',
-    shortUrl: 'https://pay.ex/jkl',
-    status: 'expired',
-    views: 10,
-    payments: 0,
-    totalCollected: 0,
-    createdAt: new Date('2024-09-01'),
-    expiresAt: new Date('2024-12-01'),
-  },
-];
-
 export default function PaymentLinks() {
-  const [links, setLinks] = useState<PaymentLink[]>(mockLinks);
+  const [links, setLinks] = useState<PaymentLink[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -144,14 +83,15 @@ export default function PaymentLinks() {
       return;
     }
 
+    const linkId = crypto.randomUUID();
     const newLink: PaymentLink = {
-      id: crypto.randomUUID(),
+      id: linkId,
       name: formData.name,
       amount: Number(formData.amount),
       currency: formData.currency,
       type: formData.type,
-      url: `https://pay.example.com/pl_${Math.random().toString(36).substring(7)}`,
-      shortUrl: `https://pay.ex/${Math.random().toString(36).substring(7)}`,
+      url: `${window.location.origin}/pay/${linkId}`,
+      shortUrl: `${window.location.origin}/pay/${linkId.substring(0, 8)}`,
       status: 'active',
       views: 0,
       payments: 0,

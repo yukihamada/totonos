@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface ContractAlert {
   id: string;
@@ -12,15 +14,6 @@ export interface ContractAlert {
   createdAt: string;
 }
 
-// Mock contract data for alerts
-const mockContracts = [
-  { id: '1', title: '業務委託契約', clientName: '株式会社ABC', validUntil: '2026-01-20', status: 'active' },
-  { id: '2', title: '保守契約', clientName: 'DEF株式会社', validUntil: '2026-01-25', status: 'active' },
-  { id: '3', title: 'ライセンス契約', clientName: 'GHI商事', validUntil: '2026-02-15', status: 'active' },
-  { id: '4', title: '秘密保持契約', clientName: 'JKL工業', validUntil: '2026-03-01', status: 'active' },
-  { id: '5', title: 'サービス契約', clientName: 'MNO株式会社', validUntil: '2025-12-31', status: 'active' },
-];
-
 function getAlertType(daysRemaining: number): ContractAlert['alertType'] {
   if (daysRemaining < 0) return 'expired';
   if (daysRemaining <= 7) return 'critical';
@@ -28,51 +21,67 @@ function getAlertType(daysRemaining: number): ContractAlert['alertType'] {
   return 'upcoming';
 }
 
-function generateAlerts(): ContractAlert[] {
-  const today = new Date();
-
-  return mockContracts.map(contract => {
-    const validUntil = new Date(contract.validUntil);
-    const diffTime = validUntil.getTime() - today.getTime();
-    const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    return {
-      id: `alert-${contract.id}`,
-      contractId: contract.id,
-      contractTitle: contract.title,
-      clientName: contract.clientName,
-      validUntil: contract.validUntil,
-      daysRemaining,
-      alertType: getAlertType(daysRemaining),
-      status: 'active' as const,
-      createdAt: new Date().toISOString(),
-    };
-  }).filter(alert => alert.daysRemaining <= 90); // Only show alerts for next 90 days
-}
-
 export function useContractAlerts() {
-  const [alerts, setAlerts] = useState<ContractAlert[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [alertStatuses, setAlertStatuses] = useState<Record<string, 'active' | 'dismissed' | 'acknowledged'>>({});
 
-  useEffect(() => {
-    // Simulate API call
-    const timer = setTimeout(() => {
-      setAlerts(generateAlerts());
-      setIsLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, []);
+  const { data: contracts = [], isLoading } = useQuery({
+    queryKey: ['contract-alerts'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from('contracts')
+        .select(`
+          id,
+          title,
+          valid_until,
+          status,
+          client:client_id (
+            name
+          )
+        `)
+        .eq('user_id', user.id)
+        .not('valid_until', 'is', null)
+        .in('status', ['draft', 'sent', 'signed']);
+
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const alerts: ContractAlert[] = contracts
+    .map(contract => {
+      const validUntil = new Date(contract.valid_until as string);
+      const today = new Date();
+      const diffTime = validUntil.getTime() - today.getTime();
+      const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      // Only show alerts for contracts expiring within 90 days or already expired
+      if (daysRemaining > 90) return null;
+
+      const alertId = `alert-${contract.id}`;
+      return {
+        id: alertId,
+        contractId: contract.id,
+        contractTitle: contract.title,
+        clientName: (contract.client as any)?.name || '取引先不明',
+        validUntil: contract.valid_until as string,
+        daysRemaining,
+        alertType: getAlertType(daysRemaining),
+        status: alertStatuses[alertId] || 'active' as const,
+        createdAt: new Date().toISOString(),
+      };
+    })
+    .filter((alert): alert is ContractAlert => alert !== null)
+    .sort((a, b) => a.daysRemaining - b.daysRemaining);
 
   const dismissAlert = useCallback((alertId: string) => {
-    setAlerts(prev => prev.map(alert =>
-      alert.id === alertId ? { ...alert, status: 'dismissed' as const } : alert
-    ));
+    setAlertStatuses(prev => ({ ...prev, [alertId]: 'dismissed' }));
   }, []);
 
   const acknowledgeAlert = useCallback((alertId: string) => {
-    setAlerts(prev => prev.map(alert =>
-      alert.id === alertId ? { ...alert, status: 'acknowledged' as const } : alert
-    ));
+    setAlertStatuses(prev => ({ ...prev, [alertId]: 'acknowledged' }));
   }, []);
 
   const activeAlerts = alerts.filter(a => a.status === 'active');

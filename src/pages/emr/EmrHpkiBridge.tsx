@@ -30,9 +30,7 @@ export default function EmrHpkiBridge() {
   const { status, readers, loading, error, refreshStatus, sign } = useHpkiBridge();
   const { toast } = useToast();
 
-  const [textData, setTextData] = useState(
-    "診療記録サンプル\n患者名: 田中太郎\n診察日: 2024-01-16\n所見: 本日の診察にて異常なし。"
-  );
+  const [textData, setTextData] = useState("");
   const [pin, setPin] = useState("");
   const [signatureResult, setSignatureResult] = useState<string | null>(null);
   const [signing, setSigning] = useState(false);
