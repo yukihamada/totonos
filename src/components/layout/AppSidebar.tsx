@@ -353,13 +353,13 @@ const urlMap: Record<string, string> = {
   'advance-payment': '/advance-payment',
   'expense-settings': '/expenses/settings',
   projects: '/projects',
-  gantt: '/projects/gantt',
-  kanban: '/projects/kanban',
+  gantt: '/projects', // Redirects to projects list (Gantt requires project ID)
+  kanban: '/projects', // Redirects to projects list (Kanban requires project ID)
   timelog: '/timelog',
   'delivery-notes': '/delivery-notes',
   integrations: '/integrations',
   'inbound-emails': '/inbound-emails',
-  'slack-integration': '/integrations/slack',
+  'slack-integration': '/slack-integration',
   'company-settings': '/company-settings',
   backup: '/settings/backup',
   usage: '/usage',
