@@ -63,6 +63,30 @@ function getResourceLabel(resource: string): string {
   return labels[resource] || resource;
 }
 
+// Get details from query_details
+function extractDetails(queryDetails: any, operation: string): string | undefined {
+  if (!queryDetails) return undefined;
+  
+  if (operation === 'INSERT' && queryDetails.invoice_number) {
+    return `請求書番号: ${queryDetails.invoice_number}`;
+  }
+  if (operation === 'INSERT' && queryDetails.deal_name) {
+    return `商談名: ${queryDetails.deal_name}`;
+  }
+  if (operation === 'INSERT' && queryDetails.company_name) {
+    return `会社名: ${queryDetails.company_name}`;
+  }
+  if (operation === 'INSERT' && queryDetails.title) {
+    return `タイトル: ${queryDetails.title}`;
+  }
+  if (operation === 'UPDATE' && queryDetails.new) {
+    const changes = Object.keys(queryDetails.new).length;
+    return `${changes}項目を変更`;
+  }
+  
+  return undefined;
+}
+
 export function useAuditLog() {
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -73,153 +97,65 @@ export function useAuditLog() {
     const fetchAuditLogs = async () => {
       setIsLoading(true);
       try {
-        // Fetch from data_access_audit_log if available
-        const { data: auditData } = await supabase
+        // Fetch from data_access_audit_log with user profile info
+        const { data: auditData, error } = await supabase
           .from('data_access_audit_log')
           .select('*')
           .order('created_at', { ascending: false })
-          .limit(100);
+          .limit(200);
+
+        if (error) {
+          console.error('Failed to fetch audit logs:', error);
+          setLogs([]);
+          return;
+        }
+
+        // Get unique user IDs
+        const userIds = [...new Set((auditData || []).map(e => e.user_id).filter(Boolean))];
+        
+        // Fetch user profiles (only display_name exists in profiles table)
+        const profileMap = new Map<string, { display_name: string | null }>();
+        if (userIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('user_id, display_name')
+            .in('user_id', userIds);
+          
+          if (profiles) {
+            for (const profile of profiles) {
+              profileMap.set(profile.user_id, {
+                display_name: profile.display_name,
+              });
+            }
+          }
+        }
 
         const auditLogs: AuditLogEntry[] = [];
 
         // Convert audit log data
         if (auditData && auditData.length > 0) {
           for (const entry of auditData) {
+            const profile = profileMap.get(entry.user_id);
+            const queryDetails = entry.query_details as Record<string, any> | null;
+            
             auditLogs.push({
               id: entry.id,
               timestamp: entry.created_at,
               userId: entry.user_id || 'unknown',
-              userName: 'ユーザー',
+              userName: profile?.display_name || 'ユーザー',
               userEmail: '',
               action: mapAction(entry.operation),
               resource: entry.table_name,
               resourceId: entry.record_id || undefined,
-              resourceName: `${getResourceLabel(entry.table_name)}`,
-              details: entry.record_count ? `${entry.record_count}件のデータにアクセス` : undefined,
+              resourceName: getResourceLabel(entry.table_name),
+              details: extractDetails(queryDetails, entry.operation) || 
+                (entry.record_count ? `${entry.record_count}件のデータにアクセス` : undefined),
               ipAddress: entry.ip_address || '不明',
               userAgent: entry.user_agent || '不明',
               status: 'success',
-              metadata: entry.query_details as Record<string, unknown> || undefined,
+              metadata: queryDetails || undefined,
             });
           }
-        }
-
-        // If no audit logs, fetch recent activities from main tables
-        if (auditLogs.length === 0) {
-          // Fetch recent invoices
-          const { data: invoices } = await supabase
-            .from('invoices')
-            .select('id, invoice_number, total_amount, status, created_at, updated_at')
-            .order('updated_at', { ascending: false })
-            .limit(20);
-
-          if (invoices) {
-            for (const inv of invoices) {
-              const isNew = new Date(inv.created_at).getTime() === new Date(inv.updated_at).getTime();
-              auditLogs.push({
-                id: `inv-${inv.id}`,
-                timestamp: inv.updated_at,
-                userId: 'current-user',
-                userName: 'ユーザー',
-                userEmail: '',
-                action: isNew ? 'create' : 'update',
-                resource: 'invoices',
-                resourceId: inv.id,
-                resourceName: `請求書 ${inv.invoice_number}`,
-                details: `¥${Number(inv.total_amount).toLocaleString()}`,
-                ipAddress: '',
-                userAgent: '',
-                status: 'success',
-              });
-            }
-          }
-
-          // Fetch recent contracts
-          const { data: contracts } = await supabase
-            .from('contracts')
-            .select('id, title, status, created_at, updated_at')
-            .order('updated_at', { ascending: false })
-            .limit(20);
-
-          if (contracts) {
-            for (const contract of contracts) {
-              const isNew = new Date(contract.created_at).getTime() === new Date(contract.updated_at).getTime();
-              auditLogs.push({
-                id: `con-${contract.id}`,
-                timestamp: contract.updated_at,
-                userId: 'current-user',
-                userName: 'ユーザー',
-                userEmail: '',
-                action: isNew ? 'create' : 'update',
-                resource: 'contracts',
-                resourceId: contract.id,
-                resourceName: `契約書: ${contract.title}`,
-                details: `ステータス: ${contract.status}`,
-                ipAddress: '',
-                userAgent: '',
-                status: 'success',
-              });
-            }
-          }
-
-          // Fetch recent leads
-          const { data: leads } = await supabase
-            .from('leads')
-            .select('id, company_name, status, created_at, updated_at')
-            .order('updated_at', { ascending: false })
-            .limit(20);
-
-          if (leads) {
-            for (const lead of leads) {
-              const isNew = new Date(lead.created_at).getTime() === new Date(lead.updated_at).getTime();
-              auditLogs.push({
-                id: `lead-${lead.id}`,
-                timestamp: lead.updated_at,
-                userId: 'current-user',
-                userName: 'ユーザー',
-                userEmail: '',
-                action: isNew ? 'create' : 'update',
-                resource: 'leads',
-                resourceId: lead.id,
-                resourceName: `リード: ${lead.company_name}`,
-                details: `ステータス: ${lead.status}`,
-                ipAddress: '',
-                userAgent: '',
-                status: 'success',
-              });
-            }
-          }
-
-          // Fetch recent deals
-          const { data: deals } = await supabase
-            .from('deals')
-            .select('id, deal_name, stage, amount, created_at, updated_at')
-            .order('updated_at', { ascending: false })
-            .limit(20);
-
-          if (deals) {
-            for (const deal of deals) {
-              const isNew = new Date(deal.created_at).getTime() === new Date(deal.updated_at).getTime();
-              auditLogs.push({
-                id: `deal-${deal.id}`,
-                timestamp: deal.updated_at,
-                userId: 'current-user',
-                userName: 'ユーザー',
-                userEmail: '',
-                action: isNew ? 'create' : 'update',
-                resource: 'deals',
-                resourceId: deal.id,
-                resourceName: `商談: ${deal.deal_name}`,
-                details: deal.amount ? `¥${Number(deal.amount).toLocaleString()}` : `ステージ: ${deal.stage}`,
-                ipAddress: '',
-                userAgent: '',
-                status: 'success',
-              });
-            }
-          }
-
-          // Sort by timestamp
-          auditLogs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         }
 
         setLogs(auditLogs);
@@ -239,6 +175,14 @@ export function useAuditLog() {
     if (filters.resource && log.resource !== filters.resource) return false;
     if (filters.userId && log.userId !== filters.userId) return false;
     if (filters.status && log.status !== filters.status) return false;
+    if (filters.startDate) {
+      const logDate = new Date(log.timestamp);
+      if (logDate < new Date(filters.startDate)) return false;
+    }
+    if (filters.endDate) {
+      const logDate = new Date(log.timestamp);
+      if (logDate > new Date(filters.endDate)) return false;
+    }
     if (filters.searchQuery) {
       const query = filters.searchQuery.toLowerCase();
       const searchFields = [

@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -20,7 +19,6 @@ import {
   Check,
   AlertTriangle,
   Calendar,
-  Building2,
   DollarSign,
   Tag,
   Loader2,
@@ -28,6 +26,8 @@ import {
   Edit,
   Save,
 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface OCRResult {
   id: string;
@@ -54,25 +54,47 @@ const categories = [
   { value: 'other', label: 'その他' },
 ];
 
-// Mock OCR processing
-function simulateOCR(imageUrl: string): Promise<OCRResult['extractedData']> {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // Simulate random vendor data
-      const vendors = ['株式会社ABC商事', 'スーパーマーケットXYZ', 'カフェ・モカ', 'オフィス用品ストア', 'タクシー株式会社'];
-      const cats = ['supplies', 'meals', 'transportation', 'communication', 'other'];
+// Map API category to our categories
+function mapCategory(category: string | null): string {
+  if (!category) return 'other';
+  const mapping: Record<string, string> = {
+    '交通費': 'transportation',
+    '飲食費': 'meals',
+    '消耗品': 'supplies',
+    '通信費': 'communication',
+    'その他': 'other',
+  };
+  return mapping[category] || 'other';
+}
 
-      resolve({
-        vendor: vendors[Math.floor(Math.random() * vendors.length)],
-        date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        amount: Math.floor(Math.random() * 50000) + 500,
-        taxAmount: Math.floor(Math.random() * 5000) + 50,
-        category: cats[Math.floor(Math.random() * cats.length)],
-        description: 'レシートから自動読み取り',
-        confidence: 0.85 + Math.random() * 0.14,
-      });
-    }, 2000);
+// Real OCR processing using edge function
+async function processOCR(imageBase64: string): Promise<OCRResult['extractedData']> {
+  const { data, error } = await supabase.functions.invoke('ocr-receipt', {
+    body: {
+      imageBase64,
+      saveToDb: true,
+      applyLegalTimestamp: true,
+    },
   });
+
+  if (error) {
+    throw new Error(error.message || 'OCR処理に失敗しました');
+  }
+
+  const result = data?.result;
+  if (!result) {
+    throw new Error('OCR結果が取得できませんでした');
+  }
+
+  return {
+    vendor: result.vendor || '不明',
+    date: result.date || new Date().toISOString().split('T')[0],
+    amount: result.total || 0,
+    taxAmount: result.taxAmount || 0,
+    category: mapCategory(result.category),
+    description: 'OCRで自動読み取り',
+    confidence: result.confidence || 0,
+  };
 }
 
 function formatCurrency(amount: number): string {
@@ -252,6 +274,17 @@ function ReceiptCard({ result, onDelete, onSave }: {
 export default function ReceiptCapture() {
   const [results, setResults] = useState<OCRResult[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+
+  // Convert file to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
 
   const handleFileUpload = async (files: FileList | null) => {
     if (!files) return;
@@ -268,16 +301,35 @@ export default function ReceiptCapture() {
         status: 'processing',
       }]);
 
-      // Simulate OCR
+      // Process with real OCR
       try {
-        const extractedData = await simulateOCR(imageUrl);
+        const base64 = await fileToBase64(file);
+        const extractedData = await processOCR(base64);
         setResults(prev => prev.map(r =>
           r.id === id ? { ...r, status: 'completed', extractedData } : r
         ));
-      } catch {
+        
+        toast({
+          title: 'OCR処理完了',
+          description: extractedData.vendor 
+            ? `${extractedData.vendor} - ¥${extractedData.amount.toLocaleString()}`
+            : 'レシート情報を抽出しました',
+        });
+      } catch (error) {
+        console.error('OCR error:', error);
         setResults(prev => prev.map(r =>
-          r.id === id ? { ...r, status: 'error', error: '読み取りに失敗しました' } : r
+          r.id === id ? { 
+            ...r, 
+            status: 'error', 
+            error: error instanceof Error ? error.message : '読み取りに失敗しました' 
+          } : r
         ));
+        
+        toast({
+          title: 'OCRエラー',
+          description: error instanceof Error ? error.message : '読み取りに失敗しました',
+          variant: 'destructive',
+        });
       }
     }
   };
