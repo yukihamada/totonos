@@ -136,6 +136,7 @@ import { ChatWidget } from "./components/chat/ChatWidget";
 import LineSettings from "./pages/LineSettings";
 import Integrations from "./pages/Integrations";
 import GoogleChatIntegration from "./pages/GoogleChatIntegration";
+import InboundEmails from "./pages/InboundEmails";
 // Phase 4: Expense Management
 import Expenses from "./pages/Expenses";
 import ExpenseNew from "./pages/ExpenseNew";
@@ -356,6 +357,7 @@ function AppRoutes() {
       <Route path="/email-integration" element={<ProtectedRoute><EmailIntegration /></ProtectedRoute>} />
       <Route path="/slack-integration" element={<ProtectedRoute><SlackIntegration /></ProtectedRoute>} />
       <Route path="/google-chat-integration" element={<ProtectedRoute><GoogleChatIntegration /></ProtectedRoute>} />
+      <Route path="/inbound-emails" element={<ProtectedRoute><InboundEmails /></ProtectedRoute>} />
       {/* Phase 2 Features (Differentiation) */}
       <Route path="/wiki-hierarchy" element={<ProtectedRoute><WikiHierarchy /></ProtectedRoute>} />
       <Route path="/sales-forecast" element={<ProtectedRoute><SalesForecast /></ProtectedRoute>} />
@@ -363,6 +365,7 @@ function AppRoutes() {
       <Route path="/social-insurance" element={<ProtectedRoute><SocialInsurance /></ProtectedRoute>} />
       <Route path="/approval-workflow" element={<ProtectedRoute><ApprovalWorkflow /></ProtectedRoute>} />
       <Route path="/sso-settings" element={<ProtectedRoute><SSOSettings /></ProtectedRoute>} />
+      <Route path="/settings/sso" element={<Navigate to="/sso-settings" replace />} />
       {/* Credit System */}
       <Route path="/credits" element={<ProtectedRoute><Credits /></ProtectedRoute>} />
       <Route path="/credit-logs" element={<ProtectedRoute><CreditLogs /></ProtectedRoute>} />

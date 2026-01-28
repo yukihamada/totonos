@@ -69,8 +69,9 @@ const pages: SearchResult[] = [
   { id: 'products', type: 'page', title: '商品管理', url: '/products', icon: Package },
   { id: 'inbound-emails', type: 'page', title: '受信メール', url: '/inbound-emails', icon: Mail },
   { id: 'line-settings', type: 'page', title: 'LINE連携', url: '/line-settings', icon: MessageSquare },
+  { id: 'slack-integration', type: 'page', title: 'Slack連携', url: '/slack-integration', icon: MessageSquare },
   { id: 'settings', type: 'page', title: '設定', url: '/settings', icon: Settings },
-  { id: 'sso', type: 'page', title: 'SSO設定', url: '/settings/sso', icon: Shield },
+  { id: 'sso', type: 'page', title: 'SSO設定', url: '/sso-settings', icon: Shield },
 ];
 
 export interface GlobalSearchRef {
