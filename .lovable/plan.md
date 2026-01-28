@@ -1,167 +1,156 @@
 
+# 監査ログとダミーデータの実データ化計画
 
-# 包括的テスト結果・修正・UI改善計画
+## 現状の問題点
 
-## 発見された問題
+### 1. 監査ログ (`AuditLog.tsx`)
+- `data_access_audit_log` テーブルは存在するが、データが空
+- フォールバック処理で `invoices`, `contracts`, `leads`, `deals` からデータを取得している（疑似ログ）
+- **問題**: 実際の操作履歴が記録されていない
 
-### 1. AIツールのenum不整合（重要度：高）
+### 2. EMR売上レポート (`EmrSalesReport.tsx`)
+- `generateMockDailySales()` 関数で `Math.random()` を使ったダミーデータ生成
+- **問題**: 実際のデータ (`emr_billing_details`, `emr_receipts`) が使われていない
 
-#### 1-A: HRツールの `employee_status` 不整合
-**ファイル**: `supabase/functions/chat/tools/hr.ts` (Line 16, 95)
+### 3. AI売上予測 (`SalesForecast.tsx`)
+- `monthlyForecast` と `dealForecasts` がハードコードされた配列
+- **問題**: 実際の商談データ (`deals`) から集計されていない
 
-| AIツール定義 | データベースenum |
-|------------|-----------------|
-| `active, inactive, on_leave` | `active, on_leave, resigned` |
+### 4. レシートOCR (`ReceiptCapture.tsx`)
+- `simulateOCR()` 関数がダミーデータを返している
+- **問題**: 実際の `ocr-receipt` Edge Function が既に存在するが未使用
 
-`inactive` が存在せず、`resigned`（退職）が抜けています。
-
----
-
-### 2. UI/UX改善提案
-
-#### 2-A: リード管理ページ (Leads.tsx)
-| 現状 | 改善案 |
-|-----|-------|
-| ステータスフィルターがない | ドロップダウンでステータスフィルター追加 |
-| 一括操作ができない | チェックボックスで複数選択→一括ステータス変更 |
-| リードから商談への動線が弱い | 「商談を作成」アクションをドロップダウンに追加 |
-
-#### 2-B: 商談パイプライン (Deals.tsx / Pipeline.tsx)
-| 現状 | 改善案 |
-|-----|-------|
-| ドラッグ中の視覚フィードバックが弱い | ドラッグ中カードにシャドウ＆スケール効果追加 |
-| カードの情報が少ない | ホバー時に担当者・次回アクション日表示 |
-| 重複ページ（Deals.tsx, Pipeline.tsx） | 統合またはナビゲーションで明確化 |
-
-#### 2-C: 従業員管理 (Employees.tsx)
-| 現状 | 改善案 |
-|-----|-------|
-| 部署・ステータスフィルターがない | フィルタードロップダウン追加 |
-| 詳細ページへの動線が弱い | 行クリックで詳細表示 |
-
-#### 2-D: グローバル検索 (GlobalSearch.tsx)
-| 現状 | 改善案 |
-|-----|-------|
-| 検索結果のハイライトなし | マッチ文字列を太字またはハイライト表示 |
-| 2文字以上で検索開始 | 日本語の場合1文字でも検索開始を検討 |
-
-#### 2-E: ダッシュボード動線
-| 現状 | 改善案 |
-|-----|-------|
-| カード内のアクションが限定的 | 各カードにクイックアクションボタン追加 |
-| パイプラインサマリーからの遷移が弱い | クリックで該当ステージへ直接移動 |
+### 5. Web解析 (`WebAnalytics.tsx`)
+- データ取得ロジックなし、プレースホルダーのみ
+- **問題**: 解析データを表示する仕組みがない
 
 ---
 
 ## 修正計画
 
-### Phase 1: 重要なバグ修正
+### Phase 1: 監査ログの実装（高優先度）
 
-| ファイル | 修正内容 | 優先度 |
-|---------|---------|-------|
-| `supabase/functions/chat/tools/hr.ts:16` | `list_employees`のstatus enumを`active, on_leave, resigned`に修正 | 高 |
-| `supabase/functions/chat/tools/hr.ts:95` | `employee_update`のstatus enumも同様に修正 | 高 |
+#### 1-A: データベーストリガーの追加
+主要テーブルに INSERT/UPDATE/DELETE トリガーを追加し、自動的に `data_access_audit_log` にログを記録する。
 
-### Phase 2: UI改善（段階的実装）
+対象テーブル:
+- `invoices` (請求書)
+- `contracts` (契約書)
+- `leads` (リード)
+- `deals` (商談)
+- `clients` (取引先)
+- `estimates` (見積書)
+- `employees` (従業員)
+- `journal_entries` (仕訳)
 
-| 改善項目 | ファイル | 工数 |
-|---------|---------|-----|
-| リードにステータスフィルター追加 | `src/pages/Leads.tsx` | 低 |
-| リードから商談作成アクション追加 | `src/pages/Leads.tsx` | 低 |
-| 商談カードのドラッグエフェクト強化 | `src/pages/Deals.tsx`, `src/pages/Pipeline.tsx` | 低 |
-| 従業員にフィルター追加 | `src/pages/Employees.tsx` | 低 |
-| 検索結果ハイライト | `src/components/GlobalSearch.tsx` | 中 |
+#### 1-B: ログ記録関数の作成
 
----
-
-## 技術的詳細
-
-### 修正1: HRツール employee_status enum
-
-```typescript
-// 修正前 (hr.ts Line 16)
-enum: ["active", "inactive", "on_leave"],
-
-// 修正後
-enum: ["active", "on_leave", "resigned"],
-description: "ステータスでフィルタ: active(在籍), on_leave(休職中), resigned(退職)",
+```sql
+CREATE OR REPLACE FUNCTION public.log_table_change()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.data_access_audit_log (
+    user_id,
+    table_name,
+    operation,
+    record_id,
+    query_details,
+    created_at
+  ) VALUES (
+    COALESCE(auth.uid(), '00000000-0000-0000-0000-000000000000'::uuid),
+    TG_TABLE_NAME,
+    TG_OP,
+    CASE 
+      WHEN TG_OP = 'DELETE' THEN OLD.id 
+      ELSE NEW.id 
+    END,
+    CASE 
+      WHEN TG_OP = 'INSERT' THEN to_jsonb(NEW)
+      WHEN TG_OP = 'UPDATE' THEN jsonb_build_object('old', to_jsonb(OLD), 'new', to_jsonb(NEW))
+      WHEN TG_OP = 'DELETE' THEN to_jsonb(OLD)
+    END,
+    now()
+  );
+  RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
+END;
+$$;
 ```
 
-```typescript
-// 修正前 (hr.ts Line 95)
-enum: ["active", "inactive", "on_leave"],
+#### 1-C: useAuditLog フックの更新
+- フォールバック処理を削除
+- ユーザー情報（名前、メール）を `profiles` テーブルから取得
+- フィルタリングをサーバーサイドで実行
 
-// 修正後
-enum: ["active", "on_leave", "resigned"],
-description: "ステータス: active(在籍), on_leave(休職中), resigned(退職)",
-```
+### Phase 2: EMR売上レポートの実データ化
 
-### 改善1: リードにステータスフィルター追加
+#### 2-A: `useEmrSalesReport` フックの作成
 
 ```typescript
-// Leads.tsx に追加
-const [statusFilter, setStatusFilter] = useState<string>("all");
-
-// フィルタリングロジック更新
-const filtered = leads.filter(l => {
-  const matchesSearch = l.company_name.toLowerCase().includes(search.toLowerCase()) ||
-    l.contact_name?.toLowerCase().includes(search.toLowerCase());
-  const matchesStatus = statusFilter === "all" || l.status === statusFilter;
-  return matchesSearch && matchesStatus;
-});
-
-// UIにフィルタードロップダウン追加
-<Select value={statusFilter} onValueChange={setStatusFilter}>
-  <SelectTrigger className="w-[180px]">
-    <SelectValue placeholder="ステータス" />
-  </SelectTrigger>
-  <SelectContent>
-    <SelectItem value="all">すべて</SelectItem>
-    {Object.entries(leadStatusLabels).map(([k, v]) => 
-      <SelectItem key={k} value={k}>{v}</SelectItem>
-    )}
-  </SelectContent>
-</Select>
+// データベースから実売上データを取得
+const { data: billingData } = await supabase
+  .from('emr_billing_details')
+  .select(`
+    id,
+    billing_date,
+    total_points,
+    insurance_type,
+    patient_amount,
+    insurance_amount,
+    patient:patient_id (id, visit_type)
+  `)
+  .eq('company_id', currentCompany.id)
+  .gte('billing_date', startDate)
+  .lte('billing_date', endDate);
 ```
 
-### 改善2: 商談カードのドラッグエフェクト
+#### 2-B: 集計ロジックの実装
+日付でグループ化し、保険種別ごとの集計を実行
+
+### Phase 3: AI売上予測の実データ化
+
+#### 3-A: 商談データからの予測生成
 
 ```typescript
-// Deals.tsx カードにドラッグ状態を追加
-const [isDragging, setIsDragging] = useState<string | null>(null);
+// 実際の商談データを取得
+const { data: deals } = await supabase
+  .from('deals')
+  .select('*')
+  .in('stage', ['initial', 'proposal', 'negotiation', 'contract'])
+  .order('expected_close_date', { ascending: true });
 
-<Card
-  key={deal.id}
-  draggable
-  onDragStart={(e) => {
-    handleDragStart(e, deal.id);
-    setIsDragging(deal.id);
-  }}
-  onDragEnd={() => setIsDragging(null)}
-  className={cn(
-    "cursor-move transition-all duration-200",
-    isDragging === deal.id 
-      ? "scale-105 shadow-xl opacity-75 rotate-2" 
-      : "hover:shadow-md"
-  )}
->
+// 月別に集計して予測を生成
+const monthlyData = groupByMonth(deals);
 ```
 
----
+#### 3-B: AIインサイトの動的生成
+既存のチャット機能を利用して、商談ごとのAI分析を取得
 
-## ユーザー動線の確認結果
+### Phase 4: レシートOCRの実連携
 
-### 良い点
-1. **グローバル検索**: Cmd+K でどこからでも検索可能
-2. **モバイル対応**: ボトムナビゲーション完備
-3. **AIアシスタント**: 右上とサイドバーからアクセス可能
-4. **ダッシュボードカスタマイズ**: ウィジェット編集機能あり
+#### 4-A: `simulateOCR` を Edge Function 呼び出しに置換
 
-### 改善が必要な点
-1. **CRM間の遷移**: リード→商談→顧客化の流れが分かりにくい
-2. **重複機能**: Deals.tsx と Pipeline.tsx が類似
-3. **空状態**: データがない時の誘導が弱い
-4. **クイックアクション**: 頻繁な操作（ステータス変更など）に手数がかかる
+```typescript
+async function processOCR(imageBase64: string): Promise<OCRResult> {
+  const { data, error } = await supabase.functions.invoke('ocr-receipt', {
+    body: { 
+      imageBase64,
+      saveToDb: true,
+      applyLegalTimestamp: true 
+    }
+  });
+  
+  if (error) throw error;
+  return data.result;
+}
+```
+
+### Phase 5: Web解析ページの実装（オプション）
+
+現時点ではプレースホルダーのままとし、将来的に Google Analytics や独自の解析システムと連携する設計を残す。
 
 ---
 
@@ -169,27 +158,63 @@ const [isDragging, setIsDragging] = useState<string | null>(null);
 
 | ファイル | 変更内容 |
 |---------|---------|
-| `supabase/functions/chat/tools/hr.ts` | employee_status enum修正 |
-| `src/pages/Leads.tsx` | ステータスフィルター、商談作成アクション追加 |
-| `src/pages/Deals.tsx` | ドラッグエフェクト強化 |
-| `src/pages/Pipeline.tsx` | ドラッグエフェクト強化 |
-| `src/pages/Employees.tsx` | フィルター追加 |
+| マイグレーション（新規） | `log_table_change()` 関数とトリガー作成 |
+| `src/hooks/useAuditLog.ts` | フォールバック削除、ユーザー情報取得追加 |
+| `src/hooks/useEmrSalesReport.ts` | 新規作成：実データ取得フック |
+| `src/pages/emr/EmrSalesReport.tsx` | `generateMockDailySales` を削除、フック使用 |
+| `src/hooks/useSalesForecast.ts` | 新規作成：商談データからの予測生成 |
+| `src/pages/SalesForecast.tsx` | ハードコードされた配列を削除、フック使用 |
+| `src/pages/ReceiptCapture.tsx` | `simulateOCR` を Edge Function 呼び出しに変更 |
+
+---
+
+## 技術的詳細
+
+### トリガー作成SQL例
+
+```sql
+-- invoices テーブル用トリガー
+CREATE TRIGGER audit_invoices_trigger
+  AFTER INSERT OR UPDATE OR DELETE ON public.invoices
+  FOR EACH ROW
+  EXECUTE FUNCTION public.log_table_change();
+
+-- 同様に他のテーブルにも適用
+```
+
+### useAuditLog 修正ポイント
+
+```typescript
+// 修正後：ユーザー情報を profiles から取得
+const { data: auditData } = await supabase
+  .from('data_access_audit_log')
+  .select(`
+    *,
+    profile:user_id (
+      display_name,
+      email
+    )
+  `)
+  .order('created_at', { ascending: false })
+  .limit(100);
+```
 
 ---
 
 ## 期待される結果
 
-1. **AIアシスタント経由の従業員管理が正常動作**
-   - 正しいステータス値（active, on_leave, resigned）でフィルタリング可能
+1. **監査ログがリアルタイムで記録される**
+   - 請求書、契約書、商談などの CRUD 操作がすべて記録される
+   - ユーザー名、操作内容、タイムスタンプが正確に表示される
 
-2. **リード管理の効率化**
-   - ステータスでの絞り込みで作業効率向上
-   - リードから直接商談を作成可能
+2. **EMR売上レポートが実データを表示**
+   - 診療報酬、会計データがデータベースから取得される
+   - ダミーデータが排除される
 
-3. **商談管理のUX向上**
-   - ドラッグ操作の視覚フィードバックで操作性改善
+3. **AI売上予測が実商談データに基づく**
+   - 実際の商談パイプラインから予測を生成
+   - より正確なビジネスインサイトを提供
 
-4. **全体的な操作性向上**
-   - 必要な情報への到達時間短縮
-   - 主要動線の明確化
-
+4. **レシートOCRが実際に動作**
+   - 写真をアップロードすると AI による OCR 処理が実行される
+   - 結果がデータベースに保存される
