@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { SettingsProvider } from "@/contexts/SettingsContext";
@@ -251,6 +251,12 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// Redirect component for /quotes/:id to /estimates/:id
+function QuoteRedirect() {
+  const { id } = useParams();
+  return <Navigate to={`/estimates/${id}`} replace />;
+}
+
 function AppRoutes() {
   const { user, loading } = useAuth();
 
@@ -272,6 +278,9 @@ function AppRoutes() {
       <Route path="/estimates" element={<ProtectedRoute><Estimates /></ProtectedRoute>} />
       <Route path="/estimates/:id" element={<ProtectedRoute><EstimateDetail /></ProtectedRoute>} />
       <Route path="/estimates/:id/edit" element={<ProtectedRoute><EstimateEdit /></ProtectedRoute>} />
+      {/* Alias for estimates */}
+      <Route path="/quotes" element={<Navigate to="/estimates" replace />} />
+      <Route path="/quotes/:id" element={<QuoteRedirect />} />
       <Route path="/purchase-orders" element={<ProtectedRoute><PurchaseOrders /></ProtectedRoute>} />
       <Route path="/purchase-orders/:id" element={<ProtectedRoute><PurchaseOrderDetail /></ProtectedRoute>} />
       <Route path="/purchase-orders/:id/edit" element={<ProtectedRoute><PurchaseOrderEdit /></ProtectedRoute>} />
