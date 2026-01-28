@@ -20,104 +20,32 @@ import {
   Lightbulb,
   BarChart3,
   Calendar,
-  DollarSign,
-  Users,
   ArrowUpRight,
-  ArrowDownRight,
   Sparkles,
   RefreshCw,
+  Loader2,
+  Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-interface ForecastData {
-  month: string;
-  predicted: number;
-  actual?: number;
-  confidence: number;
-  trend: 'up' | 'down' | 'stable';
-}
-
-interface DealForecast {
-  id: string;
-  name: string;
-  client: string;
-  amount: number;
-  probability: number;
-  expectedCloseDate: string;
-  stage: string;
-  aiInsight: string;
-  riskFactors: string[];
-  opportunities: string[];
-}
-
-// Mock forecast data
-const monthlyForecast: ForecastData[] = [
-  { month: '2024年1月', predicted: 12500000, actual: 12800000, confidence: 95, trend: 'up' },
-  { month: '2024年2月', predicted: 13200000, actual: 13100000, confidence: 92, trend: 'up' },
-  { month: '2024年3月', predicted: 14800000, actual: 15200000, confidence: 90, trend: 'up' },
-  { month: '2024年4月', predicted: 13500000, confidence: 85, trend: 'down' },
-  { month: '2024年5月', predicted: 14200000, confidence: 78, trend: 'stable' },
-  { month: '2024年6月', predicted: 16500000, confidence: 72, trend: 'up' },
-];
-
-const dealForecasts: DealForecast[] = [
-  {
-    id: '1',
-    name: 'エンタープライズプラン導入',
-    client: '株式会社ABC',
-    amount: 5000000,
-    probability: 85,
-    expectedCloseDate: '2024-04-15',
-    stage: '最終交渉',
-    aiInsight: '過去の類似案件と比較して、決裁者との面談回数が多く、成約確率が高いと予測されます。',
-    riskFactors: ['競合他社の参入', '予算期の変更の可能性'],
-    opportunities: ['追加オプションの提案余地あり', 'グループ会社への横展開'],
-  },
-  {
-    id: '2',
-    name: 'クラウド移行プロジェクト',
-    client: '株式会社XYZ',
-    amount: 3500000,
-    probability: 65,
-    expectedCloseDate: '2024-05-20',
-    stage: '提案中',
-    aiInsight: '技術担当者の反応は良好ですが、予算確保がまだ確定していません。4月の予算会議後にフォローアップを推奨します。',
-    riskFactors: ['予算未確定', '意思決定者との接触なし'],
-    opportunities: ['セキュリティ強化ニーズ', '保守運用サービスへの興味'],
-  },
-  {
-    id: '3',
-    name: 'データ分析基盤構築',
-    client: '株式会社DEF',
-    amount: 8000000,
-    probability: 45,
-    expectedCloseDate: '2024-06-30',
-    stage: 'ヒアリング中',
-    aiInsight: '大型案件ですが、社内の合意形成に時間がかかる傾向があります。キーマンへの定期的なアプローチが重要です。',
-    riskFactors: ['長期の意思決定プロセス', '社内政治の影響', '技術要件の変更'],
-    opportunities: ['DX推進予算の活用', '経営層への直接提案'],
-  },
-  {
-    id: '4',
-    name: 'SaaS年間契約更新',
-    client: '株式会社GHI',
-    amount: 2400000,
-    probability: 92,
-    expectedCloseDate: '2024-04-01',
-    stage: '契約更新',
-    aiInsight: '既存顧客の継続率から、高い確率で更新が見込まれます。アップセルの提案時期として最適です。',
-    riskFactors: [],
-    opportunities: ['ユーザー数の拡大提案', 'プレミアムプランへのアップグレード'],
-  },
-];
+import { useSalesForecast } from '@/hooks/useSalesForecast';
 
 export default function SalesForecast() {
   const [period, setPeriod] = useState('Q2');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  const {
+    monthlyForecast,
+    dealForecasts,
+    totalPredicted,
+    weightedPipeline,
+    avgConfidence,
+    isLoading,
+  } = useSalesForecast();
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 2000);
+    // The data will auto-refresh via react-query invalidation
+    setTimeout(() => setIsRefreshing(false), 1000);
   };
 
   const formatCurrency = (amount: number) => {
@@ -128,17 +56,15 @@ export default function SalesForecast() {
     }).format(amount);
   };
 
-  const totalPredicted = monthlyForecast
-    .filter((f) => !f.actual)
-    .reduce((sum, f) => sum + f.predicted, 0);
-
-  const weightedPipeline = dealForecasts.reduce(
-    (sum, d) => sum + d.amount * (d.probability / 100),
-    0
-  );
-
-  const avgConfidence =
-    monthlyForecast.reduce((sum, f) => sum + f.confidence, 0) / monthlyForecast.length;
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-96">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
