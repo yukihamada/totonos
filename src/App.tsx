@@ -111,6 +111,7 @@ import McpSettings from "./pages/McpSettings";
 import AISettings from "./pages/AISettings";
 import AIAgents from "./pages/AIAgents";
 import CompanySettings from "./pages/CompanySettings";
+import { BackupSettings } from "./pages/BackupSettings";
 // Legal
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
@@ -382,6 +383,7 @@ function AppRoutes() {
       <Route path="/developer" element={<ProtectedRoute><DeveloperSettings /></ProtectedRoute>} />
       <Route path="/api-docs" element={<ProtectedRoute><ApiDocs /></ProtectedRoute>} />
       <Route path="/mcp-settings" element={<ProtectedRoute><McpSettings /></ProtectedRoute>} />
+      <Route path="/settings/backup" element={<ProtectedRoute><BackupSettings /></ProtectedRoute>} />
       {/* Data Import */}
       <Route path="/data-import" element={<ProtectedRoute><DataImport /></ProtectedRoute>} />
       {/* Legal */}
