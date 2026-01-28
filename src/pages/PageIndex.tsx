@@ -209,9 +209,9 @@ const allPages: PageInfo[] = [
   { title: 'メール連携', url: '/email-integration', icon: Mail, description: 'メール連携設定', category: '連携' },
   { title: 'メール受信', url: '/inbound-emails', icon: Inbox, description: '受信メール一覧', category: '連携' },
   { title: 'メールテンプレート', url: '/email-templates', icon: Mail, description: 'メールテンプレート管理', category: '連携' },
-  { title: 'LINE連携', url: '/settings/line', icon: MessageCircle, description: 'LINE公式アカウント連携', category: '連携' },
-  { title: 'Slack連携', url: '/integrations/slack', icon: Hash, description: 'Slack連携設定', category: '連携' },
-  { title: 'SSO設定', url: '/settings/sso', icon: Key, description: 'シングルサインオン', category: '連携' },
+  { title: 'LINE連携', url: '/line-settings', icon: MessageCircle, description: 'LINE公式アカウント連携', category: '連携' },
+  { title: 'Slack連携', url: '/slack-integration', icon: Hash, description: 'Slack連携設定', category: '連携' },
+  { title: 'SSO設定', url: '/sso-settings', icon: Key, description: 'シングルサインオン', category: '連携' },
 
   // その他
   { title: 'レポート', url: '/reports', icon: BarChart3, description: 'ビジネスレポート・分析', category: 'その他' },
