@@ -9,15 +9,11 @@ Deno.serve(async (req) => {
   }
 
   const secrets = [
-    "GITHUB_OWNER",
-    "GITHUB_REPO", 
-    "GITHUB_TOKEN",
-    "LINE_CHANNEL_ACCESS_TOKEN",
-    "LINE_CHANNEL_SECRET",
-    "RESEND_API_KEY",
-    "STRIPE_SECRET_KEY",
-    "STRIPE_WEBHOOK_SECRET",
-    "VITE_E2E_TEST_KEY",
+    "SUPABASE_URL",
+    "SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "SUPABASE_DB_URL",
+    "SUPABASE_PUBLISHABLE_KEY",
   ];
 
   const result: Record<string, string | undefined> = {};
