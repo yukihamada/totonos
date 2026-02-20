@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Plus, TrendingUp, TrendingDown, Target, Loader2 } from 'lucide-react';
-import { useAccounts, useJournalEntries } from '@/hooks/useAccounting';
+import { ArrowLeft, Plus, TrendingUp, TrendingDown, Target, Loader2, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useAccounts, useJournalEntries, useInitializeAccounts } from '@/hooks/useAccounting';
 import { useBudgets, useUpsertBudget } from '@/hooks/useBudgets';
 import { formatCurrency } from '@/types/database';
 import { Badge } from '@/components/ui/badge';
@@ -30,10 +31,14 @@ export default function AccountingBudget() {
   const [month, setMonth] = useState(currentMonth.toString().padStart(2, '0'));
   const [isOpen, setIsOpen] = useState(false);
 
-  const { data: accounts } = useAccounts();
+  const { data: accounts, isLoading: accountsLoading } = useAccounts();
   const { data: entries } = useJournalEntries();
   const { data: budgetsData, isLoading: budgetsLoading } = useBudgets(parseInt(year), parseInt(month));
   const upsertBudget = useUpsertBudget();
+  const initializeAccounts = useInitializeAccounts();
+
+  // Auto-initialize accounts if none exist
+  const hasNoAccounts = !accountsLoading && accounts && accounts.length === 0;
 
   // Convert budgets array to map for easy lookup
   const budgets = (budgetsData || []).reduce((acc, b) => {
@@ -127,6 +132,26 @@ export default function AccountingBudget() {
             <h1 className="text-3xl font-bold tracking-tight">予算管理</h1>
             <p className="text-muted-foreground">予算と実績の比較・分析</p>
           </div>
+          {hasNoAccounts && (
+            <Alert className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>勘定科目が未設定です</AlertTitle>
+              <AlertDescription className="flex items-center gap-3">
+                <span>予算を設定するには、まず勘定科目を初期化してください。</span>
+                <Button
+                  size="sm"
+                  onClick={() => initializeAccounts.mutate()}
+                  disabled={initializeAccounts.isPending}
+                >
+                  {initializeAccounts.isPending ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />初期化中...</>
+                  ) : (
+                    '勘定科目を初期化'
+                  )}
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
           <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -147,11 +172,26 @@ export default function AccountingBudget() {
                       <SelectValue placeholder="勘定科目を選択" />
                     </SelectTrigger>
                     <SelectContent>
-                      {expenseAccounts.map(account => (
-                        <SelectItem key={account.id} value={account.id}>
-                          {account.account_code} - {account.account_name}
-                        </SelectItem>
-                      ))}
+                      {expenseAccounts.length > 0 && (
+                        <>
+                          <SelectItem value="__header_expense" disabled>── 費用科目 ──</SelectItem>
+                          {expenseAccounts.map(account => (
+                            <SelectItem key={account.id} value={account.id}>
+                              {account.account_code} - {account.account_name}
+                            </SelectItem>
+                          ))}
+                        </>
+                      )}
+                      {revenueAccounts.length > 0 && (
+                        <>
+                          <SelectItem value="__header_revenue" disabled>── 収益科目 ──</SelectItem>
+                          {revenueAccounts.map(account => (
+                            <SelectItem key={account.id} value={account.id}>
+                              {account.account_code} - {account.account_name}
+                            </SelectItem>
+                          ))}
+                        </>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
