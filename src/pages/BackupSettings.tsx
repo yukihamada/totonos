@@ -30,14 +30,19 @@ import { useAuth } from '@/hooks/useAuth';
 const EXPORT_CATEGORIES = [
   { value: 'all', label: '全データ', description: 'すべてのテーブルをエクスポート' },
   { value: 'financial', label: '財務データ', description: '請求書、仕訳、経費精算など' },
+  { value: 'accounting', label: '会計データ（freee/弥生対応）', description: '勘定科目・仕訳・予算（会計ソフト互換）' },
   { value: 'crm', label: 'CRMデータ', description: 'リード、商談、顧客など' },
   { value: 'hr', label: '人事データ', description: '従業員、勤怠、休暇申請など' },
   { value: 'contracts', label: '契約データ', description: '契約書、見積書、発注書など' },
+  { value: 'admin_stats', label: '管理者向け全社統計', description: '全社データの統計サマリ（管理者専用）' },
 ];
 
 const EXPORT_FORMATS = [
-  { value: 'json', label: 'JSON', icon: FileJson },
-  { value: 'csv', label: 'CSV', icon: FileSpreadsheet },
+  { value: 'json', label: 'JSON（完全データ）', icon: FileJson },
+  { value: 'csv', label: 'CSV（Excel互換）', icon: FileSpreadsheet },
+  { value: 'xlsx', label: 'Excel (.xlsx・複数シート)', icon: FileSpreadsheet },
+  { value: 'freee', label: 'freee CSV（会計のみ）', icon: FileSpreadsheet },
+  { value: 'yayoi', label: '弥生会計 CSV（会計のみ）', icon: FileSpreadsheet },
 ];
 
 interface BackupHistory {
